@@ -39,9 +39,9 @@ go.work.sum
 # macOS
 .DS_Store
 
-# IMPORTANT: public/ directory is NOT ignored
-# Hugo-generated static files in public/ are committed to the repository
-# This allows Docker builds without requiring Hugo installation
+# Hugo-generated static files (gitignored)
+# The public/ directory is generated during Docker builds
+# Run `hugo` locally for development preview
 public/
 
 .hugo_build.lock

@@ -24,13 +24,13 @@ Golang Web Server (Gin)
 Hugo Static Site Generator
   ├─ content/ → Markdown files (blog posts + static pages)
   ├─ themes/ → Hugo theme
-  └─ public/ → Generated static site (committed to repo)
+  └─ public/ → Generated static site (gitignored, built during Docker build)
 ```
 
 **Key Points:**
 - Go web server (Gin framework) serves pre-generated Hugo static files
-- Hugo site is generated during development and committed to the repository
-- The `public/` directory is NOT gitignored - it's version controlled
+- Hugo site is generated locally for development and during Docker build for production
+- The `public/` directory is gitignored - it's not version controlled
 - `/api/v1/*` namespace is reserved for future API development
 - Deployed as containerized app on Fly.io
 
@@ -52,7 +52,7 @@ Hugo Static Site Generator
 │   └── pages/               # Static pages (markdown)
 ├── themes/[theme-name]/     # Hugo theme
 ├── static/                  # Static assets
-├── public/                  # Generated site (committed to repo)
+├── public/                  # Generated site (gitignored, built at Docker time)
 ├── plans/                   # Implementation plans and phase documentation
 ├── Dockerfile               # Multi-stage build
 ├── fly.toml                 # Fly.io configuration
@@ -127,20 +127,20 @@ router.Static("/", "./public")
 
 ## Docker Build Process
 
-Since `public/` is committed to the repository:
+The `public/` directory is gitignored and generated during the Docker build:
 
 1. **Stage 1:** Build environment
+   - Install Hugo
+   - Copy Hugo content (content/, themes/, static/, config files)
+   - Run `hugo --minify` to generate static site
    - Copy Go source
    - Build Go binary
 
 2. **Stage 2:** Runtime image
-   - Copy Go binary and `public/` directory from repo
+   - Copy Go binary from build stage
+   - Copy generated `public/` directory from build stage
    - Expose port 8080
    - Run web server
-
-Alternatively, if regenerating during build is desired:
-- Add Hugo installation to build stage
-- Run `hugo --minify` before copying to runtime image
 
 ## Content Structure
 
@@ -158,11 +158,11 @@ Alternatively, if regenerating during build is desired:
 1. Create content branch: `git checkout -b post/my-new-post`
 2. Scaffold new post: `hugo new posts/my-new-post.md`
 3. Edit markdown content
-4. Generate static site: `hugo` or `hugo --minify`
+4. Generate static site locally: `hugo` or `hugo --minify`
 5. Run Go server locally to preview: `go run cmd/server/main.go`
-6. Commit both content and generated `public/` files
+6. Commit content source files (do NOT commit `public/` directory)
 7. Push and create PR
-8. Deploy: Merge to main → triggers Fly.io deployment
+8. Deploy: Merge to main → triggers Fly.io deployment (Docker build generates `public/`)
 
 ## Environment Variables
 
@@ -172,7 +172,7 @@ Alternatively, if regenerating during build is desired:
 
 ## Important Notes
 
-- **Hugo Usage:** Use Hugo CLI during development, not as Go library. The `public/` directory is committed to the repository.
-- **Static Site Generation:** Run `hugo` locally after content changes and commit the generated files. Docker build can skip Hugo generation since files are already in repo.
+- **Hugo Usage:** Use Hugo CLI during development, not as Go library. The `public/` directory is gitignored and generated during Docker builds.
+- **Static Site Generation:** Run `hugo` locally for development preview. The Docker build process installs Hugo and generates the production site automatically.
 - **API Namespace:** `/api/v1/*` is reserved for future development. Ensure static file serving doesn't conflict.
 - **URL Structure:** Permalink structure should be configured in Hugo config (e.g., `/posts/title/` vs `/YYYY/MM/title/`)

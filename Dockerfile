@@ -1,10 +1,22 @@
 # Multi-stage Dockerfile for Memos
-# Since public/ is committed to the repo, we don't need Hugo in the build
+# Builds Hugo site during Docker build (public/ is gitignored)
 
-# Stage 1: Build the Go binary
+# Stage 1: Build environment with Hugo and Go
 FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
+
+# Install Hugo
+RUN apk add --no-cache hugo
+
+# Copy Hugo content and configuration
+COPY content/ ./content/
+COPY themes/ ./themes/
+COPY static/ ./static/
+COPY config.yaml ./
+
+# Generate static site (minify is configured in config.yaml)
+RUN hugo
 
 # Copy go module files
 COPY go.mod go.sum ./
@@ -29,8 +41,8 @@ WORKDIR /app
 # Copy the binary from builder
 COPY --from=builder /app/server .
 
-# Copy the pre-generated public directory from repo
-COPY public/ ./public/
+# Copy the generated public directory from builder
+COPY --from=builder /app/public/ ./public/
 
 # Expose port 8080
 EXPOSE 8080
