@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+.gitmodules
+
+# Hugo source (not needed - we copy pre-built public/)
+content
+themes
+static
+layouts
+archetypes
+config.yaml
+hugo.toml
+
+# Documentation
+README.md
+CLAUDE.md
+plans/
+
+# Environment files
+.env
+.env.*
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+server
+memos
+
+# Go
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude
+.claude/
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
