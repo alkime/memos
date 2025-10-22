@@ -61,20 +61,23 @@ Hugo Static Site Generator
 
 ## Development Commands
 
+A Makefile is provided for common development tasks. Run `make help` to see all available targets.
+
 ### Local Development
 
-**Option 1: Direct Go execution**
+**Recommended: Using Make**
 ```bash
-# Generate site with Hugo CLI
-hugo
+# Generate Hugo site with local baseURL and run Go server
+make dev
+```
+
+**Manual approach (if needed)**
+```bash
+# Generate site with Hugo CLI (local baseURL)
+hugo --baseURL http://localhost:8080/
 
 # Run Go server
 go run cmd/server/main.go
-```
-
-**Option 2: Docker Compose (recommended)**
-```bash
-docker-compose up
 ```
 
 ### Content Creation
@@ -91,13 +94,19 @@ hugo new pages/about.md
 
 ```bash
 # Build Go binary
-go build -o server cmd/server/main.go
+make build
+
+# Generate Hugo site only
+make hugo
+
+# Clean generated files
+make clean
 
 # Build Docker image
-docker build -t memos .
+make docker-build
 
 # Run Docker container locally
-docker run -p 8080:8080 memos
+make docker-run
 ```
 
 ### Deployment
@@ -158,11 +167,10 @@ The `public/` directory is gitignored and generated during the Docker build:
 1. Create content branch: `git checkout -b post/my-new-post`
 2. Scaffold new post: `hugo new posts/my-new-post.md`
 3. Edit markdown content
-4. Generate static site locally: `hugo` or `hugo`
-5. Run Go server locally to preview: `go run cmd/server/main.go`
-6. Commit content source files (do NOT commit `public/` directory)
-7. Push and create PR
-8. Deploy: Merge to main → triggers Fly.io deployment (Docker build generates `public/`)
+4. Preview locally: `make dev` (calls `make hugo` to generate site, then runs Go server)
+5. Commit content source files (do NOT commit `public/` directory)
+6. Push and create PR
+7. Deploy: Merge to main → triggers Fly.io deployment (Docker build generates `public/`)
 
 ## Environment Variables
 
@@ -173,6 +181,7 @@ The `public/` directory is gitignored and generated during the Docker build:
 ## Important Notes
 
 - **Hugo Usage:** Use Hugo CLI during development, not as Go library. The `public/` directory is gitignored and generated during Docker builds.
-- **Static Site Generation:** Run `hugo` locally for development preview. The Docker build process installs Hugo and generates the production site automatically.
+- **Static Site Generation:** For local development, use `make dev` which runs `hugo --baseURL http://localhost:8080/` to ensure proper local URL handling. The Docker build process installs Hugo and generates the production site with the production baseURL from `hugo.yaml`.
+- **BaseURL Configuration:** The `hugo.yaml` file contains the production baseURL (`https://memos.fly.dev/`). Local development overrides this using the `--baseURL` flag via `make dev`.
 - **API Namespace:** `/api/v1/*` is reserved for future development. Ensure static file serving doesn't conflict.
 - **URL Structure:** Permalink structure should be configured in Hugo config (e.g., `/posts/title/` vs `/YYYY/MM/title/`)
