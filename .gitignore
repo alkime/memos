@@ -8,6 +8,10 @@
 *.so
 *.dylib
 
+# Project-specific binaries
+server
+memos
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -26,7 +30,18 @@ go.work.sum
 
 # env file
 .env
+.env*
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Hugo-generated static files (gitignored)
+# The public/ directory is generated during Docker builds
+# Run `hugo` locally for development preview
+public/
+
+.hugo_build.lock

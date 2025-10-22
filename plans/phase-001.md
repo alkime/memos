@@ -16,7 +16,7 @@ Phase I focuses on building the foundational infrastructure: a static site gener
 - Fly.io deployment configuration
 - Support for blog posts and static pages (markdown-based)
 - Local development environment
-- The `public/` directory is committed to the repository (not gitignored)
+- The `public/` directory is gitignored and built during Docker build
 
 ### Out of Scope (Deferred to Phase II)
 
@@ -42,8 +42,9 @@ When implementing Phase I, ensure:
 
 3. **Docker Configuration**
    - Create multi-stage Dockerfile
-   - Dockerfile should copy pre-generated `public/` directory from repo
-   - Alternatively, can install Hugo and regenerate during build
+   - Dockerfile should install Hugo and generate `public/` during build
+   - Copy Hugo content (content/, themes/, static/, config) to build stage
+   - Run `hugo` in build stage to generate static site
    - Optimize for production deployment
 
 4. **Go Web Server**
@@ -53,7 +54,7 @@ When implementing Phase I, ensure:
    - Reserve `/api/v1/*` namespace (no implementation)
 
 5. **Hugo Configuration**
-   - Set up `config.toml` or `config.yaml` with basic site metadata
+   - Set up `hugo.toml` or `hugo.yaml` with basic site metadata
    - Configure permalink structure
    - Set baseURL appropriately
 
@@ -75,8 +76,8 @@ When implementing Phase I, ensure:
    - Test deployment manually
 
 9. **Git Configuration**
-   - Update `.gitignore` (exclude Go binaries, .env, etc.)
-   - **Do NOT gitignore `public/`** - it should be committed
+   - Update `.gitignore` (exclude Go binaries, .env, public/, etc.)
+   - **Gitignore `public/`** - it's generated during Docker builds
    - Create `.dockerignore` file
 
 10. **Documentation**
@@ -116,15 +117,15 @@ Automated tests can be added in Phase II.
 
 - Hugo can be used as a Go library, but it's more common to use the CLI
 - For Phase I, using Hugo CLI is simpler and more maintainable
-- Use `hugo --minify` to generate optimized static site
+- Use `hugo` to generate optimized static site
 - Re-evaluate library approach if we need programmatic control in Phase II
 
 ### Static Site Generation Workflow
 
-Since `public/` is committed to the repository:
-- Run `hugo` or `hugo --minify` locally after content changes
-- Commit both content source files and generated `public/` files
-- Docker build can either use committed files or regenerate during build
+Since `public/` is gitignored:
+- Run `hugo` locally after content changes for development preview
+- Commit only content source files (NOT `public/` directory)
+- Docker build installs Hugo and generates `public/` automatically during build process
 
 ### URL Structure
 

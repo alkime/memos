@@ -1,0 +1,73 @@
+baseURL: "https://memos.fly.dev/"
+languageCode: "en-us"
+title: "Memos"
+theme: "PaperMod"
+
+# Permalink structure: /:year/:month/:title/
+permalinks:
+  posts: /:year/:month/:title/
+
+# Enable pagination
+pagination:
+  pagerSize: 10
+
+# Build settings
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+
+# Minify output
+minify:
+  disableXML: true
+  minifyOutput: true
+
+# PaperMod theme configuration
+params:
+  env: production
+  title: "Memos"
+  description: "A voice-to-blog platform"
+  keywords: [blog, voice, notes, memos]
+  author: "Your Name"
+
+  # Show read time and word count
+  ShowReadingTime: true
+  ShowWordCount: true
+  ShowShareButtons: false
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+
+  # Home page settings
+  homeInfoParams:
+    Title: "Welcome to Memos"
+    Content: "Converting voice recordings into beautiful blog posts."
+
+  # Social icons (can customize later)
+  socialIcons:
+    - name: github
+      url: "https://github.com"
+
+# Menu configuration
+menu:
+  main:
+    - identifier: posts
+      name: Posts
+      url: /posts/
+      weight: 10
+    - identifier: about
+      name: About
+      url: /about/
+      weight: 20
+
+# Taxonomies
+taxonomies:
+  category: categories
+  tag: tags
+  series: series
+
+# Output formats
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
