@@ -44,7 +44,7 @@ When implementing Phase I, ensure:
    - Create multi-stage Dockerfile
    - Dockerfile should install Hugo and generate `public/` during build
    - Copy Hugo content (content/, themes/, static/, config) to build stage
-   - Run `hugo --minify` in build stage to generate static site
+   - Run `hugo` in build stage to generate static site
    - Optimize for production deployment
 
 4. **Go Web Server**
@@ -54,7 +54,7 @@ When implementing Phase I, ensure:
    - Reserve `/api/v1/*` namespace (no implementation)
 
 5. **Hugo Configuration**
-   - Set up `config.toml` or `config.yaml` with basic site metadata
+   - Set up `hugo.toml` or `hugo.yaml` with basic site metadata
    - Configure permalink structure
    - Set baseURL appropriately
 
@@ -117,7 +117,7 @@ Automated tests can be added in Phase II.
 
 - Hugo can be used as a Go library, but it's more common to use the CLI
 - For Phase I, using Hugo CLI is simpler and more maintainable
-- Use `hugo --minify` to generate optimized static site
+- Use `hugo` to generate optimized static site
 - Re-evaluate library approach if we need programmatic control in Phase II
 
 ### Static Site Generation Workflow

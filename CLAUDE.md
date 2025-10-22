@@ -132,7 +132,7 @@ The `public/` directory is gitignored and generated during the Docker build:
 1. **Stage 1:** Build environment
    - Install Hugo
    - Copy Hugo content (content/, themes/, static/, config files)
-   - Run `hugo --minify` to generate static site
+   - Run `hugo` to generate static site
    - Copy Go source
    - Build Go binary
 
@@ -158,7 +158,7 @@ The `public/` directory is gitignored and generated during the Docker build:
 1. Create content branch: `git checkout -b post/my-new-post`
 2. Scaffold new post: `hugo new posts/my-new-post.md`
 3. Edit markdown content
-4. Generate static site locally: `hugo` or `hugo --minify`
+4. Generate static site locally: `hugo` or `hugo`
 5. Run Go server locally to preview: `go run cmd/server/main.go`
 6. Commit content source files (do NOT commit `public/` directory)
 7. Push and create PR

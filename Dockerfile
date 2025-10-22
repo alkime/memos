@@ -13,9 +13,9 @@ RUN apk add --no-cache hugo
 COPY content/ ./content/
 COPY themes/ ./themes/
 COPY static/ ./static/
-COPY config.yaml ./
+COPY hugo.yaml ./
 
-# Generate static site (minify is configured in config.yaml)
+# Generate static site (minify is configured in hugo.yaml)
 RUN hugo
 
 # Copy go module files

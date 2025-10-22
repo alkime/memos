@@ -9,7 +9,7 @@ themes
 static
 layouts
 archetypes
-config.yaml
+hugo.yaml
 hugo.toml
 
 # Documentation
