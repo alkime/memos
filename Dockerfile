@@ -15,8 +15,15 @@ COPY themes/ ./themes/
 COPY static/ ./static/
 COPY hugo.yaml ./
 
+# Accept baseURL as build argument (defaults to config value if not provided)
+ARG HUGO_BASEURL
+
 # Generate static site (minify is configured in hugo.yaml)
-RUN hugo
+RUN if [ -n "$HUGO_BASEURL" ]; then \
+      hugo --baseURL "$HUGO_BASEURL"; \
+    else \
+      hugo; \
+    fi
 
 # Copy go module files
 COPY go.mod go.sum ./

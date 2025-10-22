@@ -3,15 +3,6 @@
 .gitignore
 .gitmodules
 
-# Hugo source (not needed - we copy pre-built public/)
-content
-themes
-static
-layouts
-archetypes
-hugo.yaml
-hugo.toml
-
 # Documentation
 README.md
 CLAUDE.md

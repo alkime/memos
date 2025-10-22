@@ -1,4 +1,4 @@
-.PHONY: help dev build hugo clean docker-build docker-run
+.PHONY: help dev build hugo clean docker-build docker-run compose-up compose-down compose-logs
 
 # Variables
 LOCAL_URL := http://localhost:8080/
@@ -42,3 +42,15 @@ docker-build: ## Build Docker image
 docker-run: ## Run Docker container locally
 	@echo "Running Docker container on port $(PORT)..."
 	docker run -p $(PORT):$(PORT) $(DOCKER_IMAGE)
+
+compose-up: ## Build and run with Docker Compose (production-like testing)
+	@echo "Starting Docker Compose (production-like build)..."
+	docker compose up --build
+
+compose-down: ## Stop and remove Docker Compose containers
+	@echo "Stopping Docker Compose..."
+	docker compose down
+
+compose-logs: ## View Docker Compose logs
+	@echo "Viewing Docker Compose logs..."
+	docker compose logs -f
