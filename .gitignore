@@ -45,3 +45,6 @@ go.work.sum
 public/
 
 .hugo_build.lock
+
+# Git worktrees for isolated development
+.worktrees/
