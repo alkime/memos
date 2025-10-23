@@ -42,7 +42,7 @@ func main() {
 
 	// Serve static files from Hugo's public directory
 	// NoRoute catches all unmatched routes and serves from public/
-	router.Stat(func(c *gin.Context) {
+	router.NoRoute(func(c *gin.Context) {
 		path := "./public" + c.Request.URL.Path
 		c.File(path)
 	})
