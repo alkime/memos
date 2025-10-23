@@ -3,21 +3,29 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Get port from environment or default to 8080
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	// Load configuration
+	config, err := LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Set Gin mode based on ENV variable
-	env := os.Getenv("ENV")
-	if env == "production" {
+	// Setup structured logging
+	logger := SetupLogger(config)
+
+	// Log startup information
+	logger.Info("Starting Memos server",
+		"env", config.Env,
+		"port", config.Port,
+		"allowed_hosts", config.AllowedHosts,
+	)
+
+	// Set Gin mode based on environment
+	if config.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -41,15 +49,16 @@ func main() {
 	// }
 
 	// Serve static files from Hugo's public directory
-	// NoRoute catches all unmatched routes and serves from public/
+	// TODO: Replace with router.Static() after security middleware
 	router.NoRoute(func(c *gin.Context) {
 		path := "./public" + c.Request.URL.Path
 		c.File(path)
 	})
 
 	// Start server
-	log.Printf("Starting Memos server on port %s", port)
-	if err := router.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	logger.Info("Server listening", "port", config.Port)
+	if err := router.Run(":" + config.Port); err != nil {
+		logger.Error("Failed to start server", "error", err)
+		log.Fatalf("Fatal: %v", err)
 	}
 }
