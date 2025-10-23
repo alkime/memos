@@ -9,8 +9,8 @@
 *.dylib
 
 # Project-specific binaries
-server
-memos
+/server
+/memos
 
 # Test binary, built with `go test -c`
 *.test
