@@ -2,7 +2,7 @@
 # local dev testing of production build
 services:
   app:
-    container_name: memos-app
+    container_name: alkime-memos-app
     build:
       context: .
       dockerfile: Dockerfile

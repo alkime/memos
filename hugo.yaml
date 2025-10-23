@@ -1,4 +1,4 @@
-baseURL: "https://memos.fly.dev/"
+baseURL: "https://alkime-memos.fly.dev/"
 languageCode: "en-us"
 title: "Memos"
 theme: "PaperMod"

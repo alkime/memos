@@ -112,7 +112,12 @@ make docker-run
 ### Deployment
 
 ```bash
-# Deploy to Fly.io
+# If not created yet...
+fly launch
+```
+
+```bash
+# Deploy on site or config update...
 fly deploy
 ```
 
@@ -182,6 +187,6 @@ The `public/` directory is gitignored and generated during the Docker build:
 
 - **Hugo Usage:** Use Hugo CLI during development, not as Go library. The `public/` directory is gitignored and generated during Docker builds.
 - **Static Site Generation:** For local development, use `make dev` which runs `hugo --baseURL http://localhost:8080/` to ensure proper local URL handling. The Docker build process installs Hugo and generates the production site with the production baseURL from `hugo.yaml`.
-- **BaseURL Configuration:** The `hugo.yaml` file contains the production baseURL (`https://memos.fly.dev/`). Local development overrides this using the `--baseURL` flag via `make dev`.
+- **BaseURL Configuration:** The `hugo.yaml` file contains the production baseURL (`https://alkime-memos.fly.dev/`). Local development overrides this using the `--baseURL` flag via `make dev`.
 - **API Namespace:** `/api/v1/*` is reserved for future development. Ensure static file serving doesn't conflict.
 - **URL Structure:** Permalink structure should be configured in Hugo config (e.g., `/posts/title/` vs `/YYYY/MM/title/`)

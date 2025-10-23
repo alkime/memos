@@ -3,7 +3,7 @@
 # Variables
 LOCAL_URL := http://localhost:8080/
 BINARY_NAME := server
-DOCKER_IMAGE := memos
+DOCKER_IMAGE := alkime-memos
 PORT := 8080
 
 help: ## Show this help message
