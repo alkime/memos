@@ -1,7 +1,8 @@
 baseURL: "https://alkime-memos.fly.dev/"
 languageCode: "en-us"
 title: "Memos"
-theme: "PaperMod"
+# theme: "PaperMod"
+theme: "hugo-bearblog"
 
 # Permalink structure: /:year/:month/:title/
 permalinks:
@@ -22,30 +23,30 @@ minify:
   minifyOutput: true
 
 # PaperMod theme configuration
-params:
-  env: production
-  title: "Memos"
-  description: "A voice-to-blog platform"
-  keywords: [blog, voice, notes, memos]
-  author: "Your Name"
+# params:
+#   env: production
+#   title: "Memos"
+#   description: "A voice-to-blog platform"
+#   keywords: [blog, voice, notes, memos]
+#   author: "James McKernan"
 
-  # Show read time and word count
-  ShowReadingTime: true
-  ShowWordCount: true
-  ShowShareButtons: false
-  ShowPostNavLinks: true
-  ShowBreadCrumbs: true
-  ShowCodeCopyButtons: true
+#   # Show read time and word count
+#   ShowReadingTime: true
+#   ShowWordCount: true
+#   ShowShareButtons: false
+#   ShowPostNavLinks: true
+#   ShowBreadCrumbs: true
+#   ShowCodeCopyButtons: true
 
-  # Home page settings
-  homeInfoParams:
-    Title: "Welcome to Memos"
-    Content: "Converting voice recordings into beautiful blog posts."
+#   # Home page settings
+#   homeInfoParams:
+#     Title: "Welcome to Memos"
+#     Content: "Converting voice recordings into beautiful blog posts."
 
-  # Social icons (can customize later)
-  socialIcons:
-    - name: github
-      url: "https://github.com"
+#   # Social icons (can customize later)
+#   socialIcons:
+#     - name: github
+#       url: "https://github.com"
 
 # Menu configuration
 menu:
