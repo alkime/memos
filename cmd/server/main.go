@@ -32,6 +32,13 @@ func main() {
 	// Create Gin router
 	router := gin.Default()
 
+	// Configure trusted proxies for Fly.io and local development
+	if err := router.SetTrustedProxies(config.TrustedProxies); err != nil {
+		logger.Error("Failed to set trusted proxies", "error", err)
+		log.Fatalf("Fatal: %v", err)
+	}
+	logger.Debug("Configured trusted proxies", "proxies", config.TrustedProxies)
+
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
