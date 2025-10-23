@@ -58,14 +58,6 @@ func main() {
 		"csp_mode", config.CSPMode,
 	)
 
-	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "healthy",
-			"service": "memos",
-		})
-	})
-
 	// Reserved API namespace for future development
 	// api := router.Group("/api/v1")
 	// {
@@ -74,12 +66,18 @@ func main() {
 	// 	})
 	// }
 
-	// Serve static files from Hugo's public directory
-	// TODO: Replace with router.Static() after security middleware
-	router.NoRoute(func(c *gin.Context) {
-		path := "./public" + c.Request.URL.Path
-		c.File(path)
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "healthy",
+			"service": "memos",
+		})
 	})
+
+	// Serve static files from Hugo's public directory as fallback
+	// Using http.FileServer for built-in path traversal protection
+	// NoRoute only triggers when no explicit routes match (like /health)
+	router.NoRoute(gin.WrapH(http.FileServer(http.Dir("./public"))))
 
 	// Start server
 	logger.Info("Server listening", "port", config.Port)
