@@ -6,12 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A static site generator platform for converting voice recordings into blog posts, built with Hugo, served by a Go web server, and deployed to Fly.io.
 
-## Plans & Phases
-
-Implementation plans and phase-specific requirements are documented in the `plans/` directory:
-- `plans/phase-1.md` - Core static site generation and serving infrastructure
-- Future phases will be documented as additional files in the plans directory
-
 ## Architecture
 
 ```
@@ -53,7 +47,6 @@ Hugo Static Site Generator
 ├── themes/[theme-name]/     # Hugo theme
 ├── static/                  # Static assets
 ├── public/                  # Generated site (gitignored, built at Docker time)
-├── plans/                   # Implementation plans and phase documentation
 ├── Dockerfile               # Multi-stage build
 ├── fly.toml                 # Fly.io configuration
 └── go.mod
