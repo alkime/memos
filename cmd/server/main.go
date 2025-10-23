@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-contrib/secure"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,6 +39,24 @@ func main() {
 		log.Fatalf("Fatal: %v", err)
 	}
 	logger.Debug("Configured trusted proxies", "proxies", config.TrustedProxies)
+
+	// Configure security middleware
+	secureMiddleware := secure.New(secure.Config{
+		AllowedHosts:          config.AllowedHosts,
+		SSLRedirect:           config.Env == "production",
+		STSSeconds:            int64(config.HSTSMaxAge),
+		STSIncludeSubdomains:  true,
+		FrameDeny:             true,
+		ContentTypeNosniff:    true,
+		BrowserXssFilter:      true,
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		ContentSecurityPolicy: buildCSP(config.CSPMode),
+	})
+	router.Use(secureMiddleware)
+	logger.Debug("Configured security middleware",
+		"hsts_enabled", config.Env == "production",
+		"csp_mode", config.CSPMode,
+	)
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
