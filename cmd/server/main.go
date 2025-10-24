@@ -41,10 +41,14 @@ func main() {
 	logger.Debug("Configured trusted proxies", "proxies", config.TrustedProxies)
 
 	// Configure security middleware
+	stsSeconds := int64(0)
+	if config.Env == "production" {
+		stsSeconds = int64(config.HSTSMaxAge)
+	}
 	secureMiddleware := secure.New(secure.Config{
 		AllowedHosts:          config.AllowedHosts,
 		SSLRedirect:           config.Env == "production",
-		STSSeconds:            int64(config.HSTSMaxAge),
+		STSSeconds:            stsSeconds,
 		STSIncludeSubdomains:  true,
 		FrameDeny:             true,
 		ContentTypeNosniff:    true,
