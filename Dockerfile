@@ -35,7 +35,7 @@ RUN go mod download
 COPY cmd/ ./cmd/
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./cmd/server
 
 # Stage 2: Create minimal runtime image
 FROM alpine:latest

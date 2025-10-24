@@ -3,34 +3,64 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
+	"github.com/gin-contrib/secure"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Get port from environment or default to 8080
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	// Load configuration
+	config, err := LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Set Gin mode based on ENV variable
-	env := os.Getenv("ENV")
-	if env == "production" {
+	// Setup structured logging
+	logger := SetupLogger(config)
+
+	// Log startup information
+	logger.Info("Starting Memos server",
+		"env", config.Env,
+		"port", config.Port,
+		"allowed_hosts", config.AllowedHosts,
+	)
+
+	// Set Gin mode based on environment
+	if config.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// Create Gin router
 	router := gin.Default()
 
-	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "healthy",
-			"service": "memos",
-		})
+	// Configure trusted proxies for Fly.io and local development
+	if err := router.SetTrustedProxies(config.TrustedProxies); err != nil {
+		logger.Error("Failed to set trusted proxies", "error", err)
+		log.Fatalf("Fatal: %v", err)
+	}
+	logger.Debug("Configured trusted proxies", "proxies", config.TrustedProxies)
+
+	// Configure security middleware
+	stsSeconds := int64(0)
+	if config.Env == "production" {
+		stsSeconds = int64(config.HSTSMaxAge)
+	}
+	secureMiddleware := secure.New(secure.Config{
+		AllowedHosts:          config.AllowedHosts,
+		SSLRedirect:           config.Env == "production",
+		STSSeconds:            stsSeconds,
+		STSIncludeSubdomains:  true,
+		FrameDeny:             true,
+		ContentTypeNosniff:    true,
+		BrowserXssFilter:      true,
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		ContentSecurityPolicy: buildCSP(config.CSPMode),
 	})
+	router.Use(secureMiddleware)
+	logger.Debug("Configured security middleware",
+		"hsts_enabled", config.Env == "production",
+		"csp_mode", config.CSPMode,
+	)
 
 	// Reserved API namespace for future development
 	// api := router.Group("/api/v1")
@@ -40,16 +70,23 @@ func main() {
 	// 	})
 	// }
 
-	// Serve static files from Hugo's public directory
-	// NoRoute catches all unmatched routes and serves from public/
-	router.Stat(func(c *gin.Context) {
-		path := "./public" + c.Request.URL.Path
-		c.File(path)
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "healthy",
+			"service": "memos",
+		})
 	})
 
+	// Serve static files from Hugo's public directory as fallback
+	// Using http.FileServer for built-in path traversal protection
+	// NoRoute only triggers when no explicit routes match (like /health)
+	router.NoRoute(gin.WrapH(http.FileServer(http.Dir("./public"))))
+
 	// Start server
-	log.Printf("Starting Memos server on port %s", port)
-	if err := router.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	logger.Info("Server listening", "port", config.Port)
+	if err := router.Run(":" + config.Port); err != nil {
+		logger.Error("Failed to start server", "error", err)
+		log.Fatalf("Fatal: %v", err)
 	}
 }
