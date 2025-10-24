@@ -671,7 +671,7 @@ Set environment variables using Fly.io secrets:
 
 ```bash
 fly secrets set ENV=production
-fly secrets set ALLOWED_HOSTS=alkime-memos.fly.dev,memos.alkime.dev
+fly secrets set ALLOWED_HOSTS=alkime-memos.fly.dev,memos.alki.me
 fly secrets set CSP_MODE=strict
 ```
 
@@ -788,7 +788,7 @@ Set these secrets before deploying:
 ```bash
 # Required
 fly secrets set ENV=production
-fly secrets set ALLOWED_HOSTS=alkime-memos.fly.dev,memos.alkime.dev
+fly secrets set ALLOWED_HOSTS=alkime-memos.fly.dev,memos.alki.me
 fly secrets set CSP_MODE=strict
 
 # Optional (defaults are production-ready)

@@ -21,7 +21,7 @@ This design implements OWASP baseline security hardening for the Memos Go/Gin we
 - Fix proxy trust configuration warning
 - Implement OWASP Top 10 baseline protections
 - Prepare infrastructure for future API with authentication
-- Enable multi-domain support (alkime-memos.fly.dev + memos.alkime.dev)
+- Enable multi-domain support (alkime-memos.fly.dev + memos.alki.me)
 - Maintain compatibility with Fly.io Tigris object storage (future)
 
 ### Success Criteria
@@ -142,7 +142,7 @@ form-action 'self';
 - AllowedHosts from environment variable (comma-separated)
 - Middleware validates Host header matches allowed list
 - Rejects requests with unknown Host header
-- Easy to add memos.alkime.dev via config change
+- Easy to add memos.alki.me via config change
 
 ### 3. Secure Static File Serving
 
