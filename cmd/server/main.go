@@ -34,11 +34,11 @@ func main() {
 	router := gin.Default()
 
 	// Configure trusted proxies for Fly.io and local development
-	if err := router.SetTrustedProxies(config.TrustedProxies); err != nil {
-		logger.Error("Failed to set trusted proxies", "error", err)
-		log.Fatalf("Fatal: %v", err)
-	}
-	logger.Debug("Configured trusted proxies", "proxies", config.TrustedProxies)
+	// if err := router.SetTrustedProxies(config.TrustedProxies); err != nil {
+	// 	logger.Error("Failed to set trusted proxies", "error", err)
+	// 	log.Fatalf("Fatal: %v", err)
+	// }
+	// logger.Debug("Configured trusted proxies", "proxies", config.TrustedProxies)
 
 	// Configure security middleware
 	stsSeconds := int64(0)
