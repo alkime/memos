@@ -297,6 +297,62 @@ logger.Warn("Configuration value outside recommended range",
 16. Document security decisions in this design doc
 17. Add deployment notes for Fly.io secrets
 
+## Progress Tracker
+
+**Status:** ✅ Implementation Complete
+**Last Updated:** 2025-10-23
+
+### Phase 1: Dependencies & Configuration ✅
+- [x] Task 1: Add dependencies (godotenv, envconfig, gin-contrib/secure)
+- [x] Task 2: Create Config struct in cmd/server/config.go
+- [x] Task 3: Implement configuration loading in main.go
+- [x] Task 4: Add .env.example file with all config options
+
+### Phase 2: Core Security ✅
+- [x] Task 5: Configure SetTrustedProxies with env-driven values
+- [x] Task 6: Implement security middleware with env-aware config
+- [x] Task 7: Replace NoRoute with router.Static()
+- [x] Task 8: Set up structured logging with slog
+
+### Phase 3: Testing & Validation ✅
+- [x] Task 9: Create .env file for local development
+- [x] Task 10: Manual security header verification (dev & production modes)
+- [x] Task 11: Test health endpoint with security headers
+- [x] Task 12: Build and test Go binary
+- [x] Task 13: Verify Docker build process
+
+### Phase 4: Documentation ✅
+- [x] Task 14: Update CLAUDE.md with security features and environment variables
+- [x] Task 15: Update Makefile for multi-file Go package
+- [x] Task 16: Update Dockerfile for multi-file Go package
+- [x] Task 17: All changes committed to feature/security-hardening branch
+
+### Critical Bug Fixes Applied ✅
+- [x] Fixed HSTS appearing in development mode (cmd/server/main.go:44-47)
+- [x] Added localhost port variants to .env.example for browser compatibility
+- [x] Updated Makefile to use `cmd/server/*.go` instead of `cmd/server/main.go`
+- [x] Updated Dockerfile build command to `./cmd/server`
+- [x] Fixed manual file serving security issue (replaced with router.Static)
+
+### Testing Results ✅
+- ✅ Security headers verified in development mode
+- ✅ Security headers verified in production mode
+- ✅ HSTS correctly disabled in development
+- ✅ Host header validation working (including port variants)
+- ✅ Path traversal protection confirmed
+- ✅ Health endpoint responding correctly
+- ✅ Environment variable loading functional
+- ✅ Docker multi-stage build successful
+- ✅ Hugo site generation in Docker working (20 pages)
+
+### Commits Summary
+Total: 19 commits on feature/security-hardening branch
+- 11 implementation commits (dependencies, configuration, security, logging)
+- 5 bug fix commits (HSTS, routing, build fixes)
+- 3 documentation commits (design, CLAUDE.md, .env.example)
+
+**Ready for:** Pull request review and merge to main
+
 ## Testing Strategy
 
 ### Manual Testing
