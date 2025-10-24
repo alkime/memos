@@ -6,12 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A static site generator platform for converting voice recordings into blog posts, built with Hugo, served by a Go web server, and deployed to Fly.io.
 
-## Plans & Phases
-
-Implementation plans and phase-specific requirements are documented in the `plans/` directory:
-- `plans/phase-1.md` - Core static site generation and serving infrastructure
-- Future phases will be documented as additional files in the plans directory
-
 ## Architecture
 
 ```
@@ -46,14 +40,19 @@ Hugo Static Site Generator
 
 ```
 /
-├── cmd/server/main.go       # Go web server entry point
+├── cmd/server/              # Go web server package
+│   ├── main.go              # Server entry point
+│   ├── config.go            # Configuration management (godotenv + envconfig)
+│   ├── logging.go           # Structured logging setup
+│   └── security.go          # Security middleware helpers
 ├── content/
 │   ├── posts/               # Blog posts (markdown)
 │   └── pages/               # Static pages (markdown)
-├── themes/[theme-name]/     # Hugo theme
+├── themes/[theme-name]/     # Hugo theme (git submodule)
 ├── static/                  # Static assets
 ├── public/                  # Generated site (gitignored, built at Docker time)
-├── plans/                   # Implementation plans and phase documentation
+├── .env.example             # Example environment configuration
+├── .env                     # Local environment config (gitignored)
 ├── Dockerfile               # Multi-stage build
 ├── fly.toml                 # Fly.io configuration
 └── go.mod
@@ -64,6 +63,10 @@ Hugo Static Site Generator
 A Makefile is provided for common development tasks. Run `make help` to see all available targets.
 
 ### Local Development
+
+**Setup:**
+1. Copy `.env.example` to `.env` and configure for local development
+2. The `.env` file is gitignored and contains local security settings
 
 **Recommended: Using Make**
 ```bash
@@ -76,8 +79,8 @@ make dev
 # Generate site with Hugo CLI (local baseURL)
 hugo --baseURL http://localhost:8080/
 
-# Run Go server
-go run cmd/server/main.go
+# Run Go server (loads .env automatically)
+go run cmd/server/*.go
 ```
 
 ### Content Creation
@@ -179,9 +182,52 @@ The `public/` directory is gitignored and generated during the Docker build:
 
 ## Environment Variables
 
+Configuration is managed via environment variables, loaded from `.env` file in development:
+
+**Server Configuration:**
+- `ENV` - Environment mode: `development` or `production`
 - `PORT` - Server port (default: 8080)
-- `ENV` - Environment name (dev/prod)
-- `LOG_LEVEL` - Logging verbosity
+
+**Security Configuration:**
+- `ALLOWED_HOSTS` - Comma-separated list of allowed Host headers (include port variants for local dev)
+  - Example: `localhost,localhost:8080,127.0.0.1,alkime-memos.fly.dev`
+- `TRUSTED_PROXIES` - Comma-separated CIDR ranges for trusted proxy IPs
+  - Example: `10.0.0.0/8,172.16.0.0/12` (Fly.io private networks)
+- `HSTS_MAX_AGE` - Strict-Transport-Security max-age in seconds (production only, default: 31536000)
+- `CSP_MODE` - Content Security Policy mode: `strict`, `relaxed`, or `report-only`
+
+**Logging Configuration:**
+- `LOG_LEVEL` - Logging verbosity: `debug`, `info`, `warn`, `error`
+
+See `.env.example` for a complete configuration template.
+
+## Security Features
+
+The server implements OWASP baseline security headers and protection mechanisms:
+
+**Security Headers (Production):**
+- `Strict-Transport-Security` (HSTS) - Forces HTTPS for 1 year (production only)
+- `X-Frame-Options: DENY` - Prevents clickjacking
+- `X-Content-Type-Options: nosniff` - Prevents MIME sniffing
+- `X-XSS-Protection: 1; mode=block` - Enables browser XSS protection
+- `Referrer-Policy: strict-origin-when-cross-origin` - Limits referrer information
+- `Content-Security-Policy` - Configurable CSP (strict/relaxed/report-only modes)
+
+**Protection Mechanisms:**
+- **Host Header Validation** - Blocks requests with invalid Host headers
+- **Path Traversal Protection** - Built-in via `http.FileServer`
+- **Trusted Proxy Configuration** - Validates X-Forwarded-* headers from known proxies
+- **Structured Logging** - JSON logs with request correlation (slog)
+
+**Environment-Aware Behavior:**
+- Development mode (`ENV=development`):
+  - No HSTS header (allows HTTP testing)
+  - Relaxed CSP by default
+  - Debug-level logging available
+- Production mode (`ENV=production`):
+  - HSTS enabled with configurable max-age
+  - Strict CSP recommended
+  - Gin release mode
 
 ## Important Notes
 

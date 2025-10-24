@@ -9,8 +9,9 @@
 *.dylib
 
 # Project-specific binaries
-server
-memos
+/server
+/memos
+/build/
 
 # Test binary, built with `go test -c`
 *.test
@@ -30,7 +31,8 @@ go.work.sum
 
 # env file
 .env
-.env*
+.env.local
+.env.*.local
 
 # Editor/IDE
 .idea/
@@ -45,3 +47,6 @@ go.work.sum
 public/
 
 .hugo_build.lock
+
+# Git worktrees for isolated development
+.worktrees/

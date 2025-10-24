@@ -14,11 +14,11 @@ help: ## Show this help message
 
 dev: build-hugo-dev ## Start Go server for local dev
 	@echo "Starting Go web server on port $(PORT)..."
-	go run cmd/server/main.go
+	go run cmd/server/*.go
 
 build-go: ## Generate the Go binary
 	@echo "Building Go binary..."
-	go build -o $(BINARY_NAME) cmd/server/main.go
+	go build -o $(BINARY_NAME) ./cmd/server
 	@echo "Binary built: $(BINARY_NAME)"
 
 build-hugo-dev: ## Generate the Hugo site for local dev

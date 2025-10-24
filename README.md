@@ -1,22 +1,5 @@
-# Voice-to-Blog Platform
+# Alkime Memos
 
+Repo implementing my worflow for voice memo -> blog post, built on Hugo, Fly.io, and Claude Augmented DevEx.
 
----
-
-## Standard README Sections (To be filled in after initialization)
-
-### Installation
-
-(Instructions for local setup)
-
-### Usage
-
-(How to run locally, create content, deploy)
-
-### Contributing
-
-(Guidelines for contributions, if applicable)
-
-### License
-
-(Choose appropriate license)
+For a complete understanding of the project architecture, development workflow, and technical details, see [CLAUDE.md](CLAUDE.md).
