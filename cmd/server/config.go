@@ -15,9 +15,7 @@ type Config struct {
 	Port string `envconfig:"PORT" default:"8080"`
 
 	// Security settings
-	AllowedHosts   []string `envconfig:"ALLOWED_HOSTS" default:"localhost,alkime-memos.fly.dev"`
-	TrustedProxies []string `envconfig:"TRUSTED_PROXIES" default:"10.0.0.0/8,172.16.0.0/12"`
-	HSTSMaxAge     int      `envconfig:"HSTS_MAX_AGE" default:"31536000"`
+	HSTSMaxAge int    `envconfig:"HSTS_MAX_AGE" default:"31536000"`
 	CSPMode        string   `envconfig:"CSP_MODE" default:"relaxed"`
 
 	// Logging settings

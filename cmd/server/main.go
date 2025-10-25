@@ -22,7 +22,6 @@ func main() {
 	logger.Info("Starting Memos server",
 		"env", config.Env,
 		"port", config.Port,
-		"allowed_hosts", config.AllowedHosts,
 	)
 
 	// Set Gin mode based on environment
@@ -33,12 +32,12 @@ func main() {
 	// Create Gin router
 	router := gin.Default()
 
-	// Configure trusted proxies for Fly.io and local development
-	// if err := router.SetTrustedProxies(config.TrustedProxies); err != nil {
-	// 	logger.Error("Failed to set trusted proxies", "error", err)
-	// 	log.Fatalf("Fatal: %v", err)
-	// }
-	// logger.Debug("Configured trusted proxies", "proxies", config.TrustedProxies)
+	// Configure proxy trust for production (Fly.io)
+	if config.Env == "production" {
+		router.TrustedPlatform = gin.PlatformFlyIO
+		logger.Debug("Configured trusted platform", "platform", "fly.io")
+	}
+	// Development: no reverse proxy, uses direct client IP
 
 	// Configure security middleware
 	stsSeconds := int64(0)
@@ -46,8 +45,6 @@ func main() {
 		stsSeconds = int64(config.HSTSMaxAge)
 	}
 	secureMiddleware := secure.New(secure.Config{
-		AllowedHosts:          config.AllowedHosts,
-		SSLRedirect:           config.Env == "production",
 		STSSeconds:            stsSeconds,
 		STSIncludeSubdomains:  true,
 		FrameDeny:             true,
@@ -57,6 +54,7 @@ func main() {
 		ContentSecurityPolicy: buildCSP(config.CSPMode),
 	})
 	router.Use(secureMiddleware)
+
 	logger.Debug("Configured security middleware",
 		"hsts_enabled", config.Env == "production",
 		"csp_mode", config.CSPMode,

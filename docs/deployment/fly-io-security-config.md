@@ -1,21 +1,5 @@
 # Fly.io Security Configuration
 
-## Required Environment Variables
-
-Set these secrets before deploying:
-
-```bash
-# Required
-fly secrets set ENV=production
-fly secrets set ALLOWED_HOSTS=alkime-memos.fly.dev,memos.alki.me
-fly secrets set CSP_MODE=strict
-
-# Optional (defaults are production-ready)
-fly secrets set HSTS_MAX_AGE=31536000
-fly secrets set TRUSTED_PROXIES=10.0.0.0/8
-fly secrets set LOG_LEVEL=info
-```
-
 ## Verification After Deployment
 
 1. **Check server logs:**

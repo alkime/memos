@@ -8,6 +8,12 @@ primary_region = 'sjc'
 
 [build]
 
+[env]
+  ENV = "production"
+  CSP_MODE = "strict"
+  HSTS_MAX_AGE = "31536000"
+  LOG_LEVEL = "info"
+
 [http_service]
   internal_port = 8080
   force_https = true
