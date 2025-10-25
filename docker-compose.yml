@@ -11,6 +11,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - LOG_LEVEL=debug
       - ENV=production
       - GIN_MODE=release
     restart: unless-stopped

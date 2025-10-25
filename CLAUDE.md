@@ -43,8 +43,7 @@ Hugo Static Site Generator
 ├── cmd/server/              # Go web server package
 │   ├── main.go              # Server entry point
 │   ├── config.go            # Configuration management (godotenv + envconfig)
-│   ├── logging.go           # Structured logging setup
-│   └── security.go          # Security middleware helpers
+│   └── logging.go           # Structured logging setup
 ├── content/
 │   ├── posts/               # Blog posts (markdown)
 │   └── pages/               # Static pages (markdown)
@@ -114,12 +113,23 @@ make docker-run
 
 ### Deployment
 
+Production configuration is managed in `fly.toml`:
+
+**HTTP Service (`[http_service]`):**
+- `force_https = true` - Fly.io proxy handles HTTPS redirect at edge
+- `internal_port = 8080` - Go server listens on HTTP internally
+- Health check on `/health` endpoint
+
+**Environment Variables (`[env]`):**
+- `ENV=production` - Environment mode
+- `CSP_MODE=strict` - Content Security Policy mode
+- `HSTS_MAX_AGE=31536000` - HSTS max-age (1 year)
+- `LOG_LEVEL=info` - Logging verbosity
+
 ```bash
 # If not created yet...
 fly launch
-```
 
-```bash
 # Deploy on site or config update...
 fly deploy
 ```
@@ -189,10 +199,6 @@ Configuration is managed via environment variables, loaded from `.env` file in d
 - `PORT` - Server port (default: 8080)
 
 **Security Configuration:**
-- `ALLOWED_HOSTS` - Comma-separated list of allowed Host headers (include port variants for local dev)
-  - Example: `localhost,localhost:8080,127.0.0.1,alkime-memos.fly.dev`
-- `TRUSTED_PROXIES` - Comma-separated CIDR ranges for trusted proxy IPs
-  - Example: `10.0.0.0/8,172.16.0.0/12` (Fly.io private networks)
 - `HSTS_MAX_AGE` - Strict-Transport-Security max-age in seconds (production only, default: 31536000)
 - `CSP_MODE` - Content Security Policy mode: `strict`, `relaxed`, or `report-only`
 
@@ -214,9 +220,8 @@ The server implements OWASP baseline security headers and protection mechanisms:
 - `Content-Security-Policy` - Configurable CSP (strict/relaxed/report-only modes)
 
 **Protection Mechanisms:**
-- **Host Header Validation** - Blocks requests with invalid Host headers
 - **Path Traversal Protection** - Built-in via `http.FileServer`
-- **Trusted Proxy Configuration** - Validates X-Forwarded-* headers from known proxies
+- **Trusted Platform** - Production uses `gin.PlatformFlyIO` to trust Fly.io proxy headers
 - **Structured Logging** - JSON logs with request correlation (slog)
 
 **Environment-Aware Behavior:**
@@ -228,6 +233,7 @@ The server implements OWASP baseline security headers and protection mechanisms:
   - HSTS enabled with configurable max-age
   - Strict CSP recommended
   - Gin release mode
+  - No application-level SSL redirect (Fly.io proxy handles HTTPS at edge)
 
 ## Important Notes
 
