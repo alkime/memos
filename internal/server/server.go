@@ -52,6 +52,7 @@ func Run(s *Server) error {
 	if err := s.router.Run(":" + s.config.Port); err != nil {
 		return fmt.Errorf("failed to start server on port %s: %w", s.config.Port, err)
 	}
+
 	return nil
 }
 

@@ -1,3 +1,4 @@
+// Package main is the entry point for the memos web server.
 package main
 
 import (

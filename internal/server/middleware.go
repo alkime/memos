@@ -1,3 +1,4 @@
+// Package server provides HTTP server and middleware functionality.
 package server
 
 import (
