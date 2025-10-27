@@ -8,6 +8,7 @@ author: James McKernan
 # Permalink structure: /:year/:month/:title/
 permalinks:
   posts: /:year/:month/:title/
+  pages: /:filename/
 
 # Enable pagination
 pagination:
@@ -97,20 +98,23 @@ menu:
       name: Posts
       url: /posts/
       weight: 10
-    - identifier: about
-      name: About
-      url: /about/
+    - identifier: readme
+      name: README
+      url: /readme/
       weight: 20
+    - identifier: resume
+      name: resume
+      url: /resume/
+      weight: 30
 
 # Taxonomies
 taxonomies:
-  category: categories
+  # category: categories
   tag: tags
-  series: series
+  # series: series
 
 # Output formats
 outputs:
   home:
     - HTML
     - RSS
-    - JSON

@@ -13,6 +13,7 @@ RUN apk add --no-cache hugo
 COPY content/ ./content/
 COPY themes/ ./themes/
 COPY static/ ./static/
+COPY layouts/ ./layouts/
 COPY hugo.yaml ./
 
 # Accept baseURL as build argument (defaults to config value if not provided)
