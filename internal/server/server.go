@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -8,17 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Server represents the HTTP server
+// Server represents the HTTP server.
 type Server struct {
 	config *config.Config
 	logger *slog.Logger
 	router *gin.Engine
 }
 
-// New creates a new Server instance
+// New creates a new Server instance.
 func New(cfg *config.Config, logger *slog.Logger) *Server {
 	// Set Gin mode based on environment
-	if cfg.Env == "production" {
+	if cfg.Env == config.EnvProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -26,7 +27,7 @@ func New(cfg *config.Config, logger *slog.Logger) *Server {
 	router := gin.Default()
 
 	// Configure proxy trust for production (Fly.io)
-	if cfg.Env == "production" {
+	if cfg.Env == config.EnvProduction {
 		router.TrustedPlatform = gin.PlatformFlyIO
 		logger.Debug("Configured trusted platform", "platform", "fly.io")
 	}
@@ -45,13 +46,16 @@ func New(cfg *config.Config, logger *slog.Logger) *Server {
 	return server
 }
 
-// Run starts the HTTP server
+// Run starts the HTTP server.
 func Run(s *Server) error {
 	s.logger.Info("Server listening", "port", s.config.Port)
-	return s.router.Run(":" + s.config.Port)
+	if err := s.router.Run(":" + s.config.Port); err != nil {
+		return fmt.Errorf("failed to start server on port %s: %w", s.config.Port, err)
+	}
+	return nil
 }
 
-// setupRoutes configures all HTTP routes
+// setupRoutes configures all HTTP routes.
 func (s *Server) setupRoutes() {
 	// Health check endpoint
 	s.router.GET("/health", s.handleHealth)
@@ -68,7 +72,7 @@ func (s *Server) setupRoutes() {
 	s.router.NoRoute(gin.WrapH(http.FileServer(http.Dir("./public"))))
 }
 
-// handleHealth handles the health check endpoint
+// handleHealth handles the health check endpoint.
 func (s *Server) handleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "healthy",

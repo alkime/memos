@@ -7,7 +7,7 @@ import (
 	"github.com/alkime/memos/internal/config"
 )
 
-// SetupLogger configures structured logging based on environment
+// SetupLogger configures structured logging based on environment.
 func SetupLogger(cfg *config.Config) *slog.Logger {
 	// Determine log level
 	logLevel := slog.LevelInfo
@@ -19,6 +19,7 @@ func SetupLogger(cfg *config.Config) *slog.Logger {
 	}
 
 	// Create JSON handler for structured logging
+	//nolint:exhaustruct // Using default values for other HandlerOptions fields
 	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: logLevel,
 	})

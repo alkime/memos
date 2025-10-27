@@ -8,15 +8,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// setupSecurityMiddleware configures and applies security middleware to the router
+// setupSecurityMiddleware configures and applies security middleware to the router.
 func setupSecurityMiddleware(router *gin.Engine, cfg *config.Config, logger *slog.Logger) {
 	// Configure HSTS for production only
 	stsSeconds := int64(0)
-	if cfg.Env == "production" {
+	if cfg.Env == config.EnvProduction {
 		stsSeconds = int64(cfg.HSTSMaxAge)
 	}
 
 	// Create and apply security middleware
+	//nolint:exhaustruct // Using default values for other secure.Config fields
 	secureMiddleware := secure.New(secure.Config{
 		STSSeconds:            stsSeconds,
 		STSIncludeSubdomains:  true,
@@ -29,7 +30,7 @@ func setupSecurityMiddleware(router *gin.Engine, cfg *config.Config, logger *slo
 	router.Use(secureMiddleware)
 
 	logger.Debug("Configured security middleware",
-		"hsts_enabled", cfg.Env == "production",
+		"hsts_enabled", cfg.Env == config.EnvProduction,
 		"csp_mode", cfg.CSPMode,
 	)
 }

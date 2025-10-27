@@ -33,6 +33,7 @@ Hugo Static Site Generator
 - **Go** - Web server
 - **Hugo** - Static site generator (used via CLI, not as Go library)
 - **Gin** - Go web framework
+- **golangci-lint** - Go linter aggregator for code quality
 - **Docker** - Multi-stage build
 - **Fly.io** - Deployment platform
 
@@ -92,14 +93,34 @@ hugo new posts/my-new-post.md
 hugo new pages/about.md
 ```
 
+### Code Quality & Linting
+
+The project uses golangci-lint to enforce code quality standards. A configuration file `.golangci.yaml` is provided in the repository root.
+
+```bash
+# Run linter to check code quality
+make lint
+
+# Or run golangci-lint directly
+golangci-lint run
+```
+
+**Linting Standards:**
+- All code should pass `make lint` before committing
+- Suppression comments (`//nolint:rulename`) are allowed for intentional exceptions (e.g., config structs with optional fields)
+- Common enabled linters: exhaustruct, goconst, godot, wrapcheck
+
 ### Testing & Building
 
 ```bash
 # Build Go binary
-make build
+make build-go
 
-# Generate Hugo site only
-make hugo
+# Generate Hugo site for local development
+make build-hugo-dev
+
+# Generate Hugo site for production
+make build-hugo
 
 # Clean generated files
 make clean
@@ -182,13 +203,23 @@ The `public/` directory is gitignored and generated during the Docker build:
 
 ## Development Workflow
 
+### Content Changes
 1. Create content branch: `git checkout -b post/my-new-post`
 2. Scaffold new post: `hugo new posts/my-new-post.md`
 3. Edit markdown content
-4. Preview locally: `make dev` (calls `make hugo` to generate site, then runs Go server)
+4. Preview locally: `make dev` (calls `make build-hugo-dev` to generate site, then runs Go server)
 5. Commit content source files (do NOT commit `public/` directory)
 6. Push and create PR
 7. Deploy: Merge to main → triggers Fly.io deployment (Docker build generates `public/`)
+
+### Code Changes
+1. Create feature branch: `git checkout -b feature/my-feature`
+2. Make code changes
+3. Run linter: `make lint` (fix any issues before committing)
+4. Test locally: `make dev`
+5. Commit changes (do NOT commit `public/` directory or build artifacts)
+6. Push and create PR
+7. Deploy: Merge to main → triggers Fly.io deployment
 
 ## Environment Variables
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -8,7 +9,12 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-// Config holds all application configuration
+const (
+	// EnvProduction represents the production environment.
+	EnvProduction = "production"
+)
+
+// Config holds all application configuration.
 type Config struct {
 	// Server settings
 	Env  string `envconfig:"ENV" default:"development"`
@@ -22,7 +28,7 @@ type Config struct {
 	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
 }
 
-// LoadConfig loads configuration from .env file and environment variables
+// LoadConfig loads configuration from .env file and environment variables.
 func LoadConfig() (*Config, error) {
 	// Try to load .env file (optional for development)
 	if err := godotenv.Load(); err != nil {
@@ -35,13 +41,13 @@ func LoadConfig() (*Config, error) {
 	// Parse environment variables into config struct
 	var config Config
 	if err := envconfig.Process("", &config); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to process environment variables: %w", err)
 	}
 
 	return &config, nil
 }
 
-// BuildCSP constructs Content Security Policy based on mode
+// BuildCSP constructs Content Security Policy based on mode.
 func BuildCSP(mode string) string {
 	if mode == "strict" {
 		// Production CSP

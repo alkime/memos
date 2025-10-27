@@ -1,4 +1,4 @@
-.PHONY: help dev build hugo clean docker-build docker-run compose-up compose-down compose-logs
+.PHONY: help dev build hugo clean lint docker-build docker-run compose-up compose-down compose-logs
 
 # Variables
 LOCAL_URL := http://localhost:8080/
@@ -34,6 +34,10 @@ clean: ## Clean generated files
 	rm -rf public/
 	rm -f $(BINARY_NAME)
 	@echo "Clean complete"
+
+lint: ## Run golangci-lint to check code quality
+	@echo "Running golangci-lint..."
+	golangci-lint run
 
 docker-build: ## Build Docker image
 	@echo "Building Docker image..."
