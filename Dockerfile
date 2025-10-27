@@ -33,6 +33,7 @@ RUN go mod download
 
 # Copy source code
 COPY cmd/ ./cmd/
+COPY internal/ ./internal/
 
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./cmd/server

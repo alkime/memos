@@ -1,18 +1,20 @@
-package main
+package logger
 
 import (
 	"log/slog"
 	"os"
+
+	"github.com/alkime/memos/internal/config"
 )
 
 // SetupLogger configures structured logging based on environment
-func SetupLogger(config *Config) *slog.Logger {
+func SetupLogger(cfg *config.Config) *slog.Logger {
 	// Determine log level
 	logLevel := slog.LevelInfo
-	if config.Env == "development" {
+	if cfg.Env == "development" {
 		logLevel = slog.LevelDebug
 	}
-	if config.LogLevel == "debug" {
+	if cfg.LogLevel == "debug" {
 		logLevel = slog.LevelDebug
 	}
 

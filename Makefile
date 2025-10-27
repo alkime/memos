@@ -14,7 +14,7 @@ help: ## Show this help message
 
 dev: build-hugo-dev ## Start Go server for local dev
 	@echo "Starting Go web server on port $(PORT)..."
-	go run cmd/server/*.go
+	go run ./cmd/server
 
 build-go: ## Generate the Go binary
 	@echo "Building Go binary..."

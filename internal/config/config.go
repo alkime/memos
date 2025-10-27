@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"log"
@@ -16,7 +16,7 @@ type Config struct {
 
 	// Security settings
 	HSTSMaxAge int    `envconfig:"HSTS_MAX_AGE" default:"31536000"`
-	CSPMode        string   `envconfig:"CSP_MODE" default:"relaxed"`
+	CSPMode    string `envconfig:"CSP_MODE" default:"relaxed"`
 
 	// Logging settings
 	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
@@ -41,8 +41,8 @@ func LoadConfig() (*Config, error) {
 	return &config, nil
 }
 
-// buildCSP constructs Content Security Policy based on mode
-func buildCSP(mode string) string {
+// BuildCSP constructs Content Security Policy based on mode
+func BuildCSP(mode string) string {
 	if mode == "strict" {
 		// Production CSP
 		return "default-src 'self'; " +

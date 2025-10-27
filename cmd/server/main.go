@@ -2,89 +2,32 @@ package main
 
 import (
 	"log"
-	"net/http"
 
-	"github.com/gin-contrib/secure"
-	"github.com/gin-gonic/gin"
+	"github.com/alkime/memos/internal/config"
+	"github.com/alkime/memos/internal/logger"
+	"github.com/alkime/memos/internal/server"
 )
 
 func main() {
 	// Load configuration
-	config, err := LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
 	// Setup structured logging
-	logger := SetupLogger(config)
+	appLogger := logger.SetupLogger(cfg)
 
 	// Log startup information
-	logger.Info("Starting Memos server",
-		"env", config.Env,
-		"port", config.Port,
+	appLogger.Info("Starting Memos server",
+		"env", cfg.Env,
+		"port", cfg.Port,
 	)
 
-	// Set Gin mode based on environment
-	if config.Env == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	// Create Gin router
-	router := gin.Default()
-
-	// Configure proxy trust for production (Fly.io)
-	if config.Env == "production" {
-		router.TrustedPlatform = gin.PlatformFlyIO
-		logger.Debug("Configured trusted platform", "platform", "fly.io")
-	}
-	// Development: no reverse proxy, uses direct client IP
-
-	// Configure security middleware
-	stsSeconds := int64(0)
-	if config.Env == "production" {
-		stsSeconds = int64(config.HSTSMaxAge)
-	}
-	secureMiddleware := secure.New(secure.Config{
-		STSSeconds:            stsSeconds,
-		STSIncludeSubdomains:  true,
-		FrameDeny:             true,
-		ContentTypeNosniff:    true,
-		BrowserXssFilter:      true,
-		ReferrerPolicy:        "strict-origin-when-cross-origin",
-		ContentSecurityPolicy: buildCSP(config.CSPMode),
-	})
-	router.Use(secureMiddleware)
-
-	logger.Debug("Configured security middleware",
-		"hsts_enabled", config.Env == "production",
-		"csp_mode", config.CSPMode,
-	)
-
-	// Reserved API namespace for future development
-	// api := router.Group("/api/v1")
-	// {
-	// 	api.GET("/health", func(c *gin.Context) {
-	// 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	// 	})
-	// }
-
-	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "healthy",
-			"service": "memos",
-		})
-	})
-
-	// Serve static files from Hugo's public directory as fallback
-	// Using http.FileServer for built-in path traversal protection
-	// NoRoute only triggers when no explicit routes match (like /health)
-	router.NoRoute(gin.WrapH(http.FileServer(http.Dir("./public"))))
-
-	// Start server
-	logger.Info("Server listening", "port", config.Port)
-	if err := router.Run(":" + config.Port); err != nil {
-		logger.Error("Failed to start server", "error", err)
+	// Create and start server
+	srv := server.New(cfg, appLogger)
+	if err := server.Run(srv); err != nil {
+		appLogger.Error("Failed to start server", "error", err)
 		log.Fatalf("Fatal: %v", err)
 	}
 }
