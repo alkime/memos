@@ -1,12 +1,14 @@
-baseURL: "https://alkime-memos.fly.dev/"
-languageCode: "en-us"
-title: "Memos"
+baseURL: "https://memos.alki.me/"
+languageCode: "en-US"
+title: "Memos, Transmutated"
 # theme: "PaperMod"
 theme: "hugo-bearblog"
+author: James McKernan
 
 # Permalink structure: /:year/:month/:title/
 permalinks:
   posts: /:year/:month/:title/
+  pages: /:filename/
 
 # Enable pagination
 pagination:
@@ -17,36 +19,54 @@ buildDrafts: false
 buildFuture: false
 buildExpired: false
 
+enableRobotsTXT: true
+
 # Minify output
 minify:
   disableXML: true
   minifyOutput: true
 
-# PaperMod theme configuration
-# params:
-#   env: production
-#   title: "Memos"
-#   description: "A voice-to-blog platform"
-#   keywords: [blog, voice, notes, memos]
-#   author: "James McKernan"
+params:
+  author:
+    name: James McKernan
+    linkedin: jamesmckernan
+    threads: "@jamcmdr"
+    github: alkime
+    # maybe email one day...
+  subtitle: "Postcards from the henge..."
+  # The "description" of your website. This is used in the meta data of your generated html.
+  description: "Postcards from the henge...|‾||‾||‾|"
 
-#   # Show read time and word count
-#   ShowReadingTime: true
-#   ShowWordCount: true
-#   ShowShareButtons: false
-#   ShowPostNavLinks: true
-#   ShowBreadCrumbs: true
-#   ShowCodeCopyButtons: true
+  # The path to your "favicon". This should be a square (at least 32px x 32px) png-file.
+  # Hint: It's good practise to also put a "favicon.ico"-file into your "static"-folder.
+  # favicon: "images/favicon.png"
 
-#   # Home page settings
-#   homeInfoParams:
-#     Title: "Welcome to Memos"
-#     Content: "Converting voice recordings into beautiful blog posts."
+  # These "images" are used for the structured data templates. This will show up, when
+  # services like Twitter or Slack want to generate a preview of a link to your site.
+  # See https://gohugo.io/templates/internal#twitter-cards and
+  # https://gohugo.io/templates/internal#open-graph.
+  # images = ["images/share.png"]
 
-#   # Social icons (can customize later)
-#   socialIcons:
-#     - name: github
-#       url: "https://github.com"
+  # Another "title" :-). This one is used as the site_name on the Hugo's internal
+  # opengraph structured data template.
+  # See https://ogp.me/ and https://gohugo.io/templates/internal#open-graph.
+  title: "Memos, Transmutated"
+
+  # This theme will, by default, inject a made-with-line at the bottom of the page.
+  # You can turn it off, but we would really appreciate if you don’t :-).
+  # hideMadeWithLine = true
+
+  # By default, if you want to read more than one blog post you have to always go
+  # back to the /blog page.
+  # By enabling this feature each blog post will have at the end a navigator
+  # enablePostNavigator = true
+
+  # By default, this theme displays dates with a format like "02 Jan, 2006", but
+  # you can customize it by setting the `dateFormat` param in your site's config
+  # file. See [Hugo's Format function docs](https://gohugo.io/functions/format/)
+  # for details. An example TOML config that uses [ISO
+  # 8601](https://en.wikipedia.org/wiki/ISO_8601) format:
+  # dateFormat = "2006-01-02"
 
 # Menu configuration
 menu:
@@ -55,20 +75,26 @@ menu:
       name: Posts
       url: /posts/
       weight: 10
-    - identifier: about
-      name: About
-      url: /about/
+    - identifier: readme
+      # note: this all caps is purposeful, referencing README.txt / .md files etc.
+      # it may read a bit weird in the
+      # navbar in the compiled site but it's what I'd like for the view.
+      name: README
+      url: /readme/
       weight: 20
+    - identifier: resume
+      name: resume
+      url: /resume/
+      weight: 30
 
 # Taxonomies
 taxonomies:
-  category: categories
+  # category: categories
   tag: tags
-  series: series
+  # series: series
 
 # Output formats
 outputs:
   home:
     - HTML
     - RSS
-    - JSON

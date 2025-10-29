@@ -1,0 +1,7 @@
+{{- $platform := .platform -}}
+{{- $username := .username -}}
+{{- $baseURL := .baseURL -}}
+
+<a href="{{ $baseURL }}{{ $username }}" target="_blank" rel="noopener noreferrer" aria-label="{{ $platform | title }}" class="social-link social-link-{{ $platform }}">
+    <span class="social-icon social-icon-{{ $platform }}"></span>
+</a>
