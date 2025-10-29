@@ -29,7 +29,7 @@ minify:
 params:
   author:
     name: James McKernan
-    # email??
+    # maybe email one day...
   subtitle: "Postcards from the henge..."
   # The "description" of your website. This is used in the meta data of your generated html.
   description: "Postcards from the henge...|‾||‾||‾|"
@@ -65,32 +65,6 @@ params:
   # 8601](https://en.wikipedia.org/wiki/ISO_8601) format:
   # dateFormat = "2006-01-02"
 
-# PaperMod theme configuration
-# params:
-#   env: production
-#   title: "Memos"
-#   description: "A voice-to-blog platform"
-#   keywords: [blog, voice, notes, memos]
-#   author: "James McKernan"
-
-#   # Show read time and word count
-#   ShowReadingTime: true
-#   ShowWordCount: true
-#   ShowShareButtons: false
-#   ShowPostNavLinks: true
-#   ShowBreadCrumbs: true
-#   ShowCodeCopyButtons: true
-
-#   # Home page settings
-#   homeInfoParams:
-#     Title: "Welcome to Memos"
-#     Content: "Converting voice recordings into beautiful blog posts."
-
-#   # Social icons (can customize later)
-#   socialIcons:
-#     - name: github
-#       url: "https://github.com"
-
 # Menu configuration
 menu:
   main:
@@ -99,6 +73,9 @@ menu:
       url: /posts/
       weight: 10
     - identifier: readme
+      # note: this all caps is purposeful, referencing README.txt / .md files etc.
+      # it may read a bit weird in the
+      # navbar in the compiled site but it's what I'd like for the view.
       name: README
       url: /readme/
       weight: 20
