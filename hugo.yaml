@@ -29,6 +29,9 @@ minify:
 params:
   author:
     name: James McKernan
+    linkedin: jamesmckernan
+    threads: "@jamcmdr"
+    github: alkime
     # maybe email one day...
   subtitle: "Postcards from the henge..."
   # The "description" of your website. This is used in the meta data of your generated html.

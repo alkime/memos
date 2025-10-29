@@ -1,3 +1,15 @@
 {{ if not (.Param "hideMadeWithLine") }}
     Copyright © {{ time.Now.Year }}, {{ .Site.Params.author.name }} - Made with <a href="https://github.com/janraasch/hugo-bearblog/">Hugo ʕ•ᴥ•ʔ Bear</a>
+    <br>
+    <div class="social-links">
+        {{ with .Site.Params.author.linkedin }}
+            {{ partial "social-link.html" (dict "platform" "linkedin" "username" . "baseURL" "https://linkedin.com/in/") }}
+        {{ end }}
+        {{ with .Site.Params.author.threads }}
+            {{ partial "social-link.html" (dict "platform" "threads" "username" . "baseURL" "https://threads.net/") }}
+        {{ end }}
+        {{ with .Site.Params.author.github }}
+            {{ partial "social-link.html" (dict "platform" "github" "username" . "baseURL" "https://github.com/") }}
+        {{ end }}
+    </div>
 {{ end }}
