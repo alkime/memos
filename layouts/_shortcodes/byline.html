@@ -1,0 +1,12 @@
+{{- $author := .Page.Params.author | default site.Params.author.name -}}
+{{- $date := .Page.Date -}}
+{{- $voiceBased := .Page.Params.voiceBased -}}
+<div style="text-align: right; font-style: italic; margin: 1em 0;">
+  -- posted by <strong>{{ $author }}</strong> on <strong>{{ $date.Format "02 Jan, 2006" }}</strong>
+</div>
+{{- if $voiceBased }}
+<em style="font-size: 0.9em; color: #666;">
+    This post was transcribed from a voice memo by the author and
+    later edited for clarity by the author with help from AI.
+</em>
+{{- end }}
