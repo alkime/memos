@@ -8,10 +8,9 @@
     margin-top: 10px;
   }
 
-  .social-icon {
+  /* Base class for all masked icons */
+  .icon-base {
     display: inline-block;
-    width: 24px;
-    height: 24px;
     background-color: var(--link-color);
     transition: background-color 0.2s ease;
     mask-size: contain;
@@ -20,6 +19,11 @@
     -webkit-mask-size: contain;
     -webkit-mask-repeat: no-repeat;
     -webkit-mask-position: center;
+  }
+
+  .social-icon {
+    width: 24px;
+    height: 24px;
   }
 
   .social-icon-linkedin {
@@ -35,6 +39,17 @@
   .social-icon-threads {
     mask-image: url('/images/threads.svg');
     -webkit-mask-image: url('/images/threads.svg');
+  }
+
+  .home-icon {
+    width: 20px;
+    height: 20px;
+    mask-image: url('/images/home-icon.svg');
+    -webkit-mask-image: url('/images/home-icon.svg');
+  }
+
+  .home-icon:hover {
+    background-color: var(--heading-color);
   }
 
   .social-link:hover .social-icon {
