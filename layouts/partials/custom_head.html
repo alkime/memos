@@ -37,6 +37,26 @@
     -webkit-mask-image: url('/images/threads.svg');
   }
 
+  .home-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-color: var(--link-color);
+    transition: background-color 0.2s ease;
+    mask-image: url('/images/home-icon.svg');
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-image: url('/images/home-icon.svg');
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+  }
+
+  .home-icon:hover {
+    background-color: var(--heading-color);
+  }
+
   .social-link:hover .social-icon {
     background-color: var(--heading-color);
   }
