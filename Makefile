@@ -21,7 +21,7 @@ build-go: ## Generate the Go binary
 	go build -o $(BINARY_NAME) ./cmd/server
 	@echo "Binary built: $(BINARY_NAME)"
 
-build-hugo-dev: ## Generate the Hugo site for local dev
+build-hugo-dev: clean ## Generate the Hugo site for local dev
 	@echo "Generating Hugo site for local development..."
 	hugo --baseURL $(LOCAL_URL)
 

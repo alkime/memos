@@ -7,8 +7,8 @@ author: James McKernan
 
 # Permalink structure: /:year/:month/:title/
 permalinks:
-  posts: /:year/:month/:title/
-  pages: /:filename/
+  posts: /posts/:year/:month/:title/
+  pages: /pages/:filename/
 
 # Enable pagination
 pagination:
@@ -80,11 +80,11 @@ menu:
       # it may read a bit weird in the
       # navbar in the compiled site but it's what I'd like for the view.
       name: README
-      url: /readme/
+      url: /pages/readme/
       weight: 20
     - identifier: resume
       name: resume
-      url: /resume/
+      url: /pages/resume/
       weight: 30
 
 # Taxonomies
