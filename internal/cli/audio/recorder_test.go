@@ -1,4 +1,4 @@
-package audio
+package audio //nolint:testpackage // Needs access to unexported fields
 
 import (
 	"testing"

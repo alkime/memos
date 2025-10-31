@@ -1,4 +1,4 @@
-package transcription
+package transcription //nolint:testpackage // Needs access to unexported fields
 
 import (
 	"os"

@@ -1,4 +1,4 @@
-package content
+package content //nolint:testpackage // Needs access to unexported fields
 
 import (
 	"os"
@@ -27,7 +27,7 @@ func TestGenerator_GeneratePost_Frontmatter(t *testing.T) {
 	// Create test transcript
 	transcriptPath := filepath.Join(tmpDir, "test-transcript.txt")
 	transcriptText := "This is a test transcript."
-	err = os.WriteFile(transcriptPath, []byte(transcriptText), 0644)
+	err = os.WriteFile(transcriptPath, []byte(transcriptText), 0644) //nolint:gosec // Test file
 	require.NoError(t, err)
 
 	generator := NewGenerator(contentDir)
@@ -69,9 +69,9 @@ func TestGenerator_GeneratePost_Archives(t *testing.T) {
 	transcriptPath := filepath.Join(recordingsDir, "2025-10-31-143052.txt")
 	transcriptText := "Test transcript"
 
-	err = os.WriteFile(wavPath, []byte("fake wav data"), 0644)
+	err = os.WriteFile(wavPath, []byte("fake wav data"), 0644) //nolint:gosec // Test file
 	require.NoError(t, err)
-	err = os.WriteFile(transcriptPath, []byte(transcriptText), 0644)
+	err = os.WriteFile(transcriptPath, []byte(transcriptText), 0644) //nolint:gosec // Test file
 	require.NoError(t, err)
 
 	generator := NewGenerator(contentDir)

@@ -8,19 +8,19 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-// Client handles Whisper API transcription requests
+// Client handles Whisper API transcription requests.
 type Client struct {
 	apiKey string
 }
 
-// NewClient creates a new transcription client
+// NewClient creates a new transcription client.
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey: apiKey,
 	}
 }
 
-// TranscribeFile transcribes an audio file using Whisper API
+// TranscribeFile transcribes an audio file using Whisper API.
 func (c *Client) TranscribeFile(audioPath string) (string, error) {
 	// Validate API key
 	if c.apiKey == "" {
@@ -30,7 +30,7 @@ func (c *Client) TranscribeFile(audioPath string) (string, error) {
 	// Validate file exists
 	info, err := os.Stat(audioPath)
 	if err != nil {
-		return "", err
+		return "", err //nolint:wrapcheck // Clear error from Stat
 	}
 
 	// Validate file is not empty
@@ -42,7 +42,7 @@ func (c *Client) TranscribeFile(audioPath string) (string, error) {
 	client := openai.NewClient(c.apiKey)
 
 	// Create transcription request
-	req := openai.AudioRequest{
+	req := openai.AudioRequest{ //nolint:exhaustruct // Only Model and FilePath required
 		Model:    openai.Whisper1,
 		FilePath: audioPath,
 	}
@@ -51,7 +51,7 @@ func (c *Client) TranscribeFile(audioPath string) (string, error) {
 	ctx := context.Background()
 	resp, err := client.CreateTranscription(ctx, req)
 	if err != nil {
-		return "", err
+		return "", err //nolint:wrapcheck // Clear error from CreateTranscription
 	}
 
 	return resp.Text, nil
