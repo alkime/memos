@@ -5,6 +5,7 @@ draft: false
 tags: ["first-post"]
 author: "James"
 voiceBased: true
+pinned: true
 ---
 
 # Start With Why
