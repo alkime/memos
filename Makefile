@@ -37,6 +37,7 @@ clean: ## Clean generated files
 
 lint: ## Run golangci-lint to check code quality
 	@echo "Running golangci-lint..."
+	golangci-lint config verify
 	golangci-lint run
 
 docker-build: ## Build Docker image
