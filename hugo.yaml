@@ -1,7 +1,6 @@
 baseURL: "https://memos.alki.me/"
 languageCode: "en-US"
 title: "Memos, Transmutated"
-# theme: "PaperMod"
 theme: "hugo-bearblog"
 author: James McKernan
 

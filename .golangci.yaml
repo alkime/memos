@@ -1,8 +1,6 @@
-version: 2
-
+version: "2"
 run:
   concurrency: 4
-
 linters:
   enable:
     - asciicheck
@@ -51,31 +49,48 @@ linters:
     - wrapcheck
   disable:
     - depguard
-
-linters-settings:
-  funlen:
-    lines: 66
-    statements: 45
-  gocognit:
-    min-complexity: 40
-  godox:
-    keywords:
-      - HACK
-      - FIXME
-  gosec:
-    excludes:
-      - G115
-  interfacebloat:
-    max: 20
-  lll:
-    line-length: 120
-    tab-width: 4
-  nestif:
-    min-complexity: 20
-  nlreturn:
-    block-size: 7
-  revive:
-    rules:
-      - name: exported
-        arguments:
-          - checkPrivateReceivers
+  settings:
+    funlen:
+      lines: 66
+      statements: 45
+    gocognit:
+      min-complexity: 40
+    godox:
+      keywords:
+        - HACK
+        - FIXME
+    gosec:
+      excludes:
+        - G115
+    interfacebloat:
+      max: 20
+    lll:
+      line-length: 120
+      tab-width: 4
+    nestif:
+      min-complexity: 20
+    nlreturn:
+      block-size: 7
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - checkPrivateReceivers
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
