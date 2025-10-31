@@ -58,3 +58,14 @@ func TestClient_TranscribeFile_EmptyFile(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, text)
 }
+
+func TestClient_TranscribeFile_ValidFile(t *testing.T) {
+	// Skip if no API key set
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		t.Skip("Skipping integration test: OPENAI_API_KEY not set")
+	}
+
+	// Skip - requires valid audio file for real test
+	t.Skip("Requires valid audio file - run manually with real audio")
+}

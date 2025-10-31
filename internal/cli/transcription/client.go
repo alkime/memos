@@ -1,10 +1,11 @@
 package transcription
 
 import (
+	"context"
 	"errors"
 	"os"
 
-	_ "github.com/sashabaranov/go-openai" // OpenAI API client
+	openai "github.com/sashabaranov/go-openai"
 )
 
 // Client handles Whisper API transcription requests
@@ -37,6 +38,21 @@ func (c *Client) TranscribeFile(audioPath string) (string, error) {
 		return "", errors.New("audio file is empty")
 	}
 
-	// TODO: Actual API call implementation
-	return "", errors.New("not implemented")
+	// Create OpenAI client
+	client := openai.NewClient(c.apiKey)
+
+	// Create transcription request
+	req := openai.AudioRequest{
+		Model:    openai.Whisper1,
+		FilePath: audioPath,
+	}
+
+	// Call Whisper API
+	ctx := context.Background()
+	resp, err := client.CreateTranscription(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Text, nil
 }
