@@ -47,6 +47,11 @@ func New(cfg *config.Config, logger *slog.Logger) *Server {
 	return server
 }
 
+// Router returns the server's router for testing.
+func (s *Server) Router() *gin.Engine {
+	return s.router
+}
+
 // Run starts the HTTP server.
 func Run(s *Server) error {
 	s.logger.Info("Server listening", "port", s.config.Port)
