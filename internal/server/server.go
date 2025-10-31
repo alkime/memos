@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/alkime/memos/internal/config"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
@@ -67,10 +68,9 @@ func (s *Server) setupRoutes() {
 	// 	api.GET("/health", s.handleHealth)
 	// }
 
-	// Serve static files from Hugo's public directory as fallback
-	// Using http.FileServer for built-in path traversal protection
-	// NoRoute only triggers when no explicit routes match (like /health)
-	s.router.NoRoute(gin.WrapH(http.FileServer(http.Dir("./public"))))
+	// Serve static files from Hugo's public directory
+	// Using gin-contrib/static for better integration with Gin middleware
+	s.router.Use(static.Serve("/", static.LocalFile("./public", false)))
 }
 
 // handleHealth handles the health check endpoint.
