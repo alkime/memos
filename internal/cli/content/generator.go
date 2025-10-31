@@ -50,5 +50,71 @@ draft: true
 	}
 
 	// Write markdown file
-	return os.WriteFile(outputPath, []byte(content), 0644)
+	if err := os.WriteFile(outputPath, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	// Archive source files on success
+	return g.archiveFiles(transcriptPath)
+}
+
+// archiveFiles moves transcript and corresponding audio to archive
+func (g *Generator) archiveFiles(transcriptPath string) error {
+	// Determine archive directory
+	// Look for .memos parent directory in the transcript path
+	absPath, err := filepath.Abs(transcriptPath)
+	if err != nil {
+		return err
+	}
+
+	var memosRoot string
+	dir := filepath.Dir(absPath)
+
+	// Walk up the directory tree to find .memos
+	for {
+		if filepath.Base(dir) == ".memos" {
+			memosRoot = dir
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root without finding .memos, use ~/.memos
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return err
+			}
+			memosRoot = filepath.Join(homeDir, ".memos")
+			break
+		}
+		dir = parent
+	}
+
+	archiveDir := filepath.Join(memosRoot, "archive")
+
+	// Create archive directory
+	if err := os.MkdirAll(archiveDir, 0755); err != nil {
+		return err
+	}
+
+	// Get base name (without extension)
+	base := transcriptPath[:len(transcriptPath)-len(filepath.Ext(transcriptPath))]
+	wavPath := base + ".wav"
+
+	// Archive transcript
+	transcriptDest := filepath.Join(archiveDir, filepath.Base(transcriptPath))
+	if err := os.Rename(transcriptPath, transcriptDest); err != nil {
+		return err
+	}
+
+	// Archive audio if it exists
+	if _, err := os.Stat(wavPath); err == nil {
+		wavDest := filepath.Join(archiveDir, filepath.Base(wavPath))
+		if err := os.Rename(wavPath, wavDest); err != nil {
+			// Attempt to restore transcript on failure
+			_ = os.Rename(transcriptDest, transcriptPath)
+			return err
+		}
+	}
+
+	return nil
 }
