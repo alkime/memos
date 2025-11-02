@@ -1,8 +1,9 @@
-.PHONY: help dev build hugo clean lint test check docker-build docker-run compose-up compose-down compose-logs
+.PHONY: help dev build build-voice install-voice hugo clean lint test check docker-build docker-run compose-up compose-down compose-logs
 
 # Variables
 LOCAL_URL := http://localhost:8080/
 BINARY_NAME := server
+VOICE_BINARY := voice
 DOCKER_IMAGE := alkime-memos
 PORT := 8080
 
@@ -21,6 +22,20 @@ build-go: ## Generate the Go binary
 	go build -o $(BINARY_NAME) ./cmd/server
 	@echo "Binary built: $(BINARY_NAME)"
 
+build-voice: ## Build voice CLI binary
+	@echo "Building voice CLI..."
+	go build -o bin/$(VOICE_BINARY) ./cmd/voice
+	@echo "Voice CLI built: bin/$(VOICE_BINARY)"
+
+install-voice: build-voice ## Install voice CLI to $GOPATH/bin
+	@echo "Installing voice CLI..."
+	@if [ -z "$(GOPATH)" ]; then \
+		echo "Error: GOPATH not set"; \
+		exit 1; \
+	fi
+	cp bin/$(VOICE_BINARY) $(GOPATH)/bin/$(VOICE_BINARY)
+	@echo "Voice CLI installed to $(GOPATH)/bin/$(VOICE_BINARY)"
+
 build-hugo-dev: clean ## Generate the Hugo site for local dev
 	@echo "Generating Hugo site for local development..."
 	hugo --baseURL $(LOCAL_URL)
@@ -33,6 +48,7 @@ clean: ## Clean generated files
 	@echo "Cleaning generated files..."
 	rm -rf public/
 	rm -f $(BINARY_NAME)
+	rm -f bin/$(VOICE_BINARY)
 	@echo "Clean complete"
 
 lint: ## Run golangci-lint to check code quality
