@@ -150,7 +150,7 @@ When implementing Phase II features:
 - **Production URL**: https://memos.alki.me/
 - **Permalink Structure**:
   - Posts: `/posts/:year/:month/:title/`
-  - Pages: `/pages/:filename/`
+  - Pages: `/pages/:contentbasename/`
 - **Features Enabled**:
   - Pagination (10 posts per page)
   - RSS feed generation
