@@ -7,7 +7,7 @@ author: James McKernan
 # Permalink structure: /:year/:month/:title/
 permalinks:
   posts: /posts/:year/:month/:title/
-  pages: /pages/:filename/
+  pages: /pages/:contentbasename/
 
 # Enable pagination
 pagination:
