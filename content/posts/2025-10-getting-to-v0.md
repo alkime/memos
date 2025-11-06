@@ -1,6 +1,6 @@
 ---
 title: "Booting Up With Claude Part 2 - Getting to V0"
-date: "2025-11-06T12:15:54-08:00"
+date: "2025-10-30T12:15:54-08:00"
 author: James
 voiceBased: true
 pinned: true
@@ -11,7 +11,7 @@ tags: ["AI Assisted Dev", "Working In The Open"]
 
 # Getting To v0
 
-Okay, this is the second part of a two-part series about getting this site to what I'd call v0—basically happy with all the plumbing and really set up for adding posts and content. You can check out the first part ([Booting Up With Claude]({{< ref "2025-11-booting-up-with-claude-part-1.md" >}})), which covers getting the placeholder website up on Fly and securing it with good security headers.
+Okay, this is the second part of a two-part series about getting this site to what I'd call v0—basically happy with all the plumbing and really set up for adding posts and content. You can check out the first part ([Booting Up With Claude]({{< ref "2025-10-booting-up-with-claude-part-1.md" >}})), which covers getting the placeholder website up on Fly and securing it with good security headers.
 
 If you read that first post, you can see there's obviously a lot left to do to get to v0. You could call this a grab bag of chores, and this post isn't going to go too deeply into each individual task. They're small things, but they all add up to this larger effort. What's more interesting is *how* Claude decided to go about the work, which was kind of awesome. It was my first experience watching an LLM execute things in parallel using worktrees and Tasks (capital T—anyone who uses Claude Code knows the Task Tool is a proper noun). It was really pretty awesome to see.
 
@@ -33,7 +33,7 @@ The really interesting piece here is how Claude went about it.
 
 The `brainstorming` Skill and `writing-plans` Skill executed again—I talk a lot more about this in the previous post. But just to reiterate, this is where I use the `superpowers` Skills I added to Claude Code to help generate a tech design docs and plans that Claude can execute toward. What's interesting is that once Claude got to the plan documented and was ready to execute, it noticed these were kind of a grab bag of disparate efforts and asked if we could maybe do this in parallel (using the AskUserQuestions UX of course).
 
-{{< image-caption src="/images/posts/2025-11/claude_asks_parallel_tasks.png" alt="claude asks" caption="Claude Recognized We Could Parallelize" >}}
+{{< image-caption src="/images/posts/2025-10/claude_asks_parallel_tasks.png" alt="claude asks" caption="Claude Recognized We Could Parallelize" >}}
 
 It called out benefits and drawbacks of each approach. The choice for “separate PRs” noted “parallel work” that was “more reviewable.” Yes, please. More overhead? Ok ok, but that’s a Future Me problem. I’ve been wanting to see Claude tackle something in parallel and it sorta fell in my lap here, so that’s what I chose.
 

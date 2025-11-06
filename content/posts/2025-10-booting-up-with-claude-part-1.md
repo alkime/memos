@@ -1,6 +1,6 @@
 ---
 title: "Booting Up With Claude Part 1"
-date: "2025-11-06T10:07:28-08:00"
+date: "2025-10-24T10:07:28-08:00"
 author: James
 voiceBased: true
 pinned: true
@@ -21,7 +21,7 @@ Hugo and Fly.io were technologies I'd been meaning to explore properly. They're 
 
 I took that diagram and opened Claude Desktop - not even Claude Code yet - attached the diagram as a file, and wrote out a pretty detailed description of what I wanted, then asked Claude to help me generate a `bootstrap.md` document that would serve as the foundation when I eventually ran `/init` in an empty repository.
 
-{{< image-caption src="/images/posts/2025-11/bootstrap_diagram.png" alt="pictures worth at least 299 words..." caption="Bootstrap Diagram" >}}
+{{< image-caption src="/images/posts/2025-10/bootstrap_diagram.png" alt="pictures worth at least 299 words..." caption="Bootstrap Diagram" >}}
 
 ## Basics With Basic Prompting
 
@@ -29,7 +29,7 @@ With that bootstrap document in place, I moved fully into Claude Code and starte
 
 I got to something within a reasonable amount of time—added a basic Hugo theme and generated the site with a placeholder post and homepage, all configured to deploy on a fly machine.
 
-{{< image-caption src="/images/posts/2025-11/placeholder_site.png" alt="placeholder site" caption="you've gotta start somewhere...">}}
+{{< image-caption src="/images/posts/2025-10/placeholder_site.png" alt="placeholder site" caption="you've gotta start somewhere...">}}
 
 The basic prompting worked adequately and gave me an understanding of the contours of working in Claude Code’s CLI. I didn’t use sub-agents, no slash commands, no skills - just straightforward conversation with Claude. But I knew Claude Code had more powerful features that I wanted to explore. These configuration hooks and custom workflows were part of what drew me to Claude Code in the first place and competently wielding them is where vibe coding turns into AI-assisted development.
 
@@ -71,7 +71,7 @@ Once it was done brainstorming, it moved right into the `writing-plans` Skill. T
 
 Finally, Claude utilized the `executing-plans` and `using-git-worktrees` Skills to make all the changes. The plan execution was interesting because it’s prompted to do changes from the plan in chunks as well as make sure to commit the chunk with a useful commit message, providing another accessible context trail for future sessions and following the ethos of not biting off too much at a time.
 
-{{< image-caption src="/images/posts/2025-11/skills_and_superpowers.png" alt="Skills & Superpowers" caption="Skills & Superpowers" >}}
+{{< image-caption src="/images/posts/2025-10/skills_and_superpowers.png" alt="Skills & Superpowers" caption="Skills & Superpowers" >}}
 
 ## 80%
 
@@ -86,7 +86,7 @@ After I narrowed it down and got it working, though, it was easier to recognize 
 
 In the end, Claude and I got to a good result. The site was a placeholder, but damn if it didn't have some secure http headers when serving it up!
 
-{{< image-caption src="/images/posts/2025-11/security_headers_snap.png" alt="Security Headers Report showing an A grade for memos.alki.me" caption="Permission-Policy will have to wait lol…" >}}
+{{< image-caption src="/images/posts/2025-10/security_headers_snap.png" alt="Security Headers Report showing an A grade for memos.alki.me" caption="Permission-Policy will have to wait lol…" >}}
 
 https://securityheaders.com/?q=https://memos.alki.me/&followRedirects=on
 
