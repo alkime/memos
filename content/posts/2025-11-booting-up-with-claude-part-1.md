@@ -6,7 +6,7 @@ voiceBased: true
 pinned: true
 draft: false
 
-tags: ["AI Assisted Dev"]
+tags: ["AI Assisted Dev", "Working In The Open"]
 ---
 
 # Booting Up With Claude (Part 1)
