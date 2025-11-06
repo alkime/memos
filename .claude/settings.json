@@ -56,6 +56,9 @@
     },
     "sandbox": {
         "autoAllowBashIfSandboxed": false,
-        "enabled": false
+        "enabled": false,
+        "network": {
+            "allowLocalBinding": true
+        }
     }
 }
