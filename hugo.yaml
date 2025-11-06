@@ -1,6 +1,6 @@
 baseURL: "https://memos.alki.me/"
 languageCode: "en-US"
-title: "Memos, Transmutated"
+title: "Memos"
 theme: "hugo-bearblog"
 author: James McKernan
 
@@ -49,7 +49,7 @@ params:
   # Another "title" :-). This one is used as the site_name on the Hugo's internal
   # opengraph structured data template.
   # See https://ogp.me/ and https://gohugo.io/templates/internal#open-graph.
-  title: "Memos, Transmutated"
+  title: "Memos"
 
   # This theme will, by default, inject a made-with-line at the bottom of the page.
   # You can turn it off, but we would really appreciate if you don’t :-).
