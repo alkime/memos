@@ -48,9 +48,15 @@ def get_repo_info():
 
 
 def get_pr_number():
-    """Get the PR number for the current branch."""
-    output = run_gh_command(['pr', 'view', '--json', 'number', '-q', '.number'])
-    return int(output.strip())
+    """Get the PR number for the current branch.
+
+    Returns None if no PR exists for the current branch.
+    """
+    try:
+        output = run_gh_command(['pr', 'view', '--json', 'number', '-q', '.number'])
+        return int(output.strip())
+    except subprocess.CalledProcessError:
+        return None
 
 
 def fetch_review_threads(owner, repo, pr_number):
@@ -172,6 +178,19 @@ def main():
             pr_number = int(sys.argv[1])
         else:
             pr_number = get_pr_number()
+            if pr_number is None:
+                # Get current branch name for the message
+                result = subprocess.run(
+                    ['git', 'branch', '--show-current'],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                branch = result.stdout.strip()
+                print(f"No pull request found for branch '{branch}'", file=sys.stderr)
+                print("\nTo view comments for a specific PR, use: make pr-comments PR=<number>", file=sys.stderr)
+                print("Or run: ./scripts/format_pr.py <PR_NUMBER>", file=sys.stderr)
+                sys.exit(0)  # Exit cleanly, not an error condition
 
         # Get repo info
         owner, repo = get_repo_info()
