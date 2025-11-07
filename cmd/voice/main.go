@@ -140,9 +140,9 @@ func (p *ProcessCmd) Run() error {
 		return err //nolint:wrapcheck // Clear error from GeneratePost
 	}
 
-	fmt.Printf("Generated post: %s (draft)\n", outputPath)          //nolint:forbidigo // CLI output
+	fmt.Printf("Generated post: %s (draft)\n", outputPath)            //nolint:forbidigo // CLI output
 	fmt.Println("Note: Raw transcript - Phase 2 will add AI cleanup") //nolint:forbidigo // CLI output
-	fmt.Println("Archived: Files moved to ~/.memos/archive/")        //nolint:forbidigo // CLI output
+	fmt.Println("Archived: Files moved to ~/.memos/archive/")         //nolint:forbidigo // CLI output
 
 	return nil
 }
