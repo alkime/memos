@@ -30,8 +30,8 @@ func TestRecorder_Start_CreatesDirectories(t *testing.T) {
 	err := recorder.Start()
 
 	assert.NoError(t, err)
-	// Directory should be created but recording not started yet
-	// We'll verify directory creation in actual implementation
+	// NOTE: Current implementation is a stub that only creates the output directory.
+	// Actual audio recording implementation will be added later (see TODO in recorder.go).
 }
 
 func TestRecorder_Stop_BeforeStart(t *testing.T) {

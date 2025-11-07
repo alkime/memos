@@ -24,7 +24,7 @@ func (g *Generator) GeneratePost(transcriptPath string, outputPath string) error
 	// Read transcript
 	transcript, err := os.ReadFile(transcriptPath)
 	if err != nil {
-		return err //nolint:wrapcheck // Clear error from ReadFile
+		return fmt.Errorf("failed to read transcript file %s: %w", transcriptPath, err)
 	}
 
 	// Generate timestamp for title
@@ -46,13 +46,13 @@ draft: true
 	// Ensure output directory exists
 	dir := filepath.Dir(outputPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err //nolint:wrapcheck // Clear error from MkdirAll
+		return fmt.Errorf("failed to create output directory %s: %w", dir, err)
 	}
 
 	// Write markdown file
 	//nolint:gosec // Markdown files need to be readable
 	if err := os.WriteFile(outputPath, []byte(content), 0644); err != nil {
-		return err //nolint:wrapcheck // Clear error context
+		return fmt.Errorf("failed to write markdown file %s: %w", outputPath, err)
 	}
 
 	// Archive source files on success
@@ -65,7 +65,7 @@ func (g *Generator) archiveFiles(transcriptPath string) error {
 	// Look for .memos parent directory in the transcript path
 	absPath, err := filepath.Abs(transcriptPath)
 	if err != nil {
-		return err //nolint:wrapcheck // Clear error from Abs
+		return fmt.Errorf("failed to get absolute path for %s: %w", transcriptPath, err)
 	}
 
 	var memosRoot string
@@ -82,7 +82,7 @@ func (g *Generator) archiveFiles(transcriptPath string) error {
 			// Reached root without finding .memos, use ~/.memos
 			homeDir, err := os.UserHomeDir()
 			if err != nil {
-				return err //nolint:wrapcheck // Clear error from UserHomeDir
+				return fmt.Errorf("failed to get user home directory: %w", err)
 			}
 			memosRoot = filepath.Join(homeDir, ".memos")
 			break
@@ -94,7 +94,7 @@ func (g *Generator) archiveFiles(transcriptPath string) error {
 
 	// Create archive directory
 	if err := os.MkdirAll(archiveDir, 0755); err != nil {
-		return err //nolint:wrapcheck // Clear error from MkdirAll
+		return fmt.Errorf("failed to create archive directory %s: %w", archiveDir, err)
 	}
 
 	// Get base name (without extension)
@@ -104,7 +104,7 @@ func (g *Generator) archiveFiles(transcriptPath string) error {
 	// Archive transcript
 	transcriptDest := filepath.Join(archiveDir, filepath.Base(transcriptPath))
 	if err := os.Rename(transcriptPath, transcriptDest); err != nil {
-		return err //nolint:wrapcheck // Clear error from Rename
+		return fmt.Errorf("failed to archive transcript %s to %s: %w", transcriptPath, transcriptDest, err)
 	}
 
 	// Archive audio if it exists
@@ -113,7 +113,7 @@ func (g *Generator) archiveFiles(transcriptPath string) error {
 		if err := os.Rename(wavPath, wavDest); err != nil {
 			// Attempt to restore transcript on failure
 			_ = os.Rename(transcriptDest, transcriptPath)
-			return err //nolint:wrapcheck // Clear error from Rename
+			return fmt.Errorf("failed to archive audio %s to %s: %w", wavPath, wavDest, err)
 		}
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -35,7 +36,7 @@ func (r *RecordCmd) Run() error {
 		// Default to ~/.memos/recordings/{timestamp}.wav
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return err //nolint:wrapcheck // Clear error context
+			return fmt.Errorf("failed to get user home directory: %w", err)
 		}
 		timestamp := time.Now().Format("2006-01-02-150405")
 		outputPath = filepath.Join(homeDir, ".memos", "recordings", fmt.Sprintf("%s.wav", timestamp))
@@ -52,12 +53,13 @@ func (r *RecordCmd) Run() error {
 
 	// Start recording
 	if err := recorder.Start(); err != nil {
-		return err //nolint:wrapcheck // Clear error from Start
+		return fmt.Errorf("failed to start recorder: %w", err)
 	}
 
 	// Wait for stop condition
-	//nolint:forbidigo // CLI output
-	fmt.Printf("Recording... Press Enter to stop. (Max: %s or %d MB)\n", r.MaxDuration, r.MaxBytes/(1024*1024))
+	slog.Info("Recording... Press Enter to stop",
+		"max_duration", r.MaxDuration,
+		"max_size_mb", r.MaxBytes/(1024*1024))
 
 	// Read from stdin for Enter key
 	reader := bufio.NewReader(os.Stdin)
@@ -65,10 +67,10 @@ func (r *RecordCmd) Run() error {
 
 	// Stop recording
 	if err := recorder.Stop(); err != nil {
-		return err //nolint:wrapcheck // Clear error from Stop
+		return fmt.Errorf("failed to stop recorder: %w", err)
 	}
 
-	fmt.Printf("Saved to: %s\n", outputPath) //nolint:forbidigo // CLI output
+	slog.Info("Recording saved", "path", outputPath)
 
 	return nil
 }
@@ -94,23 +96,39 @@ func (t *TranscribeCmd) Run() error {
 		outputPath = t.AudioFile[:len(t.AudioFile)-len(filepath.Ext(t.AudioFile))] + ".txt"
 	}
 
+	// Open audio file
+	audioFile, err := os.Open(t.AudioFile)
+	if err != nil {
+		return fmt.Errorf("failed to open audio file %s: %w", t.AudioFile, err)
+	}
+	defer audioFile.Close()
+
+	// Validate file is not empty
+	info, err := audioFile.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat audio file: %w", err)
+	}
+	if info.Size() == 0 {
+		return fmt.Errorf("audio file is empty")
+	}
+
 	// Create transcription client
 	client := transcription.NewClient(t.APIKey)
 
 	// Transcribe
-	fmt.Println("Transcribing...") //nolint:forbidigo // CLI output
-	text, err := client.TranscribeFile(t.AudioFile)
+	slog.Info("Transcribing audio file...")
+	text, err := client.TranscribeFile(audioFile)
 	if err != nil {
-		return err //nolint:wrapcheck // Clear error from TranscribeFile
+		return fmt.Errorf("failed to transcribe audio file: %w", err)
 	}
 
 	// Write transcript
 	//nolint:gosec // Transcript files need to be readable
 	if err := os.WriteFile(outputPath, []byte(text), 0644); err != nil {
-		return err //nolint:wrapcheck // Clear error context from WriteFile
+		return fmt.Errorf("failed to write transcript to %s: %w", outputPath, err)
 	}
 
-	fmt.Printf("Transcript saved to: %s\n", outputPath) //nolint:forbidigo // CLI output
+	slog.Info("Transcript saved", "path", outputPath)
 
 	return nil
 }
@@ -135,19 +153,27 @@ func (p *ProcessCmd) Run() error {
 	generator := content.NewGenerator(filepath.Dir(outputPath))
 
 	// Generate post
-	fmt.Println("Processing transcript...") //nolint:forbidigo // CLI output
+	slog.Info("Processing transcript...")
 	if err := generator.GeneratePost(p.TranscriptFile, outputPath); err != nil {
-		return err //nolint:wrapcheck // Clear error from GeneratePost
+		return fmt.Errorf("failed to generate post: %w", err)
 	}
 
-	fmt.Printf("Generated post: %s (draft)\n", outputPath)            //nolint:forbidigo // CLI output
-	fmt.Println("Note: Raw transcript - Phase 2 will add AI cleanup") //nolint:forbidigo // CLI output
-	fmt.Println("Archived: Files moved to ~/.memos/archive/")         //nolint:forbidigo // CLI output
+	slog.Info("Generated post (draft)", "path", outputPath)
+	slog.Info("Note: Raw transcript - Phase 2 will add AI cleanup")
+	slog.Info("Archived: Files moved to ~/.memos/archive/")
 
 	return nil
 }
 
 func main() {
+	// Set up text-based logger for CLI output
+	//nolint:exhaustruct // Using default values for other HandlerOptions fields
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+
 	cli := &CLI{} //nolint:exhaustruct // Kong fills in command fields
 	ctx := kong.Parse(cli)
 	err := ctx.Run()
