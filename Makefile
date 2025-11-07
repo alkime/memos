@@ -82,3 +82,7 @@ compose-down: ## Stop and remove Docker Compose containers
 compose-logs: ## View Docker Compose logs
 	@echo "Viewing Docker Compose logs..."
 	docker compose logs -f
+
+pr-comments: ## Get any PR comments with the github CLI
+	@echo "Getting Github PR comments"
+	@./scripts/format_pr.py
