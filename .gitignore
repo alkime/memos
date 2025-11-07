@@ -50,3 +50,5 @@ public/
 
 # Git worktrees for isolated development
 .worktrees/
+bin/*
+voice

@@ -3,11 +3,14 @@ module github.com/alkime/memos
 go 1.23.0
 
 require (
+	github.com/alecthomas/kong v1.12.1
+	github.com/gen2brain/malgo v0.11.24
 	github.com/gin-contrib/secure v1.1.2
 	github.com/gin-contrib/static v1.1.5
 	github.com/gin-gonic/gin v1.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/sashabaranov/go-openai v1.41.2
 	github.com/stretchr/testify v1.11.1
 )
 
