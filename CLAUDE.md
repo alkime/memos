@@ -110,6 +110,9 @@ golangci-lint run
 - Suppression comments (`//nolint:rulename`) are allowed for intentional exceptions (e.g., config structs with optional fields)
 - Common enabled linters: exhaustruct, goconst, godot, wrapcheck
 
+**Coding Standards:**
+@docs/guides/go-style-guide.md
+
 ### Testing & Building
 
 ```bash
@@ -214,7 +217,7 @@ The `public/` directory is gitignored and generated during the Docker build:
 
 ### Code Changes
 1. Create feature branch: `git checkout -b feature/my-feature`
-2. Make code changes
+2. Make code changes following the Go Style Guide (see "Coding Standards" section above)
 3. Run linter: `make lint` (fix any issues before committing)
 4. Test locally: `make dev`
 5. Commit changes (do NOT commit `public/` directory or build artifacts)
