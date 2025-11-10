@@ -2,12 +2,15 @@
 
 This is a living document that captures coding standards and best practices for the memos project. Guidelines are extracted from PR reviews and updated regularly.
 
-## How to Contribute
+## How to Update This Guide
 
-When you notice patterns or issues during code review:
-1. Leave a comment on the PR explaining the preferred approach
-2. After the PR is merged, use `make pr-comments PR=XXXX` to extract comments
-3. Update this guide with the new guideline
+A major source of updates for this document should come when addressing PR feedback.
+
+When addressing such feedback, once all feedback has been addressed, the final step
+in making updates based on the feedback--prior to merging--should be to understand
+this document and if you should make any updates to it based on the comments.
+
+This ensures the style guide stays current and captures learnings from code reviews as they happen.
 
 ## Core Guidelines
 
