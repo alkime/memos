@@ -188,7 +188,8 @@ def main():
                 )
                 branch = result.stdout.strip()
                 print(f"No pull request found for branch '{branch}'", file=sys.stderr)
-                print("\nTo view comments for a specific PR, use: make pr-comments PR=<number>", file=sys.stderr)
+                print("\nTo view comments for a specific PR, "+
+                      "use: make pr-comments PR=<number>", file=sys.stderr)
                 print("Or run: ./scripts/format_pr.py <PR_NUMBER>", file=sys.stderr)
                 sys.exit(0)  # Exit cleanly, not an error condition
 

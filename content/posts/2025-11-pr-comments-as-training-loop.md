@@ -1,6 +1,6 @@
 ---
 title: "PR Comments as a Training Loop"
-date: "2025-11-10T14:00:00-08:00"
+date: "2025-11-10T17:15:00-08:00"
 author: James
 voiceBased: true
 draft: false
@@ -225,7 +225,8 @@ def main():
                 )
                 branch = result.stdout.strip()
                 print(f"No pull request found for branch '{branch}'", file=sys.stderr)
-                print("\nTo view comments for a specific PR, use: make pr-comments PR=<number>", file=sys.stderr)
+                print("\nTo view comments for a specific PR, "+
+                      "use: make pr-comments PR=<number>", file=sys.stderr)
                 print("Or run: ./scripts/format_pr.py <PR_NUMBER>", file=sys.stderr)
                 sys.exit(0)  # Exit cleanly, not an error condition
 

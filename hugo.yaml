@@ -20,6 +20,13 @@ buildExpired: false
 
 enableRobotsTXT: true
 
+# Syntax highlighting
+markup:
+  highlight:
+    style: nord
+    lineNos: true
+    lineNumbersInTable: false
+
 # Minify output
 minify:
   disableXML: true
