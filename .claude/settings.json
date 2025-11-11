@@ -51,7 +51,27 @@
             "WebSearch",
             "Bash(make dev:*)",
             "Skill(superpowers:test-driven-development)",
-            "Bash(go test:*)"
+            "Bash(go test:*)",
+            "Bash(golangci-lint:*)",
+            "WebFetch(domain:gohugo.io)",
+            "WebSearch",
+            "Bash(make dev:*)",
+            "Skill(superpowers:test-driven-development)",
+            "Bash(go test:*)",
+            "Bash(git submodule:*)",
+            "Bash(make:*)",
+            "Bash(git rm:*)",
+            "Bash(git push:*)",
+            "Bash(gh pr create:*)",
+            "Bash(git restore:*)",
+            "Bash(gh pr view:*)",
+            "Bash(git rev-parse:*)",
+            "Bash(go mod download:*)",
+            "Bash(./bin/voice:*)",
+            "Skill(superpowers:receiving-code-review)",
+            "WebFetch(domain:api.github.com)",
+            "WebFetch(domain:golangci-lint.run)",
+            "WebFetch(domain:code.claude.com)"
         ]
     },
     "sandbox": {
