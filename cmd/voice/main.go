@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/alkime/memos/internal/cli/audio"
+	"github.com/alkime/memos/internal/cli/audio/device"
 	"github.com/alkime/memos/internal/cli/content"
 	"github.com/alkime/memos/internal/cli/transcription"
 )
@@ -19,6 +20,7 @@ type CLI struct {
 	Record     RecordCmd     `cmd:"" help:"Record audio from microphone"`
 	Transcribe TranscribeCmd `cmd:"" help:"Transcribe audio file to text"`
 	Process    ProcessCmd    `cmd:"" help:"Generate Hugo markdown from transcript"`
+	Devices    DevicesCmd    `cmd:"" help:"List available audio devices"`
 }
 
 // RecordCmd handles audio recording.
@@ -49,28 +51,16 @@ func (r *RecordCmd) Run() error {
 	}
 
 	// Create recorder
-	recorder := audio.NewRecorder(outputPath, maxDuration, r.MaxBytes)
+	recorder := audio.NewRecorder(audio.FileRecorderConfig{
+		OutputPath:  outputPath,
+		MaxDuration: maxDuration,
+		MaxBytes:    r.MaxBytes,
+	})
 
-	// Start recording
-	if err := recorder.Start(); err != nil {
-		return fmt.Errorf("failed to start recorder: %w", err)
+	err = recorder.Go(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to record audio: %w", err)
 	}
-
-	// Wait for stop condition
-	slog.Info("Recording... Press Enter to stop",
-		"max_duration", r.MaxDuration,
-		"max_size_mb", r.MaxBytes/(1024*1024))
-
-	// Read from stdin for Enter key
-	reader := bufio.NewReader(os.Stdin)
-	_, _ = reader.ReadString('\n')
-
-	// Stop recording
-	if err := recorder.Stop(); err != nil {
-		return fmt.Errorf("failed to stop recorder: %w", err)
-	}
-
-	slog.Info("Recording saved", "path", outputPath)
 
 	return nil
 }
@@ -161,6 +151,29 @@ func (p *ProcessCmd) Run() error {
 	slog.Info("Generated post (draft)", "path", outputPath)
 	slog.Info("Note: Raw transcript - Phase 2 will add AI cleanup")
 	slog.Info("Archived: Files moved to ~/.memos/archive/")
+
+	return nil
+}
+
+type DevicesCmd struct{}
+
+func (dcmd *DevicesCmd) Run() error {
+	slog.Info("Enumerating audio devices...")
+
+	adev := device.NewAudioDevice(nil)
+	devices, err := adev.EnumerateDevices(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to enumerate audio devices: %w", err)
+	}
+
+	for _, dev := range devices {
+		slog.Info("Audio Device",
+			"name", dev.Name,
+			"isDefault", dev.IsDefault,
+			"formatCount", dev.FormatCount,
+			"formats", dev.Formats,
+		)
+	}
 
 	return nil
 }
