@@ -12,7 +12,7 @@ import (
 type AudioDevice interface {
 	// EnumerateDevices lists available audio devices.
 	// It ignores any device configuration passed in.
-	EnumerateDevices(ctx context.Context) ([]DeviceInfo, error)
+	EnumerateDevices(ctx context.Context) ([]Info, error)
 
 	// Capture initializes the underlying device and allocates a data packet
 	// channel which, when Start() is called, will start receiving audio from
@@ -37,7 +37,7 @@ func NewAudioDevice(conf *AudioDeviceConfig) AudioDevice {
 	return &device{conf: conf}
 }
 
-func (d *device) EnumerateDevices(ctx context.Context) ([]DeviceInfo, error) {
+func (d *device) EnumerateDevices(ctx context.Context) ([]Info, error) {
 	// Initialize an empty context. AFAICT this is fine for just
 	// enumrating the available devices.
 	devCtx, err := malgo.InitContext(nil, malgo.ContextConfig{}, nil)
@@ -50,6 +50,7 @@ func (d *device) EnumerateDevices(ctx context.Context) ([]DeviceInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get capture devices: %w", err)
 	}
+
 	return collections.Apply(captureDevices, malgoDeviceInfoToDeviceInfo), nil
 }
 
@@ -116,7 +117,7 @@ func (d *device) allocMGDevice(devType malgo.DeviceType) (*malgo.AllocatedContex
 	var devCnf malgo.DeviceConfig
 	var callBacks malgo.DeviceCallbacks
 
-	switch devType {
+	switch devType { //nolint:exhaustive // Only Capture is supported; others handled by default
 	case malgo.Capture:
 		devCnf = malgo.DefaultDeviceConfig(malgo.Capture)
 		devCnf.Capture.Format = d.conf.Format
@@ -153,21 +154,21 @@ func (d *device) deallocMGDevice() {
 	d.mgCtx = nil
 }
 
-type DeviceInfo struct {
+type Info struct {
 	Name        string
 	IsDefault   bool
 	FormatCount int
 	Formats     []string
 }
 
-func malgoDeviceInfoToDeviceInfo(mdi malgo.DeviceInfo) DeviceInfo {
+func malgoDeviceInfoToDeviceInfo(mdi malgo.DeviceInfo) Info {
 	formats := make([]string, len(mdi.Formats))
 	for i, mf := range mdi.Formats {
 		formats[i] = fmt.Sprintf("(SampleSizeBytes: %d, Channels: %d, SampleRate: %d)",
 			malgo.SampleSizeInBytes(mf.Format),
 			mf.Channels, mf.SampleRate)
 	}
-	return DeviceInfo{
+	return Info{
 		Name:        mdi.Name(),
 		IsDefault:   mdi.IsDefault != 0,
 		FormatCount: int(mdi.FormatCount),

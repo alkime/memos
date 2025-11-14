@@ -62,27 +62,6 @@ func (r *RecordCmd) Run() error {
 		return fmt.Errorf("failed to record audio: %w", err)
 	}
 
-	// // Start recording
-	// if err := recorder.Start(); err != nil {
-	// 	return fmt.Errorf("failed to start recorder: %w", err)
-	// }
-
-	// // Wait for stop condition
-	// slog.Info("Recording... Press Enter to stop",
-	// 	"max_duration", r.MaxDuration,
-	// 	"max_size_mb", r.MaxBytes/(1024*1024))
-
-	// // Read from stdin for Enter key
-	// reader := bufio.NewReader(os.Stdin)
-	// _, _ = reader.ReadString('\n')
-
-	// // Stop recording
-	// if err := recorder.Stop(); err != nil {
-	// 	return fmt.Errorf("failed to stop recorder: %w", err)
-	// }
-
-	// slog.Info("Recording saved", "path", outputPath)
-
 	return nil
 }
 
@@ -179,7 +158,6 @@ func (p *ProcessCmd) Run() error {
 type DevicesCmd struct{}
 
 func (dcmd *DevicesCmd) Run() error {
-
 	slog.Info("Enumerating audio devices...")
 
 	adev := device.NewAudioDevice(nil)

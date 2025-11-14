@@ -35,11 +35,6 @@ type FileRecorder struct {
 	config FileRecorderConfig
 }
 
-// recordingState tracks the state of an active recording.
-type recordingState struct {
-	isRecording bool
-}
-
 // NewRecorder creates a new audio recorder.
 func NewRecorder(conf FileRecorderConfig) *FileRecorder {
 	return &FileRecorder{
@@ -48,7 +43,6 @@ func NewRecorder(conf FileRecorderConfig) *FileRecorder {
 }
 
 func (r *FileRecorder) Go(ctx context.Context) (err error) {
-
 	dev := device.NewAudioDevice(&device.AudioDeviceConfig{
 		Format:          malgo.FormatS16,
 		SampleRate:      defaultSampleRate,
@@ -78,7 +72,7 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 	wg.Go(func() {
 		for packet := range dataC {
 			// todo write a packet to WAV file.
-			fmt.Print(".")
+			fmt.Print(".") //nolint:forbidigo // CLI progress indicator
 			// todo: check size limits.
 			_, err := buf.Write(packet)
 			if err != nil {
@@ -86,7 +80,7 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 				break
 			}
 		}
-		fmt.Println("\n[finished audio read loop]")
+		fmt.Println("\n[finished audio read loop]") //nolint:forbidigo // CLI status message
 	})
 	wg.Go(func() {
 		select {
@@ -142,6 +136,7 @@ func (r *FileRecorder) flushWAVFile(wavFilePath string, buf *bytes.Buffer) error
 	}
 
 	slog.Info("WAV file saved", "path", wavFilePath)
+
 	return nil
 }
 
