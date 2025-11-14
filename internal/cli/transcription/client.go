@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	openai "github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 // Client handles Whisper API transcription requests.
@@ -29,17 +30,17 @@ func (c *Client) TranscribeFile(audioFile io.Reader) (string, error) {
 	}
 
 	// Create OpenAI client
-	client := openai.NewClient(c.apiKey)
+	client := openai.NewClient(option.WithAPIKey(c.apiKey))
 
 	// Create transcription request
-	req := openai.AudioRequest{ //nolint:exhaustruct // Only Model and Reader required
-		Model:  openai.Whisper1,
-		Reader: audioFile,
+	params := openai.AudioTranscriptionNewParams{
+		File:  audioFile,
+		Model: openai.AudioModelWhisper1,
 	}
 
 	// Call Whisper API
 	ctx := context.Background()
-	resp, err := client.CreateTranscription(ctx, req)
+	resp, err := client.Audio.Transcriptions.New(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("failed to create transcription via Whisper API: %w", err)
 	}

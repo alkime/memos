@@ -13,6 +13,7 @@ import (
 	"github.com/alkime/memos/internal/cli/audio/device"
 	"github.com/alkime/memos/internal/cli/content"
 	"github.com/alkime/memos/internal/cli/transcription"
+	"github.com/alkime/memos/internal/git"
 )
 
 // CLI defines the voice command structure.
@@ -26,8 +27,27 @@ type CLI struct {
 // RecordCmd handles audio recording.
 type RecordCmd struct {
 	Output      string `arg:"" optional:"" help:"Output file path"`
+	Name        string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
 	MaxDuration string `flag:"" default:"1h" help:"Max recording duration"`
 	MaxBytes    int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
+}
+
+// getWorkingName determines the working name for files.
+// Priority: explicit name > git branch > timestamp fallback.
+func getWorkingName(explicitName string) string {
+	// Use explicit name if provided
+	if explicitName != "" {
+		return git.SanitizeBranchName(explicitName)
+	}
+
+	// Try to get git branch
+	branch, err := git.GetCurrentBranch()
+	if err == nil {
+		return git.SanitizeBranchName(branch)
+	}
+
+	// Fallback to timestamp if not in git repo
+	return time.Now().Format("2006-01-02-150405")
 }
 
 // Run executes the record command.
@@ -35,13 +55,19 @@ func (r *RecordCmd) Run() error {
 	// Determine output path
 	outputPath := r.Output
 	if outputPath == "" {
-		// Default to ~/.memos/recordings/{timestamp}.wav
+		// Default to ~/.memos/work/{name}/recording.wav
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("failed to get user home directory: %w", err)
 		}
-		timestamp := time.Now().Format("2006-01-02-150405")
-		outputPath = filepath.Join(homeDir, ".memos", "recordings", fmt.Sprintf("%s.wav", timestamp))
+		workingName := getWorkingName(r.Name)
+		outputPath = filepath.Join(homeDir, ".memos", "work", workingName, "recording.wav")
+	}
+
+	// Create parent directory if needed
+	parentDir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory %s: %w", parentDir, err)
 	}
 
 	// Parse max duration
@@ -67,9 +93,49 @@ func (r *RecordCmd) Run() error {
 
 // TranscribeCmd handles audio transcription.
 type TranscribeCmd struct {
-	AudioFile string `arg:"" help:"Path to audio file"`
+	AudioFile string `arg:"" optional:"" help:"Path to audio file (auto-detects if not provided)"`
 	APIKey    string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key"`
 	Output    string `flag:"" optional:"" help:"Output transcript path"`
+	Name      string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+}
+
+// autoDetectAudioFile determines the audio file path from working directory
+// and prompts user for confirmation.
+func autoDetectAudioFile(workingName string) (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	audioFilePath := filepath.Join(homeDir, ".memos", "work", workingName, "recording.wav")
+
+	// Check if file exists
+	if _, err := os.Stat(audioFilePath); err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf(
+				"no recording found at %s - please record first or provide explicit path",
+				audioFilePath,
+			)
+		}
+		return "", fmt.Errorf("failed to check audio file: %w", err)
+	}
+
+	// Prompt user for confirmation
+	//nolint:forbidigo // Interactive CLI confirmation requires user input
+	fmt.Printf("Transcribe %s? [Y/n] ", audioFilePath)
+	var response string
+	if _, err := fmt.Scanln(&response); err != nil && err.Error() != "unexpected newline" {
+		return "", fmt.Errorf("failed to read user input: %w", err)
+	}
+
+	// Check response (default to yes if empty)
+	if response != "" && response != "Y" && response != "y" && response != "yes" {
+		return "", fmt.Errorf(
+			"if %s is not the file to transcribe, please provide the correct one as an argument",
+			audioFilePath,
+		)
+	}
+
+	return audioFilePath, nil
 }
 
 // Run executes the transcribe command.
@@ -79,17 +145,29 @@ func (t *TranscribeCmd) Run() error {
 		return fmt.Errorf("API key required: set OPENAI_API_KEY or use --api-key")
 	}
 
+	// Determine audio file path
+	audioFilePath := t.AudioFile
+	if audioFilePath == "" {
+		// Auto-detect audio file from working directory
+		workingName := getWorkingName(t.Name)
+		detectedPath, err := autoDetectAudioFile(workingName)
+		if err != nil {
+			return err
+		}
+		audioFilePath = detectedPath
+	}
+
 	// Determine output path
 	outputPath := t.Output
 	if outputPath == "" {
-		// Default to same name as audio file, .txt extension
-		outputPath = t.AudioFile[:len(t.AudioFile)-len(filepath.Ext(t.AudioFile))] + ".txt"
+		// Default to same directory as audio file, .txt extension
+		outputPath = audioFilePath[:len(audioFilePath)-len(filepath.Ext(audioFilePath))] + ".txt"
 	}
 
 	// Open audio file
-	audioFile, err := os.Open(t.AudioFile)
+	audioFile, err := os.Open(audioFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to open audio file %s: %w", t.AudioFile, err)
+		return fmt.Errorf("failed to open audio file %s: %w", audioFilePath, err)
 	}
 	defer audioFile.Close()
 
