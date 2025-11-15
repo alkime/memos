@@ -227,7 +227,7 @@ func (t *TranscribeCmd) Run() error {
 
 	// Print the transcript to screen
 	//nolint:forbidigo // CLI output for transcript display
-	fmt.Println("\n--- Transcript ---\n")
+	fmt.Printf("\n--- Transcript ---\n\n")
 	//nolint:forbidigo // CLI output for transcript display
 	fmt.Println(text)
 	//nolint:forbidigo // CLI output for transcript display
