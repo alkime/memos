@@ -69,9 +69,12 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 	buf := bytes.NewBuffer(nil)
 
 	wg.Go(func() {
+		cnt := 0
 		for packet := range dataC {
-			// todo write a packet to WAV file.
-			fmt.Print(".") //nolint:forbidigo // CLI progress indicator
+			cnt++
+			if cnt%50 == 0 {
+				fmt.Print(".") //nolint:forbidigo // CLI progress indicator
+			}
 			// todo: check size limits.
 			_, err := buf.Write(packet)
 			if err != nil {

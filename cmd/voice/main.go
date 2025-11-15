@@ -26,10 +26,12 @@ type CLI struct {
 
 // RecordCmd handles audio recording.
 type RecordCmd struct {
-	Output      string `arg:"" optional:"" help:"Output file path"`
-	Name        string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
-	MaxDuration string `flag:"" default:"1h" help:"Max recording duration"`
-	MaxBytes    int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
+	Output       string `arg:"" optional:"" help:"Output file path"`
+	Name         string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	MaxDuration  string `flag:"" default:"1h" help:"Max recording duration"`
+	MaxBytes     int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
+	NoTranscribe bool   `flag:"" help:"Skip automatic transcription after recording"`
+	APIKey       string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key for transcription"`
 }
 
 // getWorkingName determines the working name for files.
@@ -86,6 +88,31 @@ func (r *RecordCmd) Run() error {
 	err = recorder.Go(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to record audio: %w", err)
+	}
+
+	// Auto-transcribe unless --no-transcribe flag is set
+	if r.NoTranscribe {
+		return nil
+	}
+
+	// Skip transcription if no API key is provided
+	if r.APIKey == "" {
+		slog.Info("Skipping transcription (no API key provided)")
+		return nil
+	}
+
+	// Delegate to transcribe command
+	transcribeCmd := &TranscribeCmd{
+		AudioFile: outputPath,
+		APIKey:    r.APIKey,
+		Output:    "", // Let it default to .txt file
+		Name:      r.Name,
+	}
+
+	// If transcription fails, keep the recording
+	if err := transcribeCmd.Run(); err != nil {
+		slog.Error("Failed to transcribe recording", "error", err)
+		return nil
 	}
 
 	return nil
@@ -197,6 +224,14 @@ func (t *TranscribeCmd) Run() error {
 	}
 
 	slog.Info("Transcript saved", "path", outputPath)
+
+	// Print the transcript to screen
+	//nolint:forbidigo // CLI output for transcript display
+	fmt.Println("\n--- Transcript ---\n")
+	//nolint:forbidigo // CLI output for transcript display
+	fmt.Println(text)
+	//nolint:forbidigo // CLI output for transcript display
+	fmt.Println("\n------------------")
 
 	return nil
 }
