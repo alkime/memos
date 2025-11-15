@@ -108,7 +108,7 @@ golangci-lint run
 **Linting Standards:**
 - All code should pass `make lint` before committing
 - Suppression comments (`//nolint:rulename`) are allowed for intentional exceptions (e.g., config structs with optional fields)
-- Common enabled linters: exhaustruct, goconst, godot, wrapcheck
+- Common enabled linters: goconst, godot, wrapcheck
 
 **Coding Standards:**
 @docs/guides/go-style-guide.md
