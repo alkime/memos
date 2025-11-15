@@ -13,9 +13,8 @@ import (
 	"time"
 
 	"github.com/alkime/memos/internal/cli/audio/device"
+	mp3 "github.com/braheezy/shine-mp3/pkg/mp3"
 	"github.com/gen2brain/malgo"
-
-	"github.com/youpy/go-wav"
 )
 
 const (
@@ -30,7 +29,7 @@ type FileRecorderConfig struct {
 }
 
 // FileRecorder handles audio recording from microphone
-// and streaming it into a WAV file.
+// and streaming it into an MP3 file.
 type FileRecorder struct {
 	config FileRecorderConfig
 }
@@ -83,59 +82,63 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 		fmt.Println("\n[finished audio read loop]") //nolint:forbidigo // CLI status message
 	})
 	wg.Go(func() {
-		select {
-		case <-catchSignals():
-			slog.Info("received stop signal, stopping recording")
-			hardStop(ctx, dev)
-		case <-ctx.Done():
-			slog.Info("context done, stopping recording")
-			hardStop(ctx, dev)
-		}
+		<-catchStopSignals(ctx)
+		slog.Info("received stop signal, stopping recording")
+		hardStop(ctx, dev)
 	})
 
 	slog.Info("running... waiting for recording to finish")
 	wg.Wait()
 	slog.Info("recording finished. buffer size bytes", "size_bytes", buf.Len())
 
-	// flush buffer to WAV file.
-	err = r.flushWAVFile(r.config.OutputPath, buf)
+	// flush buffer to MP3 file.
+	err = r.flushMP3File(r.config.OutputPath, buf)
 	if err != nil {
-		return fmt.Errorf("failed to flush WAV file: %w", err)
+		return fmt.Errorf("failed to flush MP3 file: %w", err)
 	}
 
 	return nil
 }
 
-func (r *FileRecorder) flushWAVFile(wavFilePath string, buf *bytes.Buffer) error {
-	fd, err := os.Create(wavFilePath)
+func (r *FileRecorder) flushMP3File(mp3FilePath string, buf *bytes.Buffer) error {
+	fd, err := os.Create(mp3FilePath)
 	if err != nil {
-		return fmt.Errorf("failed to create WAV file %s: %w", wavFilePath, err)
+		return fmt.Errorf("failed to create MP3 file %s: %w", mp3FilePath, err)
 	}
 	defer closeFd(fd)
 
-	// Convert buffer bytes to []wav.Sample
-	rawBytes := buf.Bytes()
-	numSamples := len(rawBytes) / 2 // 2 bytes per int16 sample
-	samples := make([]wav.Sample, numSamples)
+	// Convert buffer bytes to []int16
+	// The buffer contains S16LE (16-bit signed little-endian) PCM data
+	numSamples := buf.Len() / 2 // 2 bytes per int16 sample
+	monoSamples := make([]int16, numSamples)
 
-	for i := range numSamples {
-		// Read 2 bytes and convert to int16 (little-endian)
-		sampleInt16 := int16(binary.LittleEndian.Uint16(rawBytes[i*2 : i*2+2]))
-
-		// Convert to int and store in both channels (mono audio)
-		sampleValue := int(sampleInt16)
-		samples[i] = wav.Sample{
-			Values: [2]int{sampleValue, sampleValue},
-		}
-	}
-
-	wavWriter := wav.NewWriter(fd, uint32(len(samples)), uint16(defaultChannels), uint32(defaultSampleRate), 16)
-	err = wavWriter.WriteSamples(samples)
+	// Read raw bytes directly into int16 slice using binary.Read
+	reader := bytes.NewReader(buf.Bytes())
+	err = binary.Read(reader, binary.LittleEndian, monoSamples)
 	if err != nil {
-		return fmt.Errorf("failed to write samples to WAV file %s: %w", wavFilePath, err)
+		return fmt.Errorf("failed to read PCM samples: %w", err)
 	}
 
-	slog.Info("WAV file saved", "path", wavFilePath)
+	// WORKAROUND: shine-mp3 Write() has a bug for mono (always increments by samples_per_pass * 2)
+	// Convert mono to stereo by duplicating samples (L=R)
+	stereoSamples := make([]int16, numSamples*2)
+	for i, sample := range monoSamples {
+		stereoSamples[i*2] = sample   // Left channel
+		stereoSamples[i*2+1] = sample // Right channel (duplicate)
+	}
+
+	slog.Info("encoding MP3", "monoSamples", numSamples, "stereoSamples", len(stereoSamples))
+
+	// Create MP3 encoder as STEREO (workaround for mono bug)
+	encoder := mp3.NewEncoder(defaultSampleRate, 2) // 2 channels
+
+	// Write stereo PCM samples to MP3 file
+	err = encoder.Write(fd, stereoSamples)
+	if err != nil {
+		return fmt.Errorf("failed to encode audio to MP3 %s: %w", mp3FilePath, err)
+	}
+
+	slog.Info("MP3 file saved", "path", mp3FilePath)
 
 	return nil
 }
@@ -155,8 +158,49 @@ func closeFd(fd *os.File) {
 	}
 }
 
-func catchSignals() <-chan os.Signal {
-	stopC := make(chan os.Signal, 2)
-	signal.Notify(stopC, os.Interrupt, syscall.SIGTERM)
+// catchStopSignals listens for a few things:
+//   - OS signals: SIGINT, SIGTERM
+//   - Context's Done channel
+//   - User inputting newline or space into stdin.
+func catchStopSignals(ctx context.Context) <-chan struct{} {
+	stopC := make(chan struct{})
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, os.Interrupt, syscall.SIGTERM)
+
+	// Channel to signal when user presses Enter or Space
+	stdinC := make(chan struct{})
+
+	// Goroutine to watch for stdin input
+	// Note: This goroutine may leak if stdin input never arrives and another
+	// stop signal is received first. This is acceptable because:
+	// 1. os.Stdin.Read() cannot be cancelled by context
+	// 2. The goroutine will be cleaned up when the program exits
+	// 3. This is a short-lived CLI tool, not a long-running server
+	go func() {
+		buf := make([]byte, 1)
+		for {
+			n, err := os.Stdin.Read(buf)
+			if err != nil || n == 0 {
+				return
+			}
+			// Check for newline (Enter) or space
+			if buf[0] == '\n' || buf[0] == ' ' {
+				close(stdinC)
+				return
+			}
+		}
+	}()
+
+	go func() {
+		defer close(stopC)
+		defer signal.Stop(sigC)
+
+		select {
+		case <-ctx.Done():
+		case <-sigC:
+		case <-stdinC:
+		}
+	}()
+
 	return stopC
 }

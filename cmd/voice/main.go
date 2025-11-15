@@ -55,13 +55,13 @@ func (r *RecordCmd) Run() error {
 	// Determine output path
 	outputPath := r.Output
 	if outputPath == "" {
-		// Default to ~/.memos/work/{name}/recording.wav
+		// Default to ~/.memos/work/{name}/recording.mp3
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("failed to get user home directory: %w", err)
 		}
 		workingName := getWorkingName(r.Name)
-		outputPath = filepath.Join(homeDir, ".memos", "work", workingName, "recording.wav")
+		outputPath = filepath.Join(homeDir, ".memos", "work", workingName, "recording.mp3")
 	}
 
 	// Create parent directory if needed
@@ -106,7 +106,7 @@ func autoDetectAudioFile(workingName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
 	}
-	audioFilePath := filepath.Join(homeDir, ".memos", "work", workingName, "recording.wav")
+	audioFilePath := filepath.Join(homeDir, ".memos", "work", workingName, "recording.mp3")
 
 	// Check if file exists
 	if _, err := os.Stat(audioFilePath); err != nil {

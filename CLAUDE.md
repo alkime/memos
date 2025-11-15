@@ -30,9 +30,11 @@ Hugo Static Site Generator
 
 ## Tech Stack
 
-- **Go** - Web server
+- **Go** - Web server and CLI tools
 - **Hugo** - Static site generator (used via CLI, not as Go library)
 - **Gin** - Go web framework
+- **shine-mp3** - Pure Go MP3 encoder for audio recording
+- **OpenAI Whisper** - Speech-to-text transcription (via API)
 - **golangci-lint** - Go linter aggregator for code quality
 - **Docker** - Multi-stage build
 - **Fly.io** - Deployment platform
@@ -203,6 +205,32 @@ The `public/` directory is gitignored and generated during the Docker build:
 **Static Pages:**
 - Location: `content/pages/`
 - Front matter: title, layout
+
+## Voice Recording & Transcription
+
+The platform includes a voice CLI tool (`cmd/voice`) for recording audio and transcribing it to blog posts.
+
+**Audio Format:**
+- **Container:** MP3 (encoded with shine-mp3, pure Go implementation)
+- **Sample Rate:** 16,000 Hz (16 kHz) - Whisper's native sample rate
+- **Channels:** Mono (1 channel)
+- **Compression:** ~5-8x vs WAV (approximately 0.2-0.4 MB per minute)
+- **OpenAI API Limit:** 25 MB per request (~1-2 hours of recording possible)
+
+**Why MP3:**
+- Pure Go encoder (shine-mp3) - no system dependencies or CGO required
+- Cross-platform builds work seamlessly
+- Significantly smaller files than WAV (~5-8x compression)
+- Compatible with OpenAI Whisper API (supports: mp3, mp4, mpeg, mpga, m4a, wav, webm)
+- Optimized settings for speech: 16kHz mono is ideal for transcription quality
+
+**Audio Recording Technical Details:**
+- Format: PCM S16LE (16-bit signed little-endian) captured from microphone
+- Encoder: `github.com/braheezy/shine-mp3/pkg/mp3` (pure Go, no external dependencies)
+- Audio Device: `github.com/gen2brain/malgo` (cross-platform audio I/O)
+- Default location: `~/.memos/work/{branch-name}/recording.mp3`
+
+**Note:** shine-mp3 produces larger files than LAME but is sufficient for speech transcription. The pure Go implementation allows builds on any platform without system dependencies.
 
 ## Development Workflow
 

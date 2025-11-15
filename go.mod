@@ -4,6 +4,7 @@ go 1.25
 
 require (
 	github.com/alecthomas/kong v1.12.1
+	github.com/braheezy/shine-mp3 v0.1.0
 	github.com/gen2brain/malgo v0.11.24
 	github.com/gin-contrib/secure v1.1.2
 	github.com/gin-contrib/static v1.1.5
