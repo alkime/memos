@@ -6,7 +6,7 @@ import (
 )
 
 // GenerateSlug converts a title to a URL-friendly slug.
-// Example: "Voice CLI Improvements" -> "voice-cli-improvements"
+// Example: "Voice CLI Improvements" -> "voice-cli-improvements".
 func GenerateSlug(title string) string {
 	// Convert to lowercase
 	slug := strings.ToLower(title)

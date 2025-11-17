@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,7 +11,7 @@ import (
 // Open opens the specified file in the user's preferred editor.
 // It uses the $EDITOR environment variable, defaulting to "vi" if not set.
 // Returns an error if the editor command fails.
-func Open(filePath string) error {
+func Open(ctx context.Context, filePath string) error {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		editor = "vi"
@@ -18,7 +19,7 @@ func Open(filePath string) error {
 
 	slog.Info("Opening file in editor", "editor", editor, "path", filePath)
 
-	cmd := exec.Command(editor, filePath)
+	cmd := exec.CommandContext(ctx, editor, filePath)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

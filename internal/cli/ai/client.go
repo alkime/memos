@@ -64,7 +64,7 @@ func (c *Client) GenerateFirstDraft(transcript string) (string, error) {
 }
 
 // GenerateCopyEdit performs final copy editing and returns markdown with frontmatter and extracted title.
-func (c *Client) GenerateCopyEdit(firstDraft string, currentDate string) (markdown string, title string, error error) {
+func (c *Client) GenerateCopyEdit(firstDraft string, currentDate string) (markdown string, title string, err error) {
 	if c.apiKey == "" {
 		return "", "", errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
 	}

@@ -73,7 +73,7 @@ func (r *RunCmd) Run() error {
 		AudioFile:  "",
 		APIKey:     openAIKey,
 		Output:     "",
-		Name:       "", // Auto-detect from git branch
+		Name:       "",   // Auto-detect from git branch
 		SkipPrompt: true, // Skip prompt in end-to-end workflow
 	}
 
@@ -92,7 +92,7 @@ func (r *RunCmd) Run() error {
 		TranscriptFile: "",
 		APIKey:         anthropicKey,
 		Output:         "",
-		Name:           "", // Auto-detect from git branch
+		Name:           "",    // Auto-detect from git branch
 		NoEdit:         false, // Always open editor in end-to-end workflow
 	}
 
@@ -338,6 +338,8 @@ type FirstDraftCmd struct {
 }
 
 // Run executes the first-draft command.
+//
+//nolint:funlen // Function length justified by sequential steps in a CLI command.
 func (f *FirstDraftCmd) Run() error {
 	// Validate API key
 	if f.APIKey == "" {
@@ -421,7 +423,7 @@ func (f *FirstDraftCmd) Run() error {
 	// Open in editor unless --no-edit flag is set
 	if !f.NoEdit {
 		// Ignore editor errors - user can manually edit if needed
-		_ = editor.Open(outputPath)
+		_ = editor.Open(context.Background(), outputPath)
 	}
 
 	return nil
@@ -436,6 +438,8 @@ type CopyEditCmd struct {
 }
 
 // Run executes the copy-edit command.
+//
+//nolint:funlen // Function length justified by sequential steps in a CLI command.
 func (c *CopyEditCmd) Run() error {
 	// Validate API key
 	if c.APIKey == "" {
@@ -523,7 +527,7 @@ func (c *CopyEditCmd) Run() error {
 
 	// Open in editor for review
 	// Ignore editor errors - user can manually edit if needed
-	_ = editor.Open(outputPath)
+	_ = editor.Open(context.Background(), outputPath)
 
 	return nil
 }
