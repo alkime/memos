@@ -70,10 +70,11 @@ func (r *RunCmd) Run() error {
 
 	// Step 2: Transcribe
 	transcribeCmd := &TranscribeCmd{
-		AudioFile: "",
-		APIKey:    openAIKey,
-		Output:    "",
-		Name:      "", // Auto-detect from git branch
+		AudioFile:  "",
+		APIKey:     openAIKey,
+		Output:     "",
+		Name:       "", // Auto-detect from git branch
+		SkipPrompt: true, // Skip prompt in end-to-end workflow
 	}
 
 	if err := transcribeCmd.Run(); err != nil {
@@ -183,10 +184,11 @@ func (r *RecordCmd) Run() error {
 
 	// Delegate to transcribe command
 	transcribeCmd := &TranscribeCmd{
-		AudioFile: outputPath,
-		APIKey:    r.APIKey,
-		Output:    "", // Let it default to .txt file
-		Name:      r.Name,
+		AudioFile:  outputPath,
+		APIKey:     r.APIKey,
+		Output:     "", // Let it default to transcript.txt in working directory
+		Name:       r.Name,
+		SkipPrompt: true, // Skip prompt when auto-transcribing after recording
 	}
 
 	// If transcription fails, keep the recording
@@ -200,15 +202,16 @@ func (r *RecordCmd) Run() error {
 
 // TranscribeCmd handles audio transcription.
 type TranscribeCmd struct {
-	AudioFile string `arg:"" optional:"" help:"Path to audio file (auto-detects if not provided)"`
-	APIKey    string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key"`
-	Output    string `flag:"" optional:"" help:"Output transcript path"`
-	Name      string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	AudioFile  string `arg:"" optional:"" help:"Path to audio file (auto-detects if not provided)"`
+	APIKey     string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key"`
+	Output     string `flag:"" optional:"" help:"Output transcript path"`
+	Name       string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	SkipPrompt bool   `flag:"" help:"Skip confirmation prompt for auto-detected files"`
 }
 
 // autoDetectAudioFile determines the audio file path from working directory
-// and prompts user for confirmation.
-func autoDetectAudioFile(workingName string) (string, error) {
+// and optionally prompts user for confirmation.
+func autoDetectAudioFile(workingName string, skipPrompt bool) (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
@@ -224,6 +227,11 @@ func autoDetectAudioFile(workingName string) (string, error) {
 			)
 		}
 		return "", fmt.Errorf("failed to check audio file: %w", err)
+	}
+
+	// Skip prompt if requested (for end-to-end workflow)
+	if skipPrompt {
+		return audioFilePath, nil
 	}
 
 	// Prompt user for confirmation
@@ -254,10 +262,10 @@ func (t *TranscribeCmd) Run() error {
 
 	// Determine audio file path
 	audioFilePath := t.AudioFile
+	workingName := getWorkingName(t.Name)
 	if audioFilePath == "" {
 		// Auto-detect audio file from working directory
-		workingName := getWorkingName(t.Name)
-		detectedPath, err := autoDetectAudioFile(workingName)
+		detectedPath, err := autoDetectAudioFile(workingName, t.SkipPrompt)
 		if err != nil {
 			return err
 		}
@@ -267,8 +275,12 @@ func (t *TranscribeCmd) Run() error {
 	// Determine output path
 	outputPath := t.Output
 	if outputPath == "" {
-		// Default to same directory as audio file, .txt extension
-		outputPath = audioFilePath[:len(audioFilePath)-len(filepath.Ext(audioFilePath))] + ".txt"
+		// Default to transcript.txt in working directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		outputPath = filepath.Join(homeDir, ".memos", "work", workingName, "transcript.txt")
 	}
 
 	// Open audio file
