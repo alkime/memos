@@ -22,5 +22,8 @@ func CopyEditSystemPrompt(currentDate string) string {
   - date: %s (this is the current date, use it exactly as provided)
   - tags: An array of relevant tags, e.g. ["AI Assisted Dev", "Working In The Open"]
   - draft: false
-- Return the complete markdown file including frontmatter`, currentDate)
+- Always end the post content with the byline shortcode:
+  ---
+  {{< byline >}}
+- Return the complete markdown file including frontmatter and byline`, currentDate)
 }
