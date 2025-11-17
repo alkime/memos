@@ -208,7 +208,17 @@ The `public/` directory is gitignored and generated during the Docker build:
 
 ## Voice Recording & Transcription
 
-The platform includes a voice CLI tool (`cmd/voice`) for recording audio and transcribing it to blog posts.
+The platform includes a voice CLI tool (`cmd/voice`) for converting voice recordings into blog posts with AI assistance.
+
+**Complete Workflow:**
+
+```bash
+# End-to-end: record -> transcribe -> first-draft -> editor
+voice
+
+# After editing first draft:
+voice copy-edit
+```
 
 **Audio Format:**
 - **Container:** MP3 (encoded with shine-mp3, pure Go implementation)
@@ -217,20 +227,41 @@ The platform includes a voice CLI tool (`cmd/voice`) for recording audio and tra
 - **Compression:** ~5-8x vs WAV (approximately 0.2-0.4 MB per minute)
 - **OpenAI API Limit:** 25 MB per request (~1-2 hours of recording possible)
 
-**Why MP3:**
-- Pure Go encoder (shine-mp3) - no system dependencies or CGO required
-- Cross-platform builds work seamlessly
-- Significantly smaller files than WAV (~5-8x compression)
-- Compatible with OpenAI Whisper API (supports: mp3, mp4, mpeg, mpga, m4a, wav, webm)
-- Optimized settings for speech: 16kHz mono is ideal for transcription quality
+**AI Processing:**
+1. **First Draft** (Anthropic Claude Sonnet 4.5):
+   - Light cleanup: removes verbal tics (um, like, and)
+   - Clarity: rewords for readability while preserving voice
+   - Organization: adds section headings, maintains narrative flow
+   - Output: Clean markdown (no frontmatter)
 
-**Audio Recording Technical Details:**
-- Format: PCM S16LE (16-bit signed little-endian) captured from microphone
-- Encoder: `github.com/braheezy/shine-mp3/pkg/mp3` (pure Go, no external dependencies)
-- Audio Device: `github.com/gen2brain/malgo` (cross-platform audio I/O)
-- Default location: `~/.memos/work/{branch-name}/recording.mp3`
+2. **Copy Edit** (Anthropic Claude Sonnet 4.5):
+   - Polish: grammar, punctuation, style consistency
+   - Formatting: proper markdown and Hugo frontmatter
+   - Output: Final post in `content/posts/{YYYY-MM}-{slug}.md`
 
-**Note:** shine-mp3 produces larger files than LAME but is sufficient for speech transcription. The pure Go implementation allows builds on any platform without system dependencies.
+**File Flow:**
+```
+~/.memos/work/{branch}/
+├── recording.mp3       # Step 1: Record
+├── transcript.txt      # Step 2: Transcribe (OpenAI Whisper)
+└── first-draft.md      # Step 3: First Draft (Anthropic Claude)
+
+content/posts/
+└── {YYYY-MM}-{slug}.md # Step 4: Copy Edit (Anthropic Claude)
+```
+
+**API Keys:**
+- `OPENAI_API_KEY` - For transcription (Whisper)
+- `ANTHROPIC_API_KEY` - For AI content generation (Claude)
+
+**Individual Commands:**
+- `voice record` - Record audio (auto-transcribes by default)
+- `voice transcribe` - Transcribe audio to text
+- `voice first-draft` - Generate AI first draft, open in `$EDITOR`
+- `voice copy-edit` - Final polish and save to content/posts
+- `voice devices` - List available audio devices
+
+See `cmd/voice/README.md` for detailed usage.
 
 ## Development Workflow
 
