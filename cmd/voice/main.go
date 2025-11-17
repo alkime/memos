@@ -19,6 +19,9 @@ import (
 
 // CLI defines the voice command structure.
 type CLI struct {
+	// Default workflow command (hidden from help, runs when no subcommand given)
+	Run RunCmd `cmd:"" default:"1" hidden:"" help:"Run end-to-end workflow"`
+
 	// Commands
 	Record     RecordCmd     `cmd:"" help:"Record audio from microphone"`
 	Transcribe TranscribeCmd `cmd:"" help:"Transcribe audio file to text"`
@@ -27,8 +30,11 @@ type CLI struct {
 	Devices    DevicesCmd    `cmd:"" help:"List available audio devices"`
 }
 
+// RunCmd executes the end-to-end workflow: record -> transcribe -> first-draft -> editor.
+type RunCmd struct{}
+
 // Run executes the end-to-end workflow when no subcommand is provided: record -> transcribe -> first-draft -> editor.
-func (c *CLI) Run() error {
+func (r *RunCmd) Run() error {
 	// Get API keys from environment
 	openAIKey := os.Getenv("OPENAI_API_KEY")
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
