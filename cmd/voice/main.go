@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/alkime/memos/internal/cli/ai"
 	"github.com/alkime/memos/internal/cli/audio"
 	"github.com/alkime/memos/internal/cli/audio/device"
+	"github.com/alkime/memos/internal/cli/editor"
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/git"
 )
@@ -420,21 +420,8 @@ func (f *FirstDraftCmd) Run() error {
 
 	// Open in editor unless --no-edit flag is set
 	if !f.NoEdit {
-		editor := os.Getenv("EDITOR")
-		if editor == "" {
-			editor = "vi"
-		}
-
-		slog.Info("Opening first draft in editor", "editor", editor)
-		cmd := exec.Command(editor, outputPath)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		if err := cmd.Run(); err != nil {
-			slog.Error("Failed to open editor", "error", err)
-			slog.Info("You can manually edit the file", "path", outputPath)
-		}
+		// Ignore editor errors - user can manually edit if needed
+		_ = editor.Open(outputPath)
 	}
 
 	return nil
@@ -533,6 +520,10 @@ func (c *CopyEditCmd) Run() error {
 	}
 
 	slog.Info("Final post saved", "path", outputPath, "title", title)
+
+	// Open in editor for review
+	// Ignore editor errors - user can manually edit if needed
+	_ = editor.Open(outputPath)
 
 	return nil
 }
