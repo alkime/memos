@@ -23,6 +23,7 @@ type CLI struct {
 	Record     RecordCmd     `cmd:"" help:"Record audio from microphone"`
 	Transcribe TranscribeCmd `cmd:"" help:"Transcribe audio file to text"`
 	FirstDraft FirstDraftCmd `cmd:"" help:"Generate AI first draft from transcript"`
+	CopyEdit   CopyEditCmd   `cmd:"" help:"Final copy-edit and save to content/posts"`
 	Process    ProcessCmd    `cmd:"" help:"Generate Hugo markdown from transcript"`
 	Devices    DevicesCmd    `cmd:"" help:"List available audio devices"`
 }
@@ -347,6 +348,100 @@ func (f *FirstDraftCmd) Run() error {
 			slog.Info("You can manually edit the file", "path", outputPath)
 		}
 	}
+
+	return nil
+}
+
+// CopyEditCmd handles AI-powered copy editing and final post generation.
+type CopyEditCmd struct {
+	FirstDraftFile string `arg:"" optional:"" help:"Path to first draft file (auto-detects if not provided)"`
+	APIKey         string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
+	Output         string `flag:"" optional:"" help:"Output path (defaults to content/posts/)"`
+	Name           string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+}
+
+// Run executes the copy-edit command.
+func (c *CopyEditCmd) Run() error {
+	// Validate API key
+	if c.APIKey == "" {
+		return fmt.Errorf("API key required: set ANTHROPIC_API_KEY or use --api-key")
+	}
+
+	// Determine first draft file path
+	firstDraftPath := c.FirstDraftFile
+	if firstDraftPath == "" {
+		// Auto-detect first draft from working directory
+		workingName := getWorkingName(c.Name)
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		firstDraftPath = filepath.Join(homeDir, ".memos", "work", workingName, "first-draft.md")
+
+		// Check if file exists
+		if _, err := os.Stat(firstDraftPath); err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf(
+					"no first draft found at %s - please run 'voice first-draft' first",
+					firstDraftPath,
+				)
+			}
+			return fmt.Errorf("failed to check first draft file: %w", err)
+		}
+	}
+
+	// Read first draft
+	firstDraftBytes, err := os.ReadFile(firstDraftPath)
+	if err != nil {
+		return fmt.Errorf("failed to read first draft file %s: %w", firstDraftPath, err)
+	}
+	firstDraft := string(firstDraftBytes)
+
+	// Create AI client
+	client := ai.NewClient(c.APIKey)
+
+	// Generate copy edit
+	slog.Info("Generating copy edit with AI...")
+	markdown, title, err := client.GenerateCopyEdit(firstDraft)
+	if err != nil {
+		return fmt.Errorf("failed to generate copy edit: %w", err)
+	}
+
+	// Determine output path
+	outputPath := c.Output
+	if outputPath == "" {
+		// Generate filename from title
+		slug := ai.GenerateSlug(title)
+		now := time.Now()
+		filename := fmt.Sprintf("%s-%s.md", now.Format("2006-01"), slug)
+
+		// Check if file exists, add numeric suffix if needed
+		outputPath = filepath.Join("content", "posts", filename)
+		suffix := 2
+		for {
+			if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+				break
+			}
+			// File exists, try with suffix
+			filename = fmt.Sprintf("%s-%s-%d.md", now.Format("2006-01"), slug, suffix)
+			outputPath = filepath.Join("content", "posts", filename)
+			suffix++
+		}
+	}
+
+	// Ensure output directory exists
+	dir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory %s: %w", dir, err)
+	}
+
+	// Write final post
+	//nolint:gosec // Markdown files need to be readable
+	if err := os.WriteFile(outputPath, []byte(markdown), 0644); err != nil {
+		return fmt.Errorf("failed to write final post to %s: %w", outputPath, err)
+	}
+
+	slog.Info("Final post saved", "path", outputPath, "title", title)
 
 	return nil
 }
