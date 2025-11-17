@@ -19,11 +19,88 @@ import (
 
 // CLI defines the voice command structure.
 type CLI struct {
+	Default    DefaultCmd    `cmd:"" default:"1" help:"Run end-to-end workflow (record, transcribe, first-draft)"`
 	Record     RecordCmd     `cmd:"" help:"Record audio from microphone"`
 	Transcribe TranscribeCmd `cmd:"" help:"Transcribe audio file to text"`
 	FirstDraft FirstDraftCmd `cmd:"" help:"Generate AI first draft from transcript"`
 	CopyEdit   CopyEditCmd   `cmd:"" help:"Final copy-edit and save to content/posts"`
 	Devices    DevicesCmd    `cmd:"" help:"List available audio devices"`
+}
+
+// DefaultCmd handles the end-to-end workflow when no subcommand is provided.
+type DefaultCmd struct {
+	Name         string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	MaxDuration  string `flag:"" default:"1h" help:"Max recording duration"`
+	MaxBytes     int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
+	OpenAIKey    string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key for transcription"`
+	AnthropicKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key for AI generation"`
+}
+
+// Run executes the end-to-end workflow: record -> transcribe -> first-draft -> editor.
+func (d *DefaultCmd) Run() error {
+	// Validate API keys
+	if d.OpenAIKey == "" {
+		slog.Warn("OPENAI_API_KEY not set, transcription will be skipped")
+	}
+	if d.AnthropicKey == "" {
+		slog.Warn("ANTHROPIC_API_KEY not set, first draft generation will be skipped")
+	}
+
+	// Step 1: Record
+	slog.Info("Starting end-to-end workflow: Record -> Transcribe -> First Draft")
+	recordCmd := &RecordCmd{
+		Output:       "",
+		Name:         d.Name,
+		MaxDuration:  d.MaxDuration,
+		MaxBytes:     d.MaxBytes,
+		NoTranscribe: true, // We'll handle transcription manually
+		APIKey:       d.OpenAIKey,
+	}
+
+	if err := recordCmd.Run(); err != nil {
+		return fmt.Errorf("failed to record audio: %w", err)
+	}
+
+	// Skip transcription if no OpenAI key
+	if d.OpenAIKey == "" {
+		slog.Info("Skipping transcription (no OpenAI API key)")
+		return nil
+	}
+
+	// Step 2: Transcribe
+	transcribeCmd := &TranscribeCmd{
+		AudioFile: "",
+		APIKey:    d.OpenAIKey,
+		Output:    "",
+		Name:      d.Name,
+	}
+
+	if err := transcribeCmd.Run(); err != nil {
+		return fmt.Errorf("failed to transcribe audio: %w", err)
+	}
+
+	// Skip first draft if no Anthropic key
+	if d.AnthropicKey == "" {
+		slog.Info("Skipping first draft generation (no Anthropic API key)")
+		return nil
+	}
+
+	// Step 3: First Draft
+	firstDraftCmd := &FirstDraftCmd{
+		TranscriptFile: "",
+		APIKey:         d.AnthropicKey,
+		Output:         "",
+		Name:           d.Name,
+		NoEdit:         false, // Always open editor in end-to-end workflow
+	}
+
+	if err := firstDraftCmd.Run(); err != nil {
+		return fmt.Errorf("failed to generate first draft: %w", err)
+	}
+
+	slog.Info("Workflow complete. Review the first draft, then run 'voice copy-edit' when ready.")
+
+	return nil
 }
 
 // RecordCmd handles audio recording.
