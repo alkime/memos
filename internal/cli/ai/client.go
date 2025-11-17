@@ -14,14 +14,14 @@ import (
 // Client handles Anthropic API requests for content generation.
 type Client struct {
 	apiKey string
-	model  string
+	model  anthropic.Model
 }
 
 // NewClient creates a new AI client.
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey: apiKey,
-		model:  "claude-sonnet-4-5-20250929",
+		model:  anthropic.ModelClaudeSonnet4_5_20250929,
 	}
 }
 
@@ -34,7 +34,7 @@ func (c *Client) GenerateFirstDraft(transcript string) (string, error) {
 	client := anthropic.NewClient(option.WithAPIKey(c.apiKey))
 
 	params := anthropic.MessageNewParams{
-		Model:     anthropic.Model(c.model),
+		Model:     c.model,
 		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
 			{Text: FirstDraftSystemPrompt},
@@ -72,7 +72,7 @@ func (c *Client) GenerateCopyEdit(firstDraft string, currentDate string) (markdo
 	client := anthropic.NewClient(option.WithAPIKey(c.apiKey))
 
 	params := anthropic.MessageNewParams{
-		Model:     anthropic.Model(c.model),
+		Model:     c.model,
 		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
 			{Text: CopyEditSystemPrompt(currentDate)},

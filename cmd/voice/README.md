@@ -127,7 +127,9 @@ Required for different steps:
 - `OPENAI_API_KEY` - For transcription (Whisper)
 - `ANTHROPIC_API_KEY` - For AI content generation (Claude)
 
-Set via environment variables or `--api-key` flags.
+Set via environment variables or explicit flags:
+- `--openai-api-key` for transcription commands
+- `--anthropic-api-key` for AI generation commands
 
 ### Editor
 
@@ -200,8 +202,8 @@ echo $ANTHROPIC_API_KEY
 Or pass explicitly:
 
 ```bash
-voice transcribe --api-key sk-...
-voice first-draft --api-key sk-ant-...
+voice transcribe --openai-api-key sk-...
+voice first-draft --anthropic-api-key sk-ant-...
 ```
 
 ### "No recording found"

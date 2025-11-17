@@ -55,7 +55,7 @@ func (r *RunCmd) Run() error {
 		MaxDuration:  "1h",
 		MaxBytes:     268435456, // 256MB
 		NoTranscribe: true,      // We'll handle transcription manually
-		APIKey:       openAIKey,
+		OpenAIAPIKey: openAIKey,
 	}
 
 	if err := recordCmd.Run(); err != nil {
@@ -70,11 +70,11 @@ func (r *RunCmd) Run() error {
 
 	// Step 2: Transcribe
 	transcribeCmd := &TranscribeCmd{
-		AudioFile:  "",
-		APIKey:     openAIKey,
-		Output:     "",
-		Name:       "",   // Auto-detect from git branch
-		SkipPrompt: true, // Skip prompt in end-to-end workflow
+		AudioFile:    "",
+		OpenAIAPIKey: openAIKey,
+		Output:       "",
+		Name:         "",    // Auto-detect from git branch
+		SkipPrompt:   true,  // Skip prompt in end-to-end workflow
 	}
 
 	if err := transcribeCmd.Run(); err != nil {
@@ -89,11 +89,11 @@ func (r *RunCmd) Run() error {
 
 	// Step 3: First Draft
 	firstDraftCmd := &FirstDraftCmd{
-		TranscriptFile: "",
-		APIKey:         anthropicKey,
-		Output:         "",
-		Name:           "",    // Auto-detect from git branch
-		NoEdit:         false, // Always open editor in end-to-end workflow
+		TranscriptFile:  "",
+		AnthropicAPIKey: anthropicKey,
+		Output:          "",
+		Name:            "",     // Auto-detect from git branch
+		NoEdit:          false,  // Always open editor in end-to-end workflow
 	}
 
 	if err := firstDraftCmd.Run(); err != nil {
@@ -112,7 +112,7 @@ type RecordCmd struct {
 	MaxDuration  string `flag:"" default:"1h" help:"Max recording duration"`
 	MaxBytes     int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
 	NoTranscribe bool   `flag:"" help:"Skip automatic transcription after recording"`
-	APIKey       string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key for transcription"`
+	OpenAIAPIKey string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key for transcription"`
 }
 
 // getWorkingName determines the working name for files.
@@ -177,18 +177,18 @@ func (r *RecordCmd) Run() error {
 	}
 
 	// Skip transcription if no API key is provided
-	if r.APIKey == "" {
+	if r.OpenAIAPIKey == "" {
 		slog.Info("Skipping transcription (no API key provided)")
 		return nil
 	}
 
 	// Delegate to transcribe command
 	transcribeCmd := &TranscribeCmd{
-		AudioFile:  outputPath,
-		APIKey:     r.APIKey,
-		Output:     "", // Let it default to transcript.txt in working directory
-		Name:       r.Name,
-		SkipPrompt: true, // Skip prompt when auto-transcribing after recording
+		AudioFile:    outputPath,
+		OpenAIAPIKey: r.OpenAIAPIKey,
+		Output:       "", // Let it default to transcript.txt in working directory
+		Name:         r.Name,
+		SkipPrompt:   true, // Skip prompt when auto-transcribing after recording
 	}
 
 	// If transcription fails, keep the recording
@@ -202,11 +202,11 @@ func (r *RecordCmd) Run() error {
 
 // TranscribeCmd handles audio transcription.
 type TranscribeCmd struct {
-	AudioFile  string `arg:"" optional:"" help:"Path to audio file (auto-detects if not provided)"`
-	APIKey     string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key"`
-	Output     string `flag:"" optional:"" help:"Output transcript path"`
-	Name       string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
-	SkipPrompt bool   `flag:"" help:"Skip confirmation prompt for auto-detected files"`
+	AudioFile    string `arg:"" optional:"" help:"Path to audio file (auto-detects if not provided)"`
+	OpenAIAPIKey string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key"`
+	Output       string `flag:"" optional:"" help:"Output transcript path"`
+	Name         string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	SkipPrompt   bool   `flag:"" help:"Skip confirmation prompt for auto-detected files"`
 }
 
 // autoDetectAudioFile determines the audio file path from working directory
@@ -256,8 +256,8 @@ func autoDetectAudioFile(workingName string, skipPrompt bool) (string, error) {
 // Run executes the transcribe command.
 func (t *TranscribeCmd) Run() error {
 	// Validate API key
-	if t.APIKey == "" {
-		return fmt.Errorf("API key required: set OPENAI_API_KEY or use --api-key")
+	if t.OpenAIAPIKey == "" {
+		return fmt.Errorf("API key required: set OPENAI_API_KEY or use --openai-api-key")
 	}
 
 	// Determine audio file path
@@ -300,7 +300,7 @@ func (t *TranscribeCmd) Run() error {
 	}
 
 	// Create transcription client
-	client := transcription.NewClient(t.APIKey)
+	client := transcription.NewClient(t.OpenAIAPIKey)
 
 	// Transcribe
 	slog.Info("Transcribing audio file...")
@@ -330,11 +330,11 @@ func (t *TranscribeCmd) Run() error {
 
 // FirstDraftCmd handles AI-powered first draft generation.
 type FirstDraftCmd struct {
-	TranscriptFile string `arg:"" optional:"" help:"Path to transcript file (auto-detects if not provided)"`
-	APIKey         string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
-	Output         string `flag:"" optional:"" help:"Output markdown path"`
-	Name           string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
-	NoEdit         bool   `flag:"" help:"Skip opening editor after generation"`
+	TranscriptFile   string `arg:"" optional:"" help:"Path to transcript file (auto-detects if not provided)"`
+	AnthropicAPIKey  string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
+	Output           string `flag:"" optional:"" help:"Output markdown path"`
+	Name             string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	NoEdit           bool   `flag:"" help:"Skip opening editor after generation"`
 }
 
 // Run executes the first-draft command.
@@ -342,8 +342,8 @@ type FirstDraftCmd struct {
 //nolint:funlen // Function length justified by sequential steps in a CLI command.
 func (f *FirstDraftCmd) Run() error {
 	// Validate API key
-	if f.APIKey == "" {
-		return fmt.Errorf("API key required: set ANTHROPIC_API_KEY or use --api-key")
+	if f.AnthropicAPIKey == "" {
+		return fmt.Errorf("API key required: set ANTHROPIC_API_KEY or use --anthropic-api-key")
 	}
 
 	// Determine transcript file path
@@ -400,7 +400,7 @@ func (f *FirstDraftCmd) Run() error {
 	transcript := string(transcriptBytes)
 
 	// Create AI client
-	client := ai.NewClient(f.APIKey)
+	client := ai.NewClient(f.AnthropicAPIKey)
 
 	// Generate first draft
 	slog.Info("Generating first draft with AI...")
@@ -431,10 +431,10 @@ func (f *FirstDraftCmd) Run() error {
 
 // CopyEditCmd handles AI-powered copy editing and final post generation.
 type CopyEditCmd struct {
-	FirstDraftFile string `arg:"" optional:"" help:"Path to first draft file (auto-detects if not provided)"`
-	APIKey         string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
-	Output         string `flag:"" optional:"" help:"Output path (defaults to content/posts/)"`
-	Name           string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	FirstDraftFile  string `arg:"" optional:"" help:"Path to first draft file (auto-detects if not provided)"`
+	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
+	Output          string `flag:"" optional:"" help:"Output path (defaults to content/posts/)"`
+	Name            string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
 }
 
 // Run executes the copy-edit command.
@@ -442,8 +442,8 @@ type CopyEditCmd struct {
 //nolint:funlen // Function length justified by sequential steps in a CLI command.
 func (c *CopyEditCmd) Run() error {
 	// Validate API key
-	if c.APIKey == "" {
-		return fmt.Errorf("API key required: set ANTHROPIC_API_KEY or use --api-key")
+	if c.AnthropicAPIKey == "" {
+		return fmt.Errorf("API key required: set ANTHROPIC_API_KEY or use --anthropic-api-key")
 	}
 
 	// Determine first draft file path
@@ -477,7 +477,7 @@ func (c *CopyEditCmd) Run() error {
 	firstDraft := string(firstDraftBytes)
 
 	// Create AI client
-	client := ai.NewClient(c.APIKey)
+	client := ai.NewClient(c.AnthropicAPIKey)
 
 	// Get current date for both AI prompt and filename
 	now := time.Now()
