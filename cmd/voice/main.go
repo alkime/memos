@@ -488,9 +488,13 @@ func (c *CopyEditCmd) Run() error {
 	// Create AI client
 	client := ai.NewClient(c.APIKey)
 
+	// Get current date for both AI prompt and filename
+	now := time.Now()
+	currentDate := now.Format(time.RFC3339)
+
 	// Generate copy edit
 	slog.Info("Generating copy edit with AI...")
-	markdown, title, err := client.GenerateCopyEdit(firstDraft)
+	markdown, title, err := client.GenerateCopyEdit(firstDraft, currentDate)
 	if err != nil {
 		return fmt.Errorf("failed to generate copy edit: %w", err)
 	}
@@ -500,7 +504,6 @@ func (c *CopyEditCmd) Run() error {
 	if outputPath == "" {
 		// Generate filename from title
 		slug := ai.GenerateSlug(title)
-		now := time.Now()
 		filename := fmt.Sprintf("%s-%s.md", now.Format("2006-01"), slug)
 
 		// Check if file exists, add numeric suffix if needed

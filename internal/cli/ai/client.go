@@ -64,7 +64,7 @@ func (c *Client) GenerateFirstDraft(transcript string) (string, error) {
 }
 
 // GenerateCopyEdit performs final copy editing and returns markdown with frontmatter and extracted title.
-func (c *Client) GenerateCopyEdit(firstDraft string) (markdown string, title string, error error) {
+func (c *Client) GenerateCopyEdit(firstDraft string, currentDate string) (markdown string, title string, error error) {
 	if c.apiKey == "" {
 		return "", "", errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
 	}
@@ -75,7 +75,7 @@ func (c *Client) GenerateCopyEdit(firstDraft string) (markdown string, title str
 		Model:     anthropic.Model(c.model),
 		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
-			{Text: CopyEditSystemPrompt},
+			{Text: CopyEditSystemPrompt(currentDate)},
 		},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(firstDraft)),
