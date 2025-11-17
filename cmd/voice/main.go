@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/alkime/memos/internal/cli/ai"
 	"github.com/alkime/memos/internal/cli/audio"
 	"github.com/alkime/memos/internal/cli/audio/device"
 	"github.com/alkime/memos/internal/cli/content"
@@ -20,6 +22,7 @@ import (
 type CLI struct {
 	Record     RecordCmd     `cmd:"" help:"Record audio from microphone"`
 	Transcribe TranscribeCmd `cmd:"" help:"Transcribe audio file to text"`
+	FirstDraft FirstDraftCmd `cmd:"" help:"Generate AI first draft from transcript"`
 	Process    ProcessCmd    `cmd:"" help:"Generate Hugo markdown from transcript"`
 	Devices    DevicesCmd    `cmd:"" help:"List available audio devices"`
 }
@@ -232,6 +235,118 @@ func (t *TranscribeCmd) Run() error {
 	fmt.Println(text)
 	//nolint:forbidigo // CLI output for transcript display
 	fmt.Println("\n------------------")
+
+	return nil
+}
+
+// FirstDraftCmd handles AI-powered first draft generation.
+type FirstDraftCmd struct {
+	TranscriptFile string `arg:"" optional:"" help:"Path to transcript file (auto-detects if not provided)"`
+	APIKey         string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
+	Output         string `flag:"" optional:"" help:"Output markdown path"`
+	Name           string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	NoEdit         bool   `flag:"" help:"Skip opening editor after generation"`
+}
+
+// Run executes the first-draft command.
+func (f *FirstDraftCmd) Run() error {
+	// Validate API key
+	if f.APIKey == "" {
+		return fmt.Errorf("API key required: set ANTHROPIC_API_KEY or use --api-key")
+	}
+
+	// Determine transcript file path
+	transcriptPath := f.TranscriptFile
+	if transcriptPath == "" {
+		// Auto-detect transcript from working directory
+		workingName := getWorkingName(f.Name)
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		transcriptPath = filepath.Join(homeDir, ".memos", "work", workingName, "transcript.txt")
+
+		// Check if file exists
+		if _, err := os.Stat(transcriptPath); err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf(
+					"no transcript found at %s - please transcribe first or provide explicit path",
+					transcriptPath,
+				)
+			}
+			return fmt.Errorf("failed to check transcript file: %w", err)
+		}
+
+		// Prompt user for confirmation
+		//nolint:forbidigo // Interactive CLI confirmation
+		fmt.Printf("Generate first draft from %s? [Y/n] ", transcriptPath)
+		var response string
+		if _, err := fmt.Scanln(&response); err != nil && err.Error() != "unexpected newline" {
+			return fmt.Errorf("failed to read user input: %w", err)
+		}
+
+		// Check response (default to yes if empty)
+		if response != "" && response != "Y" && response != "y" && response != "yes" {
+			return fmt.Errorf(
+				"if %s is not the transcript to use, please provide the correct one as an argument",
+				transcriptPath,
+			)
+		}
+	}
+
+	// Determine output path
+	outputPath := f.Output
+	if outputPath == "" {
+		// Default to same directory as transcript, first-draft.md
+		outputPath = filepath.Join(filepath.Dir(transcriptPath), "first-draft.md")
+	}
+
+	// Read transcript
+	transcriptBytes, err := os.ReadFile(transcriptPath)
+	if err != nil {
+		return fmt.Errorf("failed to read transcript file %s: %w", transcriptPath, err)
+	}
+	transcript := string(transcriptBytes)
+
+	// Create AI client
+	client := ai.NewClient(f.APIKey)
+
+	// Generate first draft
+	slog.Info("Generating first draft with AI...")
+	firstDraft, err := client.GenerateFirstDraft(transcript)
+	if err != nil {
+		// On API failure, save raw transcript as fallback
+		slog.Error("Failed to generate first draft with AI", "error", err)
+		slog.Info("Falling back to raw transcript")
+		firstDraft = transcript
+	}
+
+	// Write first draft
+	//nolint:gosec // Markdown files need to be readable
+	if err := os.WriteFile(outputPath, []byte(firstDraft), 0644); err != nil {
+		return fmt.Errorf("failed to write first draft to %s: %w", outputPath, err)
+	}
+
+	slog.Info("First draft saved", "path", outputPath)
+
+	// Open in editor unless --no-edit flag is set
+	if !f.NoEdit {
+		editor := os.Getenv("EDITOR")
+		if editor == "" {
+			editor = "vi"
+		}
+
+		slog.Info("Opening first draft in editor", "editor", editor)
+		cmd := exec.Command(editor, outputPath)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Run(); err != nil {
+			slog.Error("Failed to open editor", "error", err)
+			slog.Info("You can manually edit the file", "path", outputPath)
+		}
+	}
 
 	return nil
 }
