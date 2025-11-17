@@ -1,97 +1,235 @@
 # Voice CLI
 
-Command-line tool for converting voice recordings into Hugo blog posts.
+Voice-to-blog workflow with AI-powered content generation.
 
-## Installation
+## Quick Start
 
-```bash
-make build-voice
-# Or install to $GOPATH/bin
-make install-voice
-```
+### End-to-End Workflow
 
-## Usage
-
-### 1. Record Audio
+Run the complete workflow from recording to first draft:
 
 ```bash
-voice record [output-path]
+# Set API keys
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Run complete workflow (record -> transcribe -> first-draft -> editor)
+voice
+
+# After reviewing and editing first-draft.md:
+voice copy-edit
 ```
 
-Records audio from your microphone. Press Enter to stop.
+### Step-by-Step Workflow
+
+Or run individual commands:
+
+```bash
+# 1. Record audio
+voice record
+
+# 2. Transcribe to text (auto-detects recording.mp3)
+voice transcribe
+
+# 3. Generate AI first draft (auto-detects transcript.txt)
+voice first-draft
+
+# ... edit first-draft.md manually ...
+
+# 4. Generate final post (auto-detects first-draft.md)
+voice copy-edit
+```
+
+## Commands
+
+### `voice` (default)
+
+Run end-to-end workflow: record → transcribe → first-draft → editor
+
+Requires both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`.
+
+### `voice record`
+
+Record audio from microphone.
+
+- Output: `~/.memos/work/{branch}/recording.mp3`
+- Auto-transcribes by default (use `--no-transcribe` to skip)
+- Detects git branch for working directory name
 
 Options:
-- `--max-duration`: Maximum recording duration (default: 1h)
-- `--max-bytes`: Maximum file size in bytes (default: 256MB)
+- `--name` - Override working directory name
+- `--max-duration` - Max recording length (default: 1h)
+- `--max-bytes` - Max file size (default: 256MB)
+- `--no-transcribe` - Skip automatic transcription
 
-Default output: `~/.memos/recordings/{timestamp}.wav`
+### `voice transcribe [audio-file]`
 
-### 2. Transcribe Audio
+Transcribe audio to text using OpenAI Whisper.
 
-```bash
-voice transcribe <audio-file> [--api-key KEY]
+- Input: Auto-detects `recording.mp3` or provide explicit path
+- Output: `transcript.txt` in same directory
+
+Requires `OPENAI_API_KEY`.
+
+### `voice first-draft [transcript-file]`
+
+Generate AI first draft from transcript.
+
+- Input: Auto-detects `transcript.txt` or provide explicit path
+- Output: `first-draft.md` in same directory
+- Opens in `$EDITOR` by default (use `--no-edit` to skip)
+
+Requires `ANTHROPIC_API_KEY`.
+
+**What it does:**
+- Removes verbal tics (um, like, and)
+- Rewords for clarity while preserving your voice
+- Organizes ideas with section headings
+- Outputs clean markdown
+
+### `voice copy-edit [first-draft-file]`
+
+Final copy-edit and publish to content/posts.
+
+- Input: Auto-detects `first-draft.md` or provide explicit path
+- Output: `content/posts/{YYYY-MM}-{slug}.md`
+
+Requires `ANTHROPIC_API_KEY`.
+
+**What it does:**
+- Polishes grammar and style
+- Fixes typos and awkward phrasing
+- Generates Hugo frontmatter
+- Saves with date-slug filename
+
+### `voice devices`
+
+List available audio input devices.
+
+## File Structure
+
 ```
+~/.memos/work/{branch}/
+├── recording.mp3      # Audio recording
+├── transcript.txt     # Raw transcription
+└── first-draft.md     # AI-generated first draft (edit this!)
 
-Transcribes audio using OpenAI Whisper API.
-
-Options:
-- `--api-key`: OpenAI API key (or set `OPENAI_API_KEY` env var)
-- `--output`: Output transcript path (default: same as audio, .txt extension)
-
-Requires: `OPENAI_API_KEY` environment variable or `--api-key` flag
-
-### 3. Process Transcript
-
-```bash
-voice process <transcript-file> [--output PATH]
-```
-
-Generates Hugo markdown post from transcript.
-
-Options:
-- `--output`: Output markdown path (default: `content/posts/{timestamp}.md`)
-
-Behavior:
-- Creates post with frontmatter (title, date, draft: true)
-- Archives audio and transcript to `~/.memos/archive/`
-
-## Example Workflow
-
-```bash
-# Step 1: Record
-$ voice record
-Recording... Press Enter to stop. (Max: 1h or 256MB)
-Saved to: ~/.memos/recordings/2025-10-31-143052.wav
-
-# Step 2: Transcribe
-$ voice transcribe ~/.memos/recordings/2025-10-31-143052.wav
-Transcribing...
-Transcript saved to: ~/.memos/recordings/2025-10-31-143052.txt
-
-# Step 3: Generate Post
-$ voice process ~/.memos/recordings/2025-10-31-143052.txt
-Processing transcript...
-Generated post: content/posts/2025-10-31-143052.md (draft)
-Note: Raw transcript - Phase 2 will add AI cleanup
-Archived: ~/.memos/archive/2025-10-31-143052.wav
-Archived: ~/.memos/archive/2025-10-31-143052.txt
+content/posts/
+└── {YYYY-MM}-{slug}.md   # Final published post
 ```
 
 ## Configuration
 
-- Audio files: `~/.memos/recordings/`
-- Archive: `~/.memos/archive/`
-- Content output: `content/posts/`
+### API Keys
 
-## Phase 1 Limitations
+Required for different steps:
 
-- No LLM cleanup (raw transcripts)
-- No cloud storage integration
-- Manual workflow (separate commands)
-- Unit tests only
+- `OPENAI_API_KEY` - For transcription (Whisper)
+- `ANTHROPIC_API_KEY` - For AI content generation (Claude)
 
-Phase 2+ will add:
-- Claude API integration for transcript cleanup
-- Automated workflow
-- Cloud storage (Tigris)
-- Multiple transcription providers
+Set via environment variables or explicit flags:
+- `--openai-api-key` for transcription commands
+- `--anthropic-api-key` for AI generation commands
+
+### Editor
+
+Set your preferred editor:
+
+```bash
+export EDITOR=code  # VS Code
+export EDITOR=vim   # Vim
+export EDITOR=nano  # Nano
+```
+
+Default: `vi`
+
+## Examples
+
+### Blog Post Workflow
+
+```bash
+# Record voice memo
+voice record
+
+# Review transcript, then generate first draft
+voice first-draft
+
+# ... manually review and edit first-draft.md ...
+
+# Generate final post
+voice copy-edit
+
+# Post is now in content/posts/ ready for Hugo
+```
+
+### Quick Voice Note
+
+```bash
+# Just record and transcribe (no AI)
+voice record --no-transcribe
+voice transcribe
+
+# Transcript saved to ~/.memos/work/{branch}/transcript.txt
+```
+
+### Custom Workflow
+
+```bash
+# Record with custom name
+voice record --name "my-idea"
+
+# Transcribe specific file
+voice transcribe ~/Downloads/interview.mp3
+
+# Generate first draft from custom transcript
+voice first-draft ~/Downloads/interview.txt
+
+# Copy-edit specific first draft
+voice copy-edit ~/Documents/edited-draft.md --output content/posts/2025-11-interview.md
+```
+
+## Troubleshooting
+
+### "API key required"
+
+Make sure environment variables are set:
+
+```bash
+echo $OPENAI_API_KEY
+echo $ANTHROPIC_API_KEY
+```
+
+Or pass explicitly:
+
+```bash
+voice transcribe --openai-api-key sk-...
+voice first-draft --anthropic-api-key sk-ant-...
+```
+
+### "No recording found"
+
+Check working directory:
+
+```bash
+ls ~/.memos/work/$(git rev-parse --abbrev-ref HEAD)/
+```
+
+Or provide explicit path:
+
+```bash
+voice transcribe path/to/recording.mp3
+```
+
+### Editor doesn't open
+
+Set `EDITOR` environment variable:
+
+```bash
+export EDITOR=vim
+```
+
+Or skip editor:
+
+```bash
+voice first-draft --no-edit
+```

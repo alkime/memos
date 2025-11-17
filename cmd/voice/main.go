@@ -9,19 +9,100 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/alkime/memos/internal/cli/ai"
 	"github.com/alkime/memos/internal/cli/audio"
 	"github.com/alkime/memos/internal/cli/audio/device"
-	"github.com/alkime/memos/internal/cli/content"
+	"github.com/alkime/memos/internal/cli/editor"
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/git"
 )
 
 // CLI defines the voice command structure.
 type CLI struct {
+	// Default workflow command (hidden from help, runs when no subcommand given)
+	Run RunCmd `cmd:"" default:"1" hidden:"" help:"Run end-to-end workflow"`
+
+	// Commands
 	Record     RecordCmd     `cmd:"" help:"Record audio from microphone"`
 	Transcribe TranscribeCmd `cmd:"" help:"Transcribe audio file to text"`
-	Process    ProcessCmd    `cmd:"" help:"Generate Hugo markdown from transcript"`
+	FirstDraft FirstDraftCmd `cmd:"" help:"Generate AI first draft from transcript"`
+	CopyEdit   CopyEditCmd   `cmd:"" help:"Final copy-edit and save to content/posts"`
 	Devices    DevicesCmd    `cmd:"" help:"List available audio devices"`
+}
+
+// RunCmd executes the end-to-end workflow: record -> transcribe -> first-draft -> editor.
+type RunCmd struct{}
+
+// Run executes the end-to-end workflow when no subcommand is provided: record -> transcribe -> first-draft -> editor.
+func (r *RunCmd) Run() error {
+	// Get API keys from environment
+	openAIKey := os.Getenv("OPENAI_API_KEY")
+	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
+
+	// Validate API keys
+	if openAIKey == "" {
+		slog.Warn("OPENAI_API_KEY not set, transcription will be skipped")
+	}
+	if anthropicKey == "" {
+		slog.Warn("ANTHROPIC_API_KEY not set, first draft generation will be skipped")
+	}
+
+	// Step 1: Record
+	slog.Info("Starting end-to-end workflow: Record -> Transcribe -> First Draft")
+	recordCmd := &RecordCmd{
+		Output:       "",
+		Name:         "", // Auto-detect from git branch
+		MaxDuration:  "1h",
+		MaxBytes:     268435456, // 256MB
+		NoTranscribe: true,      // We'll handle transcription manually
+		OpenAIAPIKey: openAIKey,
+	}
+
+	if err := recordCmd.Run(); err != nil {
+		return fmt.Errorf("failed to record audio: %w", err)
+	}
+
+	// Skip transcription if no OpenAI key
+	if openAIKey == "" {
+		slog.Info("Skipping transcription (no OpenAI API key)")
+		return nil
+	}
+
+	// Step 2: Transcribe
+	transcribeCmd := &TranscribeCmd{
+		AudioFile:    "",
+		OpenAIAPIKey: openAIKey,
+		Output:       "",
+		Name:         "",    // Auto-detect from git branch
+		SkipPrompt:   true,  // Skip prompt in end-to-end workflow
+	}
+
+	if err := transcribeCmd.Run(); err != nil {
+		return fmt.Errorf("failed to transcribe audio: %w", err)
+	}
+
+	// Skip first draft if no Anthropic key
+	if anthropicKey == "" {
+		slog.Info("Skipping first draft generation (no Anthropic API key)")
+		return nil
+	}
+
+	// Step 3: First Draft
+	firstDraftCmd := &FirstDraftCmd{
+		TranscriptFile:  "",
+		AnthropicAPIKey: anthropicKey,
+		Output:          "",
+		Name:            "",     // Auto-detect from git branch
+		NoEdit:          false,  // Always open editor in end-to-end workflow
+	}
+
+	if err := firstDraftCmd.Run(); err != nil {
+		return fmt.Errorf("failed to generate first draft: %w", err)
+	}
+
+	slog.Info("Workflow complete. Review the first draft, then run 'voice copy-edit' when ready.")
+
+	return nil
 }
 
 // RecordCmd handles audio recording.
@@ -31,7 +112,7 @@ type RecordCmd struct {
 	MaxDuration  string `flag:"" default:"1h" help:"Max recording duration"`
 	MaxBytes     int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
 	NoTranscribe bool   `flag:"" help:"Skip automatic transcription after recording"`
-	APIKey       string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key for transcription"`
+	OpenAIAPIKey string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key for transcription"`
 }
 
 // getWorkingName determines the working name for files.
@@ -96,17 +177,18 @@ func (r *RecordCmd) Run() error {
 	}
 
 	// Skip transcription if no API key is provided
-	if r.APIKey == "" {
+	if r.OpenAIAPIKey == "" {
 		slog.Info("Skipping transcription (no API key provided)")
 		return nil
 	}
 
 	// Delegate to transcribe command
 	transcribeCmd := &TranscribeCmd{
-		AudioFile: outputPath,
-		APIKey:    r.APIKey,
-		Output:    "", // Let it default to .txt file
-		Name:      r.Name,
+		AudioFile:    outputPath,
+		OpenAIAPIKey: r.OpenAIAPIKey,
+		Output:       "", // Let it default to transcript.txt in working directory
+		Name:         r.Name,
+		SkipPrompt:   true, // Skip prompt when auto-transcribing after recording
 	}
 
 	// If transcription fails, keep the recording
@@ -120,15 +202,16 @@ func (r *RecordCmd) Run() error {
 
 // TranscribeCmd handles audio transcription.
 type TranscribeCmd struct {
-	AudioFile string `arg:"" optional:"" help:"Path to audio file (auto-detects if not provided)"`
-	APIKey    string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key"`
-	Output    string `flag:"" optional:"" help:"Output transcript path"`
-	Name      string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	AudioFile    string `arg:"" optional:"" help:"Path to audio file (auto-detects if not provided)"`
+	OpenAIAPIKey string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key"`
+	Output       string `flag:"" optional:"" help:"Output transcript path"`
+	Name         string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	SkipPrompt   bool   `flag:"" help:"Skip confirmation prompt for auto-detected files"`
 }
 
 // autoDetectAudioFile determines the audio file path from working directory
-// and prompts user for confirmation.
-func autoDetectAudioFile(workingName string) (string, error) {
+// and optionally prompts user for confirmation.
+func autoDetectAudioFile(workingName string, skipPrompt bool) (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
@@ -144,6 +227,11 @@ func autoDetectAudioFile(workingName string) (string, error) {
 			)
 		}
 		return "", fmt.Errorf("failed to check audio file: %w", err)
+	}
+
+	// Skip prompt if requested (for end-to-end workflow)
+	if skipPrompt {
+		return audioFilePath, nil
 	}
 
 	// Prompt user for confirmation
@@ -168,16 +256,16 @@ func autoDetectAudioFile(workingName string) (string, error) {
 // Run executes the transcribe command.
 func (t *TranscribeCmd) Run() error {
 	// Validate API key
-	if t.APIKey == "" {
-		return fmt.Errorf("API key required: set OPENAI_API_KEY or use --api-key")
+	if t.OpenAIAPIKey == "" {
+		return fmt.Errorf("API key required: set OPENAI_API_KEY or use --openai-api-key")
 	}
 
 	// Determine audio file path
 	audioFilePath := t.AudioFile
+	workingName := getWorkingName(t.Name)
 	if audioFilePath == "" {
 		// Auto-detect audio file from working directory
-		workingName := getWorkingName(t.Name)
-		detectedPath, err := autoDetectAudioFile(workingName)
+		detectedPath, err := autoDetectAudioFile(workingName, t.SkipPrompt)
 		if err != nil {
 			return err
 		}
@@ -187,8 +275,12 @@ func (t *TranscribeCmd) Run() error {
 	// Determine output path
 	outputPath := t.Output
 	if outputPath == "" {
-		// Default to same directory as audio file, .txt extension
-		outputPath = audioFilePath[:len(audioFilePath)-len(filepath.Ext(audioFilePath))] + ".txt"
+		// Default to transcript.txt in working directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		outputPath = filepath.Join(homeDir, ".memos", "work", workingName, "transcript.txt")
 	}
 
 	// Open audio file
@@ -208,7 +300,7 @@ func (t *TranscribeCmd) Run() error {
 	}
 
 	// Create transcription client
-	client := transcription.NewClient(t.APIKey)
+	client := transcription.NewClient(t.OpenAIAPIKey)
 
 	// Transcribe
 	slog.Info("Transcribing audio file...")
@@ -236,34 +328,206 @@ func (t *TranscribeCmd) Run() error {
 	return nil
 }
 
-// ProcessCmd handles markdown generation.
-type ProcessCmd struct {
-	TranscriptFile string `arg:"" help:"Path to transcript text file"`
-	Output         string `flag:"" optional:"" help:"Output markdown path"`
+// FirstDraftCmd handles AI-powered first draft generation.
+type FirstDraftCmd struct {
+	TranscriptFile   string `arg:"" optional:"" help:"Path to transcript file (auto-detects if not provided)"`
+	AnthropicAPIKey  string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
+	Output           string `flag:"" optional:"" help:"Output markdown path"`
+	Name             string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	NoEdit           bool   `flag:"" help:"Skip opening editor after generation"`
 }
 
-// Run executes the process command.
-func (p *ProcessCmd) Run() error {
+// Run executes the first-draft command.
+//
+//nolint:funlen // Function length justified by sequential steps in a CLI command.
+func (f *FirstDraftCmd) Run() error {
+	// Validate API key
+	if f.AnthropicAPIKey == "" {
+		return fmt.Errorf("API key required: set ANTHROPIC_API_KEY or use --anthropic-api-key")
+	}
+
+	// Determine transcript file path
+	transcriptPath := f.TranscriptFile
+	if transcriptPath == "" {
+		// Auto-detect transcript from working directory
+		workingName := getWorkingName(f.Name)
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		transcriptPath = filepath.Join(homeDir, ".memos", "work", workingName, "transcript.txt")
+
+		// Check if file exists
+		if _, err := os.Stat(transcriptPath); err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf(
+					"no transcript found at %s - please transcribe first or provide explicit path",
+					transcriptPath,
+				)
+			}
+			return fmt.Errorf("failed to check transcript file: %w", err)
+		}
+
+		// Prompt user for confirmation
+		//nolint:forbidigo // Interactive CLI confirmation
+		fmt.Printf("Generate first draft from %s? [Y/n] ", transcriptPath)
+		var response string
+		if _, err := fmt.Scanln(&response); err != nil && err.Error() != "unexpected newline" {
+			return fmt.Errorf("failed to read user input: %w", err)
+		}
+
+		// Check response (default to yes if empty)
+		if response != "" && response != "Y" && response != "y" && response != "yes" {
+			return fmt.Errorf(
+				"if %s is not the transcript to use, please provide the correct one as an argument",
+				transcriptPath,
+			)
+		}
+	}
+
 	// Determine output path
-	outputPath := p.Output
+	outputPath := f.Output
 	if outputPath == "" {
-		// Default to content/posts/{timestamp}.md
-		timestamp := time.Now().Format("2006-01-02-150405")
-		outputPath = filepath.Join("content", "posts", fmt.Sprintf("%s.md", timestamp))
+		// Default to same directory as transcript, first-draft.md
+		outputPath = filepath.Join(filepath.Dir(transcriptPath), "first-draft.md")
 	}
 
-	// Create content generator
-	generator := content.NewGenerator(filepath.Dir(outputPath))
+	// Read transcript
+	transcriptBytes, err := os.ReadFile(transcriptPath)
+	if err != nil {
+		return fmt.Errorf("failed to read transcript file %s: %w", transcriptPath, err)
+	}
+	transcript := string(transcriptBytes)
 
-	// Generate post
-	slog.Info("Processing transcript...")
-	if err := generator.GeneratePost(p.TranscriptFile, outputPath); err != nil {
-		return fmt.Errorf("failed to generate post: %w", err)
+	// Create AI client
+	client := ai.NewClient(f.AnthropicAPIKey)
+
+	// Generate first draft
+	slog.Info("Generating first draft with AI...")
+	firstDraft, err := client.GenerateFirstDraft(transcript)
+	if err != nil {
+		// On API failure, save raw transcript as fallback
+		slog.Error("Failed to generate first draft with AI", "error", err)
+		slog.Info("Falling back to raw transcript")
+		firstDraft = transcript
 	}
 
-	slog.Info("Generated post (draft)", "path", outputPath)
-	slog.Info("Note: Raw transcript - Phase 2 will add AI cleanup")
-	slog.Info("Archived: Files moved to ~/.memos/archive/")
+	// Write first draft
+	//nolint:gosec // Markdown files need to be readable
+	if err := os.WriteFile(outputPath, []byte(firstDraft), 0644); err != nil {
+		return fmt.Errorf("failed to write first draft to %s: %w", outputPath, err)
+	}
+
+	slog.Info("First draft saved", "path", outputPath)
+
+	// Open in editor unless --no-edit flag is set
+	if !f.NoEdit {
+		// Ignore editor errors - user can manually edit if needed
+		_ = editor.Open(context.Background(), outputPath)
+	}
+
+	return nil
+}
+
+// CopyEditCmd handles AI-powered copy editing and final post generation.
+type CopyEditCmd struct {
+	FirstDraftFile  string `arg:"" optional:"" help:"Path to first draft file (auto-detects if not provided)"`
+	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
+	Output          string `flag:"" optional:"" help:"Output path (defaults to content/posts/)"`
+	Name            string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+}
+
+// Run executes the copy-edit command.
+//
+//nolint:funlen // Function length justified by sequential steps in a CLI command.
+func (c *CopyEditCmd) Run() error {
+	// Validate API key
+	if c.AnthropicAPIKey == "" {
+		return fmt.Errorf("API key required: set ANTHROPIC_API_KEY or use --anthropic-api-key")
+	}
+
+	// Determine first draft file path
+	firstDraftPath := c.FirstDraftFile
+	if firstDraftPath == "" {
+		// Auto-detect first draft from working directory
+		workingName := getWorkingName(c.Name)
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		firstDraftPath = filepath.Join(homeDir, ".memos", "work", workingName, "first-draft.md")
+
+		// Check if file exists
+		if _, err := os.Stat(firstDraftPath); err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf(
+					"no first draft found at %s - please run 'voice first-draft' first",
+					firstDraftPath,
+				)
+			}
+			return fmt.Errorf("failed to check first draft file: %w", err)
+		}
+	}
+
+	// Read first draft
+	firstDraftBytes, err := os.ReadFile(firstDraftPath)
+	if err != nil {
+		return fmt.Errorf("failed to read first draft file %s: %w", firstDraftPath, err)
+	}
+	firstDraft := string(firstDraftBytes)
+
+	// Create AI client
+	client := ai.NewClient(c.AnthropicAPIKey)
+
+	// Get current date for both AI prompt and filename
+	now := time.Now()
+	currentDate := now.Format(time.RFC3339)
+
+	// Generate copy edit
+	slog.Info("Generating copy edit with AI...")
+	markdown, title, err := client.GenerateCopyEdit(firstDraft, currentDate)
+	if err != nil {
+		return fmt.Errorf("failed to generate copy edit: %w", err)
+	}
+
+	// Determine output path
+	outputPath := c.Output
+	if outputPath == "" {
+		// Generate filename from title
+		slug := ai.GenerateSlug(title)
+		filename := fmt.Sprintf("%s-%s.md", now.Format("2006-01"), slug)
+
+		// Check if file exists, add numeric suffix if needed
+		outputPath = filepath.Join("content", "posts", filename)
+		suffix := 2
+		for {
+			if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+				break
+			}
+			// File exists, try with suffix
+			filename = fmt.Sprintf("%s-%s-%d.md", now.Format("2006-01"), slug, suffix)
+			outputPath = filepath.Join("content", "posts", filename)
+			suffix++
+		}
+	}
+
+	// Ensure output directory exists
+	dir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory %s: %w", dir, err)
+	}
+
+	// Write final post
+	//nolint:gosec // Markdown files need to be readable
+	if err := os.WriteFile(outputPath, []byte(markdown), 0644); err != nil {
+		return fmt.Errorf("failed to write final post to %s: %w", outputPath, err)
+	}
+
+	slog.Info("Final post saved", "path", outputPath, "title", title)
+
+	// Open in editor for review
+	// Ignore editor errors - user can manually edit if needed
+	_ = editor.Open(context.Background(), outputPath)
 
 	return nil
 }

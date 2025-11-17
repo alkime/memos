@@ -182,6 +182,89 @@ func (g *Generator) GeneratePost(transcriptPath string, outputPath string) error
 
 ---
 
+### 4. Prefer SDK-Provided Types Over Primitives
+
+**Rule:** When an SDK provides typed constants (enums, iotas, const groups), use those types instead of primitive types like `string` or `int`.
+
+**Why:** SDK types provide compile-time type safety, prevent invalid values, and make code more maintainable when APIs evolve.
+
+**Don't:**
+```go
+type Client struct {
+    apiKey string
+    model  string  // Can be any string, including invalid ones
+}
+
+func NewClient(apiKey string) *Client {
+    return &Client{
+        apiKey: apiKey,
+        model:  "claude-sonnet-4-5-20250929",  // Typos won't be caught
+    }
+}
+```
+
+**Do:**
+```go
+type Client struct {
+    apiKey string
+    model  anthropic.Model  // Type-safe, validated by SDK
+}
+
+func NewClient(apiKey string) *Client {
+    return &Client{
+        apiKey: apiKey,
+        model:  anthropic.ModelClaudeSonnet4_5_20250929,  // Compile-time checked
+    }
+}
+```
+
+**Benefits:**
+- Compile-time validation of values
+- IDE autocomplete for valid options
+- Refactoring safety when SDK updates
+- Self-documenting code
+
+---
+
+### 5. Use Explicit, Non-Ambiguous CLI Flag Names
+
+**Rule:** CLI flags should have explicit, descriptive names that clearly indicate their purpose. Avoid generic names like `--api-key` when different API keys serve different purposes.
+
+**Why:** Ambiguous flag names create confusion and collision problems when multiple similar resources are needed in the same command invocation.
+
+**Don't:**
+```go
+type RecordCmd struct {
+    APIKey string `flag:"" env:"OPENAI_API_KEY"`  // Ambiguous
+}
+
+type FirstDraftCmd struct {
+    APIKey string `flag:"" env:"ANTHROPIC_API_KEY"`  // Same name, different meaning
+}
+
+// Problem: In RunCmd, both are needed but flags collide
+```
+
+**Do:**
+```go
+type RecordCmd struct {
+    OpenAIAPIKey string `flag:"" env:"OPENAI_API_KEY"`  // Explicit
+}
+
+type FirstDraftCmd struct {
+    AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY"`  // Explicit
+}
+
+// Clear which key is for which service
+```
+
+**Common patterns:**
+- Service-specific: `--openai-api-key`, `--anthropic-api-key`, `--github-token`
+- Resource-specific: `--source-file`, `--dest-file` (not `--file1`, `--file2`)
+- Context-specific: `--input-format`, `--output-format` (not `--format`)
+
+---
+
 ## Additional Standards
 
 ### Linter Configuration
