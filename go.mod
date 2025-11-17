@@ -13,7 +13,6 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/openai/openai-go v1.12.0
 	github.com/stretchr/testify v1.11.1
-	github.com/youpy/go-wav v0.3.2
 )
 
 require (
@@ -39,14 +38,12 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
-	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
-	github.com/youpy/go-riff v0.1.0 // indirect
-	github.com/zaf/g711 v0.0.0-20190814101024-76a4a538f52b // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
