@@ -13,7 +13,6 @@ import (
 	"github.com/alkime/memos/internal/cli/ai"
 	"github.com/alkime/memos/internal/cli/audio"
 	"github.com/alkime/memos/internal/cli/audio/device"
-	"github.com/alkime/memos/internal/cli/content"
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/git"
 )
@@ -24,7 +23,6 @@ type CLI struct {
 	Transcribe TranscribeCmd `cmd:"" help:"Transcribe audio file to text"`
 	FirstDraft FirstDraftCmd `cmd:"" help:"Generate AI first draft from transcript"`
 	CopyEdit   CopyEditCmd   `cmd:"" help:"Final copy-edit and save to content/posts"`
-	Process    ProcessCmd    `cmd:"" help:"Generate Hugo markdown from transcript"`
 	Devices    DevicesCmd    `cmd:"" help:"List available audio devices"`
 }
 
@@ -442,38 +440,6 @@ func (c *CopyEditCmd) Run() error {
 	}
 
 	slog.Info("Final post saved", "path", outputPath, "title", title)
-
-	return nil
-}
-
-// ProcessCmd handles markdown generation.
-type ProcessCmd struct {
-	TranscriptFile string `arg:"" help:"Path to transcript text file"`
-	Output         string `flag:"" optional:"" help:"Output markdown path"`
-}
-
-// Run executes the process command.
-func (p *ProcessCmd) Run() error {
-	// Determine output path
-	outputPath := p.Output
-	if outputPath == "" {
-		// Default to content/posts/{timestamp}.md
-		timestamp := time.Now().Format("2006-01-02-150405")
-		outputPath = filepath.Join("content", "posts", fmt.Sprintf("%s.md", timestamp))
-	}
-
-	// Create content generator
-	generator := content.NewGenerator(filepath.Dir(outputPath))
-
-	// Generate post
-	slog.Info("Processing transcript...")
-	if err := generator.GeneratePost(p.TranscriptFile, outputPath); err != nil {
-		return fmt.Errorf("failed to generate post: %w", err)
-	}
-
-	slog.Info("Generated post (draft)", "path", outputPath)
-	slog.Info("Note: Raw transcript - Phase 2 will add AI cleanup")
-	slog.Info("Archived: Files moved to ~/.memos/archive/")
 
 	return nil
 }
