@@ -131,3 +131,131 @@ func TestNewRecorder_ValidatesConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatWithBold(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		text       string
+		shouldBold bool
+		want       string
+	}{
+		{
+			name:       "not bold",
+			text:       "hello",
+			shouldBold: false,
+			want:       "hello",
+		},
+		{
+			name:       "bold",
+			text:       "hello",
+			shouldBold: true,
+			want:       "\033[1mhello\033[0m",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := formatWithBold(tt.text, tt.shouldBold)
+			if got != tt.want {
+				t.Errorf("formatWithBold() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatDuration(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		elapsed    time.Duration
+		max        time.Duration
+		shouldBold bool
+		wantPlain  string // expected without ANSI codes
+	}{
+		{
+			name:       "50 percent not bold",
+			elapsed:    30 * time.Minute,
+			max:        60 * time.Minute,
+			shouldBold: false,
+			wantPlain:  "00:30:00 / 01:00:00 (50%)",
+		},
+		{
+			name:       "90 percent bold",
+			elapsed:    54 * time.Minute,
+			max:        60 * time.Minute,
+			shouldBold: true,
+			wantPlain:  "00:54:00 / 01:00:00 (90%)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := formatDuration(tt.elapsed, tt.max, tt.shouldBold)
+
+			if tt.shouldBold {
+				// Should have ANSI codes
+				expected := "\033[1m" + tt.wantPlain + "\033[0m"
+				if got != expected {
+					t.Errorf("formatDuration() = %q, want %q", got, expected)
+				}
+			} else {
+				// Should not have ANSI codes
+				if got != tt.wantPlain {
+					t.Errorf("formatDuration() = %q, want %q", got, tt.wantPlain)
+				}
+			}
+		})
+	}
+}
+
+func TestFormatBytes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		current    int64
+		max        int64
+		shouldBold bool
+		wantPlain  string
+	}{
+		{
+			name:       "50 percent not bold",
+			current:    128 * 1024 * 1024, // 128 MB
+			max:        256 * 1024 * 1024, // 256 MB
+			shouldBold: false,
+			wantPlain:  "128.0 MB / 256.0 MB (50%)",
+		},
+		{
+			name:       "90 percent bold",
+			current:    230 * 1024 * 1024, // ~230 MB
+			max:        256 * 1024 * 1024, // 256 MB
+			shouldBold: true,
+			wantPlain:  "230.0 MB / 256.0 MB (89%)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := formatBytes(tt.current, tt.max, tt.shouldBold)
+
+			if tt.shouldBold {
+				// Should have ANSI codes
+				expected := "\033[1m" + tt.wantPlain + "\033[0m"
+				if got != expected {
+					t.Errorf("formatBytes() = %q, want %q", got, expected)
+				}
+			} else {
+				// Should not have ANSI codes
+				if got != tt.wantPlain {
+					t.Errorf("formatBytes() = %q, want %q", got, tt.wantPlain)
+				}
+			}
+		})
+	}
+}
