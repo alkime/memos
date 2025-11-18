@@ -56,7 +56,12 @@ func NewRecorder(conf FileRecorderConfig) (*FileRecorder, error) {
 	}, nil
 }
 
-func (r *FileRecorder) Go(ctx context.Context) (err error) { //nolint:funlen // Complex goroutine coordination
+//nolint:funlen // Complex goroutine coordination
+func (r *FileRecorder) Go(ctx context.Context) (err error) {
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
+	defer cancel()
+
 	dev := device.NewAudioDevice(&device.AudioDeviceConfig{
 		Format:          malgo.FormatS16,
 		SampleRate:      defaultSampleRate,
@@ -123,12 +128,13 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) { //nolint:funlen // 
 				break
 			}
 		}
+		cancel()      // Ensure context is cancelled
 		fmt.Println() //nolint:forbidigo // Clear progress line
 	})
 
 	// Progress display goroutine
 	wg.Go(func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
 
 		for {
@@ -144,7 +150,7 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) { //nolint:funlen // 
 				timeWarning := timePercent >= 90
 				bytesWarning := bytesPercent >= 90
 
-				fmt.Printf("\rRecording: %s | %s", //nolint:forbidigo // CLI progress
+				fmt.Printf("\rRecording: %s | %s\n", //nolint:forbidigo // CLI progress
 					formatDuration(elapsed, r.config.MaxDuration, timeWarning),
 					formatBytes(bytes, r.config.MaxBytes, bytesWarning))
 			case <-ctx.Done():
@@ -158,6 +164,7 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) { //nolint:funlen // 
 		<-catchStopSignals(ctx)
 		slog.Info("received stop signal, stopping recording")
 		hardStop(ctx, dev)
+		cancel()
 	})
 
 	slog.Info("running... waiting for recording to finish")
