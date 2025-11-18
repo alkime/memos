@@ -175,6 +175,42 @@ func closeFd(fd *os.File) {
 	}
 }
 
+// formatWithBold wraps text in ANSI bold codes if shouldBold is true
+func formatWithBold(text string, shouldBold bool) string {
+	if shouldBold {
+		return fmt.Sprintf("\033[1m%s\033[0m", text)
+	}
+	return text
+}
+
+// formatDuration formats elapsed and max duration with optional bold
+func formatDuration(elapsed, max time.Duration, shouldBold bool) string {
+	// Format as HH:MM:SS
+	formatTime := func(d time.Duration) string {
+		h := int(d.Hours())
+		m := int(d.Minutes()) % 60
+		s := int(d.Seconds()) % 60
+		return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
+	}
+
+	elapsedStr := formatTime(elapsed)
+	maxStr := formatTime(max)
+	percent := int(float64(elapsed) / float64(max) * 100)
+
+	text := fmt.Sprintf("%s / %s (%d%%)", elapsedStr, maxStr, percent)
+	return formatWithBold(text, shouldBold)
+}
+
+// formatBytes formats bytes in MB with optional bold
+func formatBytes(current, max int64, shouldBold bool) string {
+	currentMB := float64(current) / (1024 * 1024)
+	maxMB := float64(max) / (1024 * 1024)
+	percent := int(float64(current) / float64(max) * 100)
+
+	text := fmt.Sprintf("%.1f MB / %.1f MB (%d%%)", currentMB, maxMB, percent)
+	return formatWithBold(text, shouldBold)
+}
+
 // catchStopSignals listens for a few things:
 //   - OS signals: SIGINT, SIGTERM
 //   - Context's Done channel
