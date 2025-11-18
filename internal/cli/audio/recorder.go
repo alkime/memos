@@ -42,10 +42,17 @@ type FileRecorder struct {
 }
 
 // NewRecorder creates a new audio recorder.
-func NewRecorder(conf FileRecorderConfig) *FileRecorder {
+func NewRecorder(conf FileRecorderConfig) (*FileRecorder, error) {
+	if conf.MaxDuration <= 0 {
+		return nil, errors.New("MaxDuration must be positive")
+	}
+	if conf.MaxBytes <= 0 {
+		return nil, errors.New("MaxBytes must be positive")
+	}
+
 	return &FileRecorder{
 		config: conf,
-	}
+	}, nil
 }
 
 func (r *FileRecorder) Go(ctx context.Context) (err error) {

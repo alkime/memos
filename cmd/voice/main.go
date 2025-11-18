@@ -160,11 +160,14 @@ func (r *RecordCmd) Run() error {
 	}
 
 	// Create recorder
-	recorder := audio.NewRecorder(audio.FileRecorderConfig{
+	recorder, err := audio.NewRecorder(audio.FileRecorderConfig{
 		OutputPath:  outputPath,
 		MaxDuration: maxDuration,
 		MaxBytes:    r.MaxBytes,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to create recorder: %w", err)
+	}
 
 	err = recorder.Go(context.Background())
 	if err != nil {

@@ -48,3 +48,86 @@ func TestCatchStopSignals_OSSignal(t *testing.T) {
 		t.Fatal("expected stop signal when OS signal received, but timed out")
 	}
 }
+
+func TestNewRecorder_ValidatesConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		config      FileRecorderConfig
+		expectError string
+	}{
+		{
+			name: "zero max duration",
+			config: FileRecorderConfig{
+				OutputPath:  "/tmp/test.mp3",
+				MaxDuration: 0,
+				MaxBytes:    1024,
+			},
+			expectError: "MaxDuration must be positive",
+		},
+		{
+			name: "negative max duration",
+			config: FileRecorderConfig{
+				OutputPath:  "/tmp/test.mp3",
+				MaxDuration: -1 * time.Second,
+				MaxBytes:    1024,
+			},
+			expectError: "MaxDuration must be positive",
+		},
+		{
+			name: "zero max bytes",
+			config: FileRecorderConfig{
+				OutputPath:  "/tmp/test.mp3",
+				MaxDuration: 1 * time.Minute,
+				MaxBytes:    0,
+			},
+			expectError: "MaxBytes must be positive",
+		},
+		{
+			name: "negative max bytes",
+			config: FileRecorderConfig{
+				OutputPath:  "/tmp/test.mp3",
+				MaxDuration: 1 * time.Minute,
+				MaxBytes:    -1,
+			},
+			expectError: "MaxBytes must be positive",
+		},
+		{
+			name: "valid config",
+			config: FileRecorderConfig{
+				OutputPath:  "/tmp/test.mp3",
+				MaxDuration: 1 * time.Minute,
+				MaxBytes:    1024,
+			},
+			expectError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			recorder, err := NewRecorder(tt.config)
+
+			if tt.expectError != "" {
+				if err == nil {
+					t.Fatalf("expected error %q, got nil", tt.expectError)
+				}
+				if err.Error() != tt.expectError {
+					t.Fatalf("expected error %q, got %q", tt.expectError, err.Error())
+				}
+				if recorder != nil {
+					t.Fatal("expected nil recorder when error occurs")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				if recorder == nil {
+					t.Fatal("expected non-nil recorder for valid config")
+				}
+			}
+		})
+	}
+}
