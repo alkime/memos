@@ -49,7 +49,7 @@ func TestCatchStopSignals_OSSignal(t *testing.T) {
 	}
 }
 
-func TestNewRecorder_ValidatesConfig(t *testing.T) {
+func TestNewRecorder_ValidatesConfig(t *testing.T) { //nolint:funlen // Table-driven test with many cases
 	t.Parallel()
 
 	tests := []struct {
@@ -203,11 +203,9 @@ func TestFormatDuration(t *testing.T) {
 				if got != expected {
 					t.Errorf("formatDuration() = %q, want %q", got, expected)
 				}
-			} else {
+			} else if got != tt.wantPlain {
 				// Should not have ANSI codes
-				if got != tt.wantPlain {
-					t.Errorf("formatDuration() = %q, want %q", got, tt.wantPlain)
-				}
+				t.Errorf("formatDuration() = %q, want %q", got, tt.wantPlain)
 			}
 		})
 	}
@@ -250,11 +248,9 @@ func TestFormatBytes(t *testing.T) {
 				if got != expected {
 					t.Errorf("formatBytes() = %q, want %q", got, expected)
 				}
-			} else {
+			} else if got != tt.wantPlain {
 				// Should not have ANSI codes
-				if got != tt.wantPlain {
-					t.Errorf("formatBytes() = %q, want %q", got, tt.wantPlain)
-				}
+				t.Errorf("formatBytes() = %q, want %q", got, tt.wantPlain)
 			}
 		})
 	}

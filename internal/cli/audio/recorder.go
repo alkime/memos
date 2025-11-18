@@ -24,7 +24,7 @@ const (
 	defaultChannels   = 1      // Whisper native audio is mono
 )
 
-// Sentinel errors for limit detection
+// Sentinel errors for limit detection.
 var (
 	ErrMaxDurationReached = errors.New("max duration reached")
 	ErrMaxBytesReached    = errors.New("max bytes reached")
@@ -56,7 +56,7 @@ func NewRecorder(conf FileRecorderConfig) (*FileRecorder, error) {
 	}, nil
 }
 
-func (r *FileRecorder) Go(ctx context.Context) (err error) {
+func (r *FileRecorder) Go(ctx context.Context) (err error) { //nolint:funlen // Complex goroutine coordination
 	dev := device.NewAudioDevice(&device.AudioDeviceConfig{
 		Format:          malgo.FormatS16,
 		SampleRate:      defaultSampleRate,
@@ -236,16 +236,17 @@ func closeFd(fd *os.File) {
 	}
 }
 
-// formatWithBold wraps text in ANSI bold codes if shouldBold is true
+// formatWithBold wraps text in ANSI bold codes if shouldBold is true.
 func formatWithBold(text string, shouldBold bool) string {
 	if shouldBold {
 		return fmt.Sprintf("\033[1m%s\033[0m", text)
 	}
+
 	return text
 }
 
-// formatDuration formats elapsed and max duration with optional bold
-func formatDuration(elapsed, max time.Duration, shouldBold bool) string {
+// formatDuration formats elapsed and maxDuration duration with optional bold.
+func formatDuration(elapsed, maxDuration time.Duration, shouldBold bool) string {
 	// Format as HH:MM:SS
 	formatTime := func(d time.Duration) string {
 		h := int(d.Hours())
@@ -255,20 +256,22 @@ func formatDuration(elapsed, max time.Duration, shouldBold bool) string {
 	}
 
 	elapsedStr := formatTime(elapsed)
-	maxStr := formatTime(max)
-	percent := int(float64(elapsed) / float64(max) * 100)
+	maxStr := formatTime(maxDuration)
+	percent := int(float64(elapsed) / float64(maxDuration) * 100)
 
 	text := fmt.Sprintf("%s / %s (%d%%)", elapsedStr, maxStr, percent)
+
 	return formatWithBold(text, shouldBold)
 }
 
-// formatBytes formats bytes in MB with optional bold
-func formatBytes(current, max int64, shouldBold bool) string {
+// formatBytes formats bytes in MB with optional bold.
+func formatBytes(current, maxBytes int64, shouldBold bool) string {
 	currentMB := float64(current) / (1024 * 1024)
-	maxMB := float64(max) / (1024 * 1024)
-	percent := int(float64(current) / float64(max) * 100)
+	maxMB := float64(maxBytes) / (1024 * 1024)
+	percent := int(float64(current) / float64(maxBytes) * 100)
 
 	text := fmt.Sprintf("%.1f MB / %.1f MB (%d%%)", currentMB, maxMB, percent)
+
 	return formatWithBold(text, shouldBold)
 }
 
