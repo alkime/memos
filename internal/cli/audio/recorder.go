@@ -82,7 +82,7 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 	var bytesWritten atomic.Int64
 
 	// Track which limit was hit (if any)
-	var limitReached error
+	var limitReached atomic.Value
 
 	// spawn 3 goroutines:
 	// -- read the data channel with limit checking
@@ -109,7 +109,7 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 			if bytesWritten.Load() >= r.config.MaxBytes {
 				slog.Info("recording stopped", "reason", "max_bytes_reached",
 					"bytes", bytesWritten.Load())
-				limitReached = ErrMaxBytesReached
+				limitReached.Store(ErrMaxBytesReached)
 				hardStop(ctx, dev)
 				break
 			}
@@ -118,7 +118,7 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 			if elapsed >= r.config.MaxDuration {
 				slog.Info("recording stopped", "reason", "max_duration_reached",
 					"duration", elapsed)
-				limitReached = ErrMaxDurationReached
+				limitReached.Store(ErrMaxDurationReached)
 				hardStop(ctx, dev)
 				break
 			}
@@ -171,8 +171,8 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 	}
 
 	// Return sentinel error if limit was reached
-	if limitReached != nil {
-		return limitReached
+	if err := limitReached.Load(); err != nil {
+		return err.(error)
 	}
 
 	return nil
