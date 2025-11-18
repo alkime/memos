@@ -20,7 +20,8 @@ import (
 // CLI defines the voice command structure.
 type CLI struct {
 	// Default workflow command (hidden from help, runs when no subcommand given)
-	Run RunCmd `cmd:"" default:"1" hidden:"" help:"Run end-to-end workflow"`
+	// Run RunCmd `cmd:"" default:"1" hidden:"" help:"Run end-to-end workflow"`
+	Run RunCmd `cmd:"" help:"Run end-to-end workflow"`
 
 	// Commands
 	Record     RecordCmd     `cmd:"" help:"Record audio from microphone"`
@@ -73,8 +74,8 @@ func (r *RunCmd) Run() error {
 		AudioFile:    "",
 		OpenAIAPIKey: openAIKey,
 		Output:       "",
-		Name:         "",    // Auto-detect from git branch
-		SkipPrompt:   true,  // Skip prompt in end-to-end workflow
+		Name:         "",   // Auto-detect from git branch
+		SkipPrompt:   true, // Skip prompt in end-to-end workflow
 	}
 
 	if err := transcribeCmd.Run(); err != nil {
@@ -92,8 +93,8 @@ func (r *RunCmd) Run() error {
 		TranscriptFile:  "",
 		AnthropicAPIKey: anthropicKey,
 		Output:          "",
-		Name:            "",     // Auto-detect from git branch
-		NoEdit:          false,  // Always open editor in end-to-end workflow
+		Name:            "",    // Auto-detect from git branch
+		NoEdit:          false, // Always open editor in end-to-end workflow
 	}
 
 	if err := firstDraftCmd.Run(); err != nil {
@@ -330,11 +331,11 @@ func (t *TranscribeCmd) Run() error {
 
 // FirstDraftCmd handles AI-powered first draft generation.
 type FirstDraftCmd struct {
-	TranscriptFile   string `arg:"" optional:"" help:"Path to transcript file (auto-detects if not provided)"`
-	AnthropicAPIKey  string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
-	Output           string `flag:"" optional:"" help:"Output markdown path"`
-	Name             string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
-	NoEdit           bool   `flag:"" help:"Skip opening editor after generation"`
+	TranscriptFile  string `arg:"" optional:"" help:"Path to transcript file (auto-detects if not provided)"`
+	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
+	Output          string `flag:"" optional:"" help:"Output markdown path"`
+	Name            string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	NoEdit          bool   `flag:"" help:"Skip opening editor after generation"`
 }
 
 // Run executes the first-draft command.

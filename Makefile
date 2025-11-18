@@ -17,7 +17,7 @@ dev: build-hugo-dev ## Start Go server for local dev
 	@echo "Starting Go web server on port $(PORT)..."
 	go run ./cmd/server
 
-build-go: ## Generate the Go binary
+build-go: build-voice ## Generate the Go binary
 	@echo "Building Go binary..."
 	go build -o $(BINARY_NAME) ./cmd/server
 	@echo "Binary built: $(BINARY_NAME)"
@@ -35,6 +35,14 @@ install-voice: build-voice ## Install voice CLI to $GOPATH/bin
 	fi
 	cp bin/$(VOICE_BINARY) $(GOPATH)/bin/$(VOICE_BINARY)
 	@echo "Voice CLI installed to $(GOPATH)/bin/$(VOICE_BINARY)"
+
+voice-run: build-voice ## Run voice CLI
+	@echo "Running voice CLI..."
+	@./bin/$(VOICE_BINARY) run
+
+voice-run-worktree: build-voice ## Run voice CLI in the current worktree
+	@echo "Running voice CLI in current worktree..."
+	@godotenv -f ../../.env bin/$(VOICE_BINARY) run
 
 build-hugo-dev: clean ## Generate the Hugo site for local dev
 	@echo "Generating Hugo site for local development..."
