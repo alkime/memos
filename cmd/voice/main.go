@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -20,7 +21,8 @@ import (
 // CLI defines the voice command structure.
 type CLI struct {
 	// Default workflow command (hidden from help, runs when no subcommand given)
-	Run RunCmd `cmd:"" default:"1" hidden:"" help:"Run end-to-end workflow"`
+	// Run RunCmd `cmd:"" default:"1" hidden:"" help:"Run end-to-end workflow"`
+	Run RunCmd `cmd:"" help:"Run end-to-end workflow"`
 
 	// Commands
 	Record     RecordCmd     `cmd:"" help:"Record audio from microphone"`
@@ -73,8 +75,8 @@ func (r *RunCmd) Run() error {
 		AudioFile:    "",
 		OpenAIAPIKey: openAIKey,
 		Output:       "",
-		Name:         "",    // Auto-detect from git branch
-		SkipPrompt:   true,  // Skip prompt in end-to-end workflow
+		Name:         "",   // Auto-detect from git branch
+		SkipPrompt:   true, // Skip prompt in end-to-end workflow
 	}
 
 	if err := transcribeCmd.Run(); err != nil {
@@ -92,8 +94,8 @@ func (r *RunCmd) Run() error {
 		TranscriptFile:  "",
 		AnthropicAPIKey: anthropicKey,
 		Output:          "",
-		Name:            "",     // Auto-detect from git branch
-		NoEdit:          false,  // Always open editor in end-to-end workflow
+		Name:            "",    // Auto-detect from git branch
+		NoEdit:          false, // Always open editor in end-to-end workflow
 	}
 
 	if err := firstDraftCmd.Run(); err != nil {
@@ -160,14 +162,36 @@ func (r *RecordCmd) Run() error {
 	}
 
 	// Create recorder
-	recorder := audio.NewRecorder(audio.FileRecorderConfig{
+	recorder, err := audio.NewRecorder(audio.FileRecorderConfig{
 		OutputPath:  outputPath,
 		MaxDuration: maxDuration,
 		MaxBytes:    r.MaxBytes,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to create recorder: %w", err)
+	}
 
 	err = recorder.Go(context.Background())
 	if err != nil {
+		// Check for limit errors - these are not failures
+		if errors.Is(err, audio.ErrMaxDurationReached) {
+			slog.Info("recording stopped due to max duration limit")
+			//nolint:forbidigo // CLI output for limit notification
+			fmt.Printf("\nRecording stopped: Maximum duration (%s) reached\n", r.MaxDuration)
+			//nolint:forbidigo // CLI output for limit notification
+			fmt.Println("Audio file saved. Run 'voice transcribe' to continue manually.")
+			return nil // Stop workflow, but exit successfully
+		}
+		if errors.Is(err, audio.ErrMaxBytesReached) {
+			slog.Info("recording stopped due to max bytes limit")
+			//nolint:forbidigo // CLI output for limit notification
+			fmt.Printf("\nRecording stopped: Maximum size (%d MB) reached\n", r.MaxBytes/(1024*1024))
+			//nolint:forbidigo // CLI output for limit notification
+			fmt.Println("Audio file saved. Run 'voice transcribe' to continue manually.")
+			return nil // Stop workflow, but exit successfully
+		}
+
+		// Actual error
 		return fmt.Errorf("failed to record audio: %w", err)
 	}
 
@@ -330,11 +354,11 @@ func (t *TranscribeCmd) Run() error {
 
 // FirstDraftCmd handles AI-powered first draft generation.
 type FirstDraftCmd struct {
-	TranscriptFile   string `arg:"" optional:"" help:"Path to transcript file (auto-detects if not provided)"`
-	AnthropicAPIKey  string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
-	Output           string `flag:"" optional:"" help:"Output markdown path"`
-	Name             string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
-	NoEdit           bool   `flag:"" help:"Skip opening editor after generation"`
+	TranscriptFile  string `arg:"" optional:"" help:"Path to transcript file (auto-detects if not provided)"`
+	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
+	Output          string `flag:"" optional:"" help:"Output markdown path"`
+	Name            string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	NoEdit          bool   `flag:"" help:"Skip opening editor after generation"`
 }
 
 // Run executes the first-draft command.
