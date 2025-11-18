@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -171,6 +172,25 @@ func (r *RecordCmd) Run() error {
 
 	err = recorder.Go(context.Background())
 	if err != nil {
+		// Check for limit errors - these are not failures
+		if errors.Is(err, audio.ErrMaxDurationReached) {
+			slog.Info("recording stopped due to max duration limit")
+			//nolint:forbidigo // CLI output for limit notification
+			fmt.Printf("\nRecording stopped: Maximum duration (%s) reached\n", r.MaxDuration)
+			//nolint:forbidigo // CLI output for limit notification
+			fmt.Println("Audio file saved. Run 'voice transcribe' to continue manually.")
+			return nil // Stop workflow, but exit successfully
+		}
+		if errors.Is(err, audio.ErrMaxBytesReached) {
+			slog.Info("recording stopped due to max bytes limit")
+			//nolint:forbidigo // CLI output for limit notification
+			fmt.Printf("\nRecording stopped: Maximum size (%d MB) reached\n", r.MaxBytes/(1024*1024))
+			//nolint:forbidigo // CLI output for limit notification
+			fmt.Println("Audio file saved. Run 'voice transcribe' to continue manually.")
+			return nil // Stop workflow, but exit successfully
+		}
+
+		// Actual error
 		return fmt.Errorf("failed to record audio: %w", err)
 	}
 
