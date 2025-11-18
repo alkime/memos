@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -74,30 +75,85 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 	// always hard stop when we return in this func.
 	defer hardStop(ctx, dev)
 
-	// spawn 2 goroutines to:
-	// -- read the data channel.
-	// -- a task for listening for "finished" signals either from
-	//    ^C or reading \n from stdin.
+	// Track start time for duration limit
+	startTime := time.Now()
+
+	// Track bytes written atomically for thread-safe access
+	var bytesWritten atomic.Int64
+
+	// Track which limit was hit (if any)
+	var limitReached error
+
+	// spawn 3 goroutines:
+	// -- read the data channel with limit checking
+	// -- display progress periodically
+	// -- listen for "finished" signals from ^C, Enter, or context
 	wg := new(sync.WaitGroup)
 
 	buf := bytes.NewBuffer(nil)
 
+	// Packet reading goroutine with inline limit checks
 	wg.Go(func() {
-		cnt := 0
 		for packet := range dataC {
-			cnt++
-			if cnt%50 == 0 {
-				fmt.Print(".") //nolint:forbidigo // CLI progress indicator
-			}
-			// todo: check size limits.
-			_, err := buf.Write(packet)
+			// Write packet to buffer
+			n, err := buf.Write(packet)
 			if err != nil {
 				slog.Error("failed to write audio packet to buffer. halting....", "error", err)
 				break
 			}
+
+			// Update atomic counter
+			bytesWritten.Add(int64(n))
+
+			// Inline limit checks
+			if bytesWritten.Load() >= r.config.MaxBytes {
+				slog.Info("recording stopped", "reason", "max_bytes_reached",
+					"bytes", bytesWritten.Load())
+				limitReached = ErrMaxBytesReached
+				hardStop(ctx, dev)
+				break
+			}
+
+			elapsed := time.Since(startTime)
+			if elapsed >= r.config.MaxDuration {
+				slog.Info("recording stopped", "reason", "max_duration_reached",
+					"duration", elapsed)
+				limitReached = ErrMaxDurationReached
+				hardStop(ctx, dev)
+				break
+			}
 		}
-		fmt.Println("\n[finished audio read loop]") //nolint:forbidigo // CLI status message
+		fmt.Println() //nolint:forbidigo // Clear progress line
 	})
+
+	// Progress display goroutine
+	wg.Go(func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				elapsed := time.Since(startTime)
+				bytes := bytesWritten.Load()
+
+				timePercent := int(float64(elapsed) / float64(r.config.MaxDuration) * 100)
+				bytesPercent := int(float64(bytes) / float64(r.config.MaxBytes) * 100)
+
+				// Show bold if either >= 90%
+				timeWarning := timePercent >= 90
+				bytesWarning := bytesPercent >= 90
+
+				fmt.Printf("\rRecording: %s | %s", //nolint:forbidigo // CLI progress
+					formatDuration(elapsed, r.config.MaxDuration, timeWarning),
+					formatBytes(bytes, r.config.MaxBytes, bytesWarning))
+			case <-ctx.Done():
+				return
+			}
+		}
+	})
+
+	// Stop signals goroutine (existing)
 	wg.Go(func() {
 		<-catchStopSignals(ctx)
 		slog.Info("received stop signal, stopping recording")
@@ -106,12 +162,17 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 
 	slog.Info("running... waiting for recording to finish")
 	wg.Wait()
-	slog.Info("recording finished. buffer size bytes", "size_bytes", buf.Len())
+	slog.Info("recording finished", "buffer_size_bytes", buf.Len())
 
-	// flush buffer to MP3 file.
+	// Flush buffer to MP3 file
 	err = r.flushMP3File(r.config.OutputPath, buf)
 	if err != nil {
 		return fmt.Errorf("failed to flush MP3 file: %w", err)
+	}
+
+	// Return sentinel error if limit was reached
+	if limitReached != nil {
+		return limitReached
 	}
 
 	return nil
