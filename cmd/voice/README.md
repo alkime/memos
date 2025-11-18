@@ -62,6 +62,36 @@ Options:
 - `--max-bytes` - Max file size (default: 256MB)
 - `--no-transcribe` - Skip automatic transcription
 
+#### Limit Behavior
+
+When a recording limit is reached:
+
+1. **Recording stops automatically** - The audio device is stopped gracefully
+2. **File is saved** - The MP3 file is saved with all audio captured up to the limit
+3. **Workflow stops** - The voice tool exits successfully without continuing to transcription
+4. **Clear message** - A message indicates which limit was reached
+
+To continue processing after a limit is reached, manually run:
+```bash
+voice transcribe
+voice first-draft
+voice copy-edit
+```
+
+#### Progress Display
+
+During recording, progress updates appear every 5 seconds showing:
+- Elapsed time and percentage of max duration
+- Bytes recorded and percentage of max size
+- **Bold highlighting** when either metric reaches 90% of the limit
+
+Example:
+```
+Recording: 00:54:00 / 01:00:00 (90%) | 128.5 MB / 256.0 MB (50%)
+```
+
+The time portion is shown in bold to warn you're approaching the 1-hour limit.
+
 ### `voice transcribe [audio-file]`
 
 Transcribe audio to text using OpenAI Whisper.
