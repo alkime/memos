@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -20,6 +21,12 @@ import (
 const (
 	defaultSampleRate = 16_000 // Whisper native sample rate is 16kHz
 	defaultChannels   = 1      // Whisper native audio is mono
+)
+
+// Sentinel errors for limit detection
+var (
+	ErrMaxDurationReached = errors.New("max duration reached")
+	ErrMaxBytesReached    = errors.New("max bytes reached")
 )
 
 type FileRecorderConfig struct {
