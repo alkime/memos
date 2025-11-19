@@ -459,6 +459,7 @@ type CopyEditCmd struct {
 	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
 	Output          string `flag:"" optional:"" help:"Output path (defaults to content/posts/)"`
 	Name            string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	Mode            string `flag:"" default:"memos" help:"Content mode: memos (full) or journal (minimal)"`
 }
 
 // Run executes the copy-edit command.
@@ -507,9 +508,15 @@ func (c *CopyEditCmd) Run() error {
 	now := time.Now()
 	currentDate := now.Format(time.RFC3339)
 
+	// Parse and validate mode
+	mode := ai.Mode(c.Mode)
+	if mode != ai.ModeMemos && mode != ai.ModeJournal {
+		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", c.Mode)
+	}
+
 	// Generate copy edit
-	slog.Info("Generating copy edit with AI...")
-	result, err := client.GenerateCopyEdit(firstDraft, currentDate)
+	slog.Info("Generating copy edit with AI...", "mode", mode)
+	result, err := client.GenerateCopyEdit(firstDraft, currentDate, mode)
 	if err != nil {
 		return fmt.Errorf("failed to generate copy edit: %w", err)
 	}

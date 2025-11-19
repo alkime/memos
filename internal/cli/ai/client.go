@@ -24,6 +24,16 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
+// Mode represents the content generation mode for blog posts.
+type Mode string
+
+const (
+	// ModeMemos is the default mode with full frontmatter (tags, voiceBased, etc.).
+	ModeMemos Mode = "memos"
+	// ModeJournal is a minimal mode for personal journal entries.
+	ModeJournal Mode = "journal"
+)
+
 // CopyEditToolInput defines the tool input schema for copy-edit.
 type CopyEditToolInput struct {
 	Title    string   `json:"title"`
@@ -131,6 +141,7 @@ func parseCopyEditToolUse(content []anthropic.ContentBlockUnion) (*CopyEditToolI
 func (c *Client) GenerateCopyEdit(
 	firstDraft string,
 	currentDate string,
+	mode Mode,
 ) (*CopyEditResult, error) {
 	if c.apiKey == "" {
 		return nil, errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
@@ -143,11 +154,19 @@ func (c *Client) GenerateCopyEdit(
 	tool := anthropic.ToolUnionParamOfTool(toolDef.InputSchema, toolDef.Name)
 	tool.OfTool.Description = toolDef.Description
 
+	// Select appropriate prompt based on mode
+	var systemPrompt string
+	if mode == ModeJournal {
+		systemPrompt = CopyEditSystemPromptJournal(currentDate)
+	} else {
+		systemPrompt = CopyEditSystemPromptMemos(currentDate)
+	}
+
 	params := anthropic.MessageNewParams{
 		Model:     c.model,
 		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
-			{Text: CopyEditSystemPrompt(currentDate)},
+			{Text: systemPrompt},
 		},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(firstDraft)),
