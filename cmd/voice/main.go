@@ -103,9 +103,9 @@ func (r *RunCmd) Run() error {
 		TranscriptFile:  "",
 		AnthropicAPIKey: anthropicKey,
 		Output:          "",
-		Name:            "",    // Auto-detect from git branch
+		Name:            "",     // Auto-detect from git branch
 		Mode:            r.Mode, // Pass mode through
-		NoEdit:          false, // Always open editor in end-to-end workflow
+		NoEdit:          false,  // Always open editor in end-to-end workflow
 	}
 
 	if err := firstDraftCmd.Run(); err != nil {
@@ -464,7 +464,10 @@ func (f *FirstDraftCmd) Run() error {
 	// Open in editor unless --no-edit flag is set
 	if !f.NoEdit {
 		// Ignore editor errors - user can manually edit if needed
-		_ = editor.Open(context.Background(), outputPath)
+		err = editor.Open(context.Background(), outputPath)
+		if err != nil {
+			slog.Warn("error calling editor.Open", "error", err)
+		}
 	}
 
 	return nil
@@ -604,7 +607,10 @@ func (c *CopyEditCmd) Run() error {
 
 	// Open in editor for review
 	// Ignore editor errors - user can manually edit if needed
-	_ = editor.Open(context.Background(), outputPath)
+	err = editor.Open(context.Background(), outputPath)
+	if err != nil {
+		slog.Warn("error calling editor.Open", "error", err)
+	}
 
 	return nil
 }
