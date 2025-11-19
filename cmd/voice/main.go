@@ -16,6 +16,7 @@ import (
 	"github.com/alkime/memos/internal/cli/editor"
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/git"
+	"github.com/alkime/memos/internal/workdir"
 )
 
 // CLI defines the voice command structure.
@@ -140,13 +141,13 @@ func (r *RecordCmd) Run() error {
 	// Determine output path
 	outputPath := r.Output
 	if outputPath == "" {
-		// Default to ~/.memos/work/{name}/recording.mp3
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("failed to get user home directory: %w", err)
-		}
+		// Default to ~/Documents/Alkime/Memos/work/{name}/recording.mp3
 		workingName := getWorkingName(r.Name)
-		outputPath = filepath.Join(homeDir, ".memos", "work", workingName, "recording.mp3")
+		var err error
+		outputPath, err = workdir.FilePath(workingName, "recording.mp3")
+		if err != nil {
+			return fmt.Errorf("failed to determine output path: %w", err)
+		}
 	}
 
 	// Create parent directory if needed
@@ -236,11 +237,10 @@ type TranscribeCmd struct {
 // autoDetectAudioFile determines the audio file path from working directory
 // and optionally prompts user for confirmation.
 func autoDetectAudioFile(workingName string, skipPrompt bool) (string, error) {
-	homeDir, err := os.UserHomeDir()
+	audioFilePath, err := workdir.FilePath(workingName, "recording.mp3")
 	if err != nil {
-		return "", fmt.Errorf("failed to get user home directory: %w", err)
+		return "", fmt.Errorf("failed to determine audio file path: %w", err)
 	}
-	audioFilePath := filepath.Join(homeDir, ".memos", "work", workingName, "recording.mp3")
 
 	// Check if file exists
 	if _, err := os.Stat(audioFilePath); err != nil {
@@ -300,11 +300,11 @@ func (t *TranscribeCmd) Run() error {
 	outputPath := t.Output
 	if outputPath == "" {
 		// Default to transcript.txt in working directory
-		homeDir, err := os.UserHomeDir()
+		var err error
+		outputPath, err = workdir.FilePath(workingName, "transcript.txt")
 		if err != nil {
-			return fmt.Errorf("failed to get user home directory: %w", err)
+			return fmt.Errorf("failed to determine output path: %w", err)
 		}
-		outputPath = filepath.Join(homeDir, ".memos", "work", workingName, "transcript.txt")
 	}
 
 	// Open audio file
@@ -375,11 +375,11 @@ func (f *FirstDraftCmd) Run() error {
 	if transcriptPath == "" {
 		// Auto-detect transcript from working directory
 		workingName := getWorkingName(f.Name)
-		homeDir, err := os.UserHomeDir()
+		var err error
+		transcriptPath, err = workdir.FilePath(workingName, "transcript.txt")
 		if err != nil {
-			return fmt.Errorf("failed to get user home directory: %w", err)
+			return fmt.Errorf("failed to determine transcript path: %w", err)
 		}
-		transcriptPath = filepath.Join(homeDir, ".memos", "work", workingName, "transcript.txt")
 
 		// Check if file exists
 		if _, err := os.Stat(transcriptPath); err != nil {
@@ -475,11 +475,11 @@ func (c *CopyEditCmd) Run() error {
 	if firstDraftPath == "" {
 		// Auto-detect first draft from working directory
 		workingName := getWorkingName(c.Name)
-		homeDir, err := os.UserHomeDir()
+		var err error
+		firstDraftPath, err = workdir.FilePath(workingName, "first-draft.md")
 		if err != nil {
-			return fmt.Errorf("failed to get user home directory: %w", err)
+			return fmt.Errorf("failed to determine first draft path: %w", err)
 		}
-		firstDraftPath = filepath.Join(homeDir, ".memos", "work", workingName, "first-draft.md")
 
 		// Check if file exists
 		if _, err := os.Stat(firstDraftPath); err != nil {
@@ -509,16 +509,45 @@ func (c *CopyEditCmd) Run() error {
 
 	// Generate copy edit
 	slog.Info("Generating copy edit with AI...")
-	markdown, title, err := client.GenerateCopyEdit(firstDraft, currentDate)
+	result, err := client.GenerateCopyEdit(firstDraft, currentDate)
 	if err != nil {
 		return fmt.Errorf("failed to generate copy edit: %w", err)
+	}
+
+	// Save and display changes
+	if len(result.Changes) > 0 {
+		// Format changes for terminal display
+		//nolint:forbidigo // CLI output for changes display
+		fmt.Println("\n--- Changes Made ---")
+		for _, change := range result.Changes {
+			//nolint:forbidigo // CLI output for changes display
+			fmt.Printf("  • %s\n", change)
+		}
+		//nolint:forbidigo // CLI output for changes display
+		fmt.Println("--------------------")
+
+		// Save changes to working directory
+		workingName := getWorkingName(c.Name)
+		changesPath, err := workdir.FilePath(workingName, "changes.txt")
+		if err == nil {
+			changesContent := "Changes made during copy-edit:\n\n"
+			for _, change := range result.Changes {
+				changesContent += fmt.Sprintf("• %s\n", change)
+			}
+			//nolint:gosec // Changes file needs to be readable
+			if err := os.WriteFile(changesPath, []byte(changesContent), 0644); err != nil {
+				slog.Warn("Failed to save changes file", "path", changesPath, "error", err)
+			} else {
+				slog.Info("Changes saved", "path", changesPath)
+			}
+		}
 	}
 
 	// Determine output path
 	outputPath := c.Output
 	if outputPath == "" {
 		// Generate filename from title
-		slug := ai.GenerateSlug(title)
+		slug := ai.GenerateSlug(result.Title)
 		filename := fmt.Sprintf("%s-%s.md", now.Format("2006-01"), slug)
 
 		// Check if file exists, add numeric suffix if needed
@@ -543,11 +572,11 @@ func (c *CopyEditCmd) Run() error {
 
 	// Write final post
 	//nolint:gosec // Markdown files need to be readable
-	if err := os.WriteFile(outputPath, []byte(markdown), 0644); err != nil {
+	if err := os.WriteFile(outputPath, []byte(result.Markdown), 0644); err != nil {
 		return fmt.Errorf("failed to write final post to %s: %w", outputPath, err)
 	}
 
-	slog.Info("Final post saved", "path", outputPath, "title", title)
+	slog.Info("Final post saved", "path", outputPath, "title", result.Title)
 
 	// Open in editor for review
 	// Ignore editor errors - user can manually edit if needed

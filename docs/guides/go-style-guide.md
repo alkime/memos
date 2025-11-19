@@ -265,6 +265,69 @@ type FirstDraftCmd struct {
 
 ---
 
+### 6. Limit Function Return Parameters
+
+**Rule:** When a function returns more than 2-3 values (excluding error), wrap them in a struct. This improves readability and makes the API easier to evolve.
+
+**Why:** Multiple return values make function signatures harder to read, reduce type safety, and make it difficult to add new return values without breaking all callers.
+
+**Don't:**
+```go
+// 4 return values is too many
+func (c *Client) GenerateCopyEdit(
+    firstDraft string,
+    currentDate string,
+) (markdown string, title string, changes []string, err error) {
+    // ...
+    return markdown, title, changes, nil
+}
+
+// Caller must handle all values in correct order
+markdown, title, changes, err := client.GenerateCopyEdit(draft, date)
+```
+
+**Do:**
+```go
+// CopyEditResult wraps related return values
+type CopyEditResult struct {
+    Title    string
+    Markdown string
+    Changes  []string
+}
+
+func (c *Client) GenerateCopyEdit(
+    firstDraft string,
+    currentDate string,
+) (*CopyEditResult, error) {
+    // ...
+    return &CopyEditResult{
+        Title:    title,
+        Markdown: markdown,
+        Changes:  changes,
+    }, nil
+}
+
+// Caller gets named fields and clear structure
+result, err := client.GenerateCopyEdit(draft, date)
+if err != nil {
+    return err
+}
+fmt.Println(result.Title)
+```
+
+**Benefits:**
+- Self-documenting: Field names make purpose clear
+- Easier evolution: Add fields without breaking callers
+- Better IDE support: Autocomplete shows field names
+- Fewer ordering errors: Access by name instead of position
+
+**Guidelines:**
+- 2 values + error: Generally acceptable (e.g., `(string, error)`)
+- 3 values + error: Consider a struct, especially if values are related
+- 4+ values + error: Always use a struct
+
+---
+
 ## Additional Standards
 
 ### Linter Configuration

@@ -2,10 +2,9 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
-	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -22,6 +21,51 @@ func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey: apiKey,
 		model:  anthropic.ModelClaudeSonnet4_5_20250929,
+	}
+}
+
+// CopyEditToolInput defines the tool input schema for copy-edit.
+type CopyEditToolInput struct {
+	Title    string   `json:"title"`
+	Markdown string   `json:"markdown"`
+	Changes  []string `json:"changes"`
+}
+
+// CopyEditResult wraps the output from GenerateCopyEdit.
+type CopyEditResult struct {
+	Title    string
+	Markdown string
+	Changes  []string
+}
+
+// getCopyEditTool returns the tool definition for copy-edit structured output.
+func getCopyEditTool() anthropic.ToolParam {
+	return anthropic.ToolParam{
+		Name: "save_copy_edit",
+		Description: anthropic.String(
+			"Save the copy-edited blog post with title, markdown content, and list of changes",
+		),
+		InputSchema: anthropic.ToolInputSchemaParam{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":        "string",
+					"description": "The blog post title (extracted from or to be used in frontmatter)",
+				},
+				"markdown": map[string]interface{}{
+					"type":        "string",
+					"description": "The complete markdown file including frontmatter and content",
+				},
+				"changes": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+					"description": "Bullet-point list of changes made during copy-edit",
+				},
+			},
+			Required: []string{"title", "markdown", "changes"},
+		},
 	}
 }
 
@@ -63,13 +107,41 @@ func (c *Client) GenerateFirstDraft(transcript string) (string, error) {
 	return textBlock.Text, nil
 }
 
-// GenerateCopyEdit performs final copy editing and returns markdown with frontmatter and extracted title.
-func (c *Client) GenerateCopyEdit(firstDraft string, currentDate string) (markdown string, title string, err error) {
+// parseCopyEditToolUse extracts CopyEditToolInput from response content blocks.
+func parseCopyEditToolUse(content []anthropic.ContentBlockUnion) (*CopyEditToolInput, error) {
+	for _, block := range content {
+		if toolUse, ok := block.AsAny().(anthropic.ToolUseBlock); ok {
+			var toolInput CopyEditToolInput
+			inputBytes, err := json.Marshal(toolUse.Input)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal tool input: %w", err)
+			}
+			if err := json.Unmarshal(inputBytes, &toolInput); err != nil {
+				return nil, fmt.Errorf("failed to parse tool input: %w", err)
+			}
+
+			return &toolInput, nil
+		}
+	}
+
+	return nil, errors.New("no tool use found in Anthropic API response")
+}
+
+// GenerateCopyEdit performs final copy editing and returns the result.
+func (c *Client) GenerateCopyEdit(
+	firstDraft string,
+	currentDate string,
+) (*CopyEditResult, error) {
 	if c.apiKey == "" {
-		return "", "", errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
+		return nil, errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
 	}
 
 	client := anthropic.NewClient(option.WithAPIKey(c.apiKey))
+	toolDef := getCopyEditTool()
+
+	// Create tool union param using the SDK constructor
+	tool := anthropic.ToolUnionParamOfTool(toolDef.InputSchema, toolDef.Name)
+	tool.OfTool.Description = toolDef.Description
 
 	params := anthropic.MessageNewParams{
 		Model:     c.model,
@@ -80,49 +152,29 @@ func (c *Client) GenerateCopyEdit(firstDraft string, currentDate string) (markdo
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(firstDraft)),
 		},
+		Tools:      []anthropic.ToolUnionParam{tool},
+		ToolChoice: anthropic.ToolChoiceParamOfTool("save_copy_edit"),
 	}
 
 	ctx := context.Background()
 	resp, err := client.Messages.New(ctx, params)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate copy edit via Anthropic API: %w", err)
+		return nil, fmt.Errorf("failed to generate copy edit via Anthropic API: %w", err)
 	}
 
-	// Extract text from response
+	// Parse tool use from response
 	if len(resp.Content) == 0 {
-		return "", "", errors.New("empty response from Anthropic API")
+		return nil, errors.New("empty response from Anthropic API")
 	}
 
-	textBlock, ok := resp.Content[0].AsAny().(anthropic.TextBlock)
-	if !ok {
-		return "", "", errors.New("unexpected response type from Anthropic API")
-	}
-
-	markdown = textBlock.Text
-
-	// Extract title from frontmatter
-	// Simple parsing: look for 'title: "..."' pattern
-	title, err = extractTitleFromFrontmatter(markdown)
+	toolInput, err := parseCopyEditToolUse(resp.Content)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to extract title from frontmatter: %w", err)
+		return nil, err
 	}
 
-	return markdown, title, nil
-}
-
-// extractTitleFromFrontmatter parses the title from Hugo frontmatter.
-func extractTitleFromFrontmatter(markdown string) (string, error) {
-	// Match: title: "Some Title" or title: 'Some Title' or title: Some Title
-	titleRegex := regexp.MustCompile(`(?m)^title:\s*["']?([^"'\n]+)["']?`)
-	matches := titleRegex.FindStringSubmatch(markdown)
-	if len(matches) < 2 {
-		return "", errors.New("title not found in frontmatter")
-	}
-
-	title := strings.TrimSpace(matches[1])
-	if title == "" {
-		return "", errors.New("title is empty in frontmatter")
-	}
-
-	return title, nil
+	return &CopyEditResult{
+		Title:    toolInput.Title,
+		Markdown: toolInput.Markdown,
+		Changes:  toolInput.Changes,
+	}, nil
 }

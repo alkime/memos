@@ -4,6 +4,7 @@ go 1.25
 
 require (
 	github.com/alecthomas/kong v1.12.1
+	github.com/anthropics/anthropic-sdk-go v1.18.0
 	github.com/braheezy/shine-mp3 v0.1.0
 	github.com/gen2brain/malgo v0.11.24
 	github.com/gin-contrib/secure v1.1.2
@@ -16,7 +17,6 @@ require (
 )
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.18.0 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
