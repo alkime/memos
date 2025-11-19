@@ -9,12 +9,13 @@ import (
 )
 
 // Open opens the specified file in the user's preferred editor.
-// It uses the $EDITOR environment variable, defaulting to "vi" if not set.
+// It uses the $EDITOR environment variable, defaulting "open" if not set.
 // Returns an error if the editor command fails.
 func Open(ctx context.Context, filePath string) error {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
-		editor = "vi"
+		// todo: only works on macOS ... update for other platforms.
+		editor = "open"
 	}
 
 	slog.Info("Opening file in editor", "editor", editor, "path", filePath)

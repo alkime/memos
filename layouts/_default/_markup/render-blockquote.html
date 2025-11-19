@@ -1,0 +1,30 @@
+{{- /* Use Hugo's built-in alert support (v0.132.0+) */ -}}
+{{- if eq .Type "alert" -}}
+  {{- /* This is a GitHub-style alert */ -}}
+  {{- $type := lower .AlertType -}}
+
+  {{- /* Map alert types to icons */ -}}
+  {{- $icon := "" -}}
+  {{- if eq $type "note" -}}
+    {{- $icon = "ℹ️" -}}
+  {{- else if eq $type "tip" -}}
+    {{- $icon = "💡" -}}
+  {{- else if eq $type "important" -}}
+    {{- $icon = "❗" -}}
+  {{- else if eq $type "warning" -}}
+    {{- $icon = "⚠️" -}}
+  {{- else if eq $type "caution" -}}
+    {{- $icon = "🚨" -}}
+  {{- end -}}
+
+  {{- /* Render callout */ -}}
+  <div class="callout callout-{{ $type }}">
+    <div class="callout-icon">{{ $icon }}</div>
+    <div class="callout-content">{{ .Text | safeHTML }}</div>
+  </div>
+{{- else -}}
+  {{- /* Regular blockquote */ -}}
+  <blockquote>
+    {{ .Text | safeHTML }}
+  </blockquote>
+{{- end -}}

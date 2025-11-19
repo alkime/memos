@@ -103,4 +103,57 @@
   ul.blog-posts li a:visited {
     color: var(--link-color);
   }
+
+  /* Callout blocks (GitHub-style alerts) */
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    margin: 1.5em 0;
+    border-radius: 6px;
+    border-left: 5px solid;
+  }
+
+  .callout-icon {
+    flex-shrink: 0;
+    font-size: 1.2em;
+    line-height: 1;
+  }
+
+  .callout-content {
+    flex-grow: 1;
+  }
+
+  .callout-content p:first-child {
+    margin-top: 0;
+  }
+
+  .callout-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* NOTE callout - blue theme */
+  .callout-note {
+    background-color: #e7f2fa;
+    border-left-color: var(--link-color);
+  }
+
+  /* TIP callout - green theme */
+  .callout-tip {
+    background-color: #e6f6e6;
+    border-left-color: #1a7f37;
+  }
+
+  /* Dark mode support */
+  @media (prefers-color-scheme: dark) {
+    .callout-note {
+      background-color: #1c2d3a;
+      border-left-color: var(--link-color);
+    }
+
+    .callout-tip {
+      background-color: #1c2d1c;
+      border-left-color: #3fb950;
+    }
+  }
 </style>
