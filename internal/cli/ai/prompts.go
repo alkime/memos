@@ -55,6 +55,12 @@ func CopyEditSystemPromptJournal(currentDate string) string {
 - Always end the post content with the byline shortcode:
   ---
   {{< byline >}}
-- Return the complete markdown file including frontmatter and byline
-- IMPORTANT: Do NOT wrap your output in a markdown code block (no `+"```markdown"+` fence). Return the raw markdown directly.`, currentDate)
+
+When you are done editing, use the save_copy_edit tool to provide:
+1. title: The post title (as a plain string, extracted from the frontmatter you created)
+2. markdown: The complete markdown file including frontmatter and byline (raw markdown, no code fences)
+3. changes: A list of bullet-point strings describing each change you made, such as:
+   - "Fixed typo in paragraph 2: 'teh' → 'the'"
+   - "Reorganized for clarity"
+   - "Simplified phrasing"`, currentDate)
 }
