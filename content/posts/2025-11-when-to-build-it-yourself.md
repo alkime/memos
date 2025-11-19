@@ -9,7 +9,6 @@ draft: false
 ---
 
 > [!NOTE]
->
 > Before diving into the meat of this post which discusses the idea of *when to build it ourselves*, I wanted to make a small callout. This post will be the first run through of the end-to-end version of the tool I'm calling the "voice CLI"—which is to say that instead of the old "manual" process involving iPhone voice memos + transcription, we're doing this all from a simple (for now) command line interface built into the same code repo that the Hugo site is built from, and more importantly utilizing the same AI Dev Core Principles as that effort.
 
 ## When to Build It Yourself
@@ -29,7 +28,7 @@ While reserving the right to add or amend this idea, and to attempt to be succin
 Just to help anchor on what I mean here:
 
 * "... the thing being added": is actually purposefully vague since I suspect it is applicable to almost anything you'd be asking of yourself or an LLM.
-* "sufficiently an expert": this will require some accurate self reflection, and as I stew on it I'm realizing this may be the most difficult part of the entire heuristic for many. How do you know when you're not an expert? *Paging Drs. Dunning & Kruger...* 
+* "sufficiently an expert": this will require some accurate self reflection, and as I stew on it I'm realizing this may be the most difficult part of the entire heuristic for many. How do you know when you're not an expert? *Paging Drs. Dunning & Kruger...*
 * Note the "OR"—that is, *even if there is no prior art*, if you are confident you are in fact an expert, why not let the AI loose? You can sort it out when it goes off the rails.
 * "When building for long term quality": if you're prototyping, experimenting with UX, learning a new programming language, or building a personal and small internal tool, you'll be less concerned if anti-patterns get into the code. So this is shorthand for "when you're not building for customers" then again feel free to let the AI go nuts.
 
@@ -39,7 +38,7 @@ So the goal, then, is to craft good patterns that the LLM can leverage in the fu
 
 I encountered this when working with the audio recording components of the `voice` cli. I don't have a lot of experience with audio libraries, especially in Go. So I actually started by asking Claude to do some "market research" for me (talked about this in a previous post...) to help me find a good library to use if one is out there. We settled on [malgo](https://github.com/gen2brain/malgo), which is a "light binding" to a C library allowing Go to call into [miniaudio](https://github.com/mackron/miniaudio).
 
-I'm sure I could have eventually got to something I liked with the structured dev I'd be employing prior to this work, but let's think about this effort in terms of the above heuristics: Was this "for customers"? Well in all honesty, no, it's just for me, just an "internal tool". Still, the universe I setup for myself for this project sort of parks this fact in the background and tries to image we're creating for real world developers. So at least for now, I'm ok with fudging this one a bit. Was there prior art in the repo or associated context for using this library? No. But, was I an expert enough to be certain that any possible slop Claude would produce I could notice and correct it? Certainly not! 
+I'm sure I could have eventually got to something I liked with the structured dev I'd be employing prior to this work, but let's think about this effort in terms of the above heuristics: Was this "for customers"? Well in all honesty, no, it's just for me, just an "internal tool". Still, the universe I setup for myself for this project sort of parks this fact in the background and tries to image we're creating for real world developers. So at least for now, I'm ok with fudging this one a bit. Was there prior art in the repo or associated context for using this library? No. But, was I an expert enough to be certain that any possible slop Claude would produce I could notice and correct it? Certainly not!
 
 It was time to roll up my sleeves!
 

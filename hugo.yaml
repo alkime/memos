@@ -22,6 +22,10 @@ enableRobotsTXT: true
 
 # Syntax highlighting
 markup:
+  goldmark:
+    parser:
+      attribute:
+        block: true
   highlight:
     style: nord
     lineNos: true
