@@ -34,7 +34,9 @@ type CLI struct {
 }
 
 // RunCmd executes the end-to-end workflow: record -> transcribe -> first-draft -> editor.
-type RunCmd struct{}
+type RunCmd struct {
+	Mode string `flag:"" default:"memos" help:"Content mode: memos (full) or journal (minimal)"`
+}
 
 // Run executes the end-to-end workflow when no subcommand is provided: record -> transcribe -> first-draft -> editor.
 func (r *RunCmd) Run() error {
@@ -90,12 +92,19 @@ func (r *RunCmd) Run() error {
 		return nil
 	}
 
+	// Parse and validate mode
+	mode := ai.Mode(r.Mode)
+	if mode != ai.ModeMemos && mode != ai.ModeJournal {
+		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", r.Mode)
+	}
+
 	// Step 3: First Draft
 	firstDraftCmd := &FirstDraftCmd{
 		TranscriptFile:  "",
 		AnthropicAPIKey: anthropicKey,
 		Output:          "",
 		Name:            "",    // Auto-detect from git branch
+		Mode:            r.Mode, // Pass mode through
 		NoEdit:          false, // Always open editor in end-to-end workflow
 	}
 
@@ -103,7 +112,8 @@ func (r *RunCmd) Run() error {
 		return fmt.Errorf("failed to generate first draft: %w", err)
 	}
 
-	slog.Info("Workflow complete. Review the first draft, then run 'voice copy-edit' when ready.")
+	slog.Info("Workflow complete", "mode", mode,
+		"next", "Review the first draft, then run 'voice copy-edit --mode="+string(mode)+"' when ready")
 
 	return nil
 }
@@ -358,6 +368,7 @@ type FirstDraftCmd struct {
 	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
 	Output          string `flag:"" optional:"" help:"Output markdown path"`
 	Name            string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	Mode            string `flag:"" default:"memos" help:"Content mode: memos (full) or journal (minimal)"`
 	NoEdit          bool   `flag:"" help:"Skip opening editor after generation"`
 }
 
@@ -426,9 +437,15 @@ func (f *FirstDraftCmd) Run() error {
 	// Create AI client
 	client := ai.NewClient(f.AnthropicAPIKey)
 
+	// Parse and validate mode
+	mode := ai.Mode(f.Mode)
+	if mode != ai.ModeMemos && mode != ai.ModeJournal {
+		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", f.Mode)
+	}
+
 	// Generate first draft
-	slog.Info("Generating first draft with AI...")
-	firstDraft, err := client.GenerateFirstDraft(transcript)
+	slog.Info("Generating first draft with AI...", "mode", mode)
+	firstDraft, err := client.GenerateFirstDraft(transcript, mode)
 	if err != nil {
 		// On API failure, save raw transcript as fallback
 		slog.Error("Failed to generate first draft with AI", "error", err)
@@ -459,6 +476,7 @@ type CopyEditCmd struct {
 	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key"`
 	Output          string `flag:"" optional:"" help:"Output path (defaults to content/posts/)"`
 	Name            string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	Mode            string `flag:"" default:"memos" help:"Content mode: memos (full) or journal (minimal)"`
 }
 
 // Run executes the copy-edit command.
@@ -507,9 +525,15 @@ func (c *CopyEditCmd) Run() error {
 	now := time.Now()
 	currentDate := now.Format(time.RFC3339)
 
+	// Parse and validate mode
+	mode := ai.Mode(c.Mode)
+	if mode != ai.ModeMemos && mode != ai.ModeJournal {
+		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", c.Mode)
+	}
+
 	// Generate copy edit
-	slog.Info("Generating copy edit with AI...")
-	result, err := client.GenerateCopyEdit(firstDraft, currentDate)
+	slog.Info("Generating copy edit with AI...", "mode", mode)
+	result, err := client.GenerateCopyEdit(firstDraft, currentDate, mode)
 	if err != nil {
 		return fmt.Errorf("failed to generate copy edit: %w", err)
 	}
