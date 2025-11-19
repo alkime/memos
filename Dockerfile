@@ -2,7 +2,7 @@
 # Builds Hugo site during Docker build (public/ is gitignored)
 
 # Stage 1: Build environment with Hugo and Go
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
