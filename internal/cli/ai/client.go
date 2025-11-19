@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
-	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -28,8 +26,16 @@ func NewClient(apiKey string) *Client {
 
 // CopyEditToolInput defines the tool input schema for copy-edit.
 type CopyEditToolInput struct {
+	Title    string   `json:"title"`
 	Markdown string   `json:"markdown"`
 	Changes  []string `json:"changes"`
+}
+
+// CopyEditResult wraps the output from GenerateCopyEdit.
+type CopyEditResult struct {
+	Title    string
+	Markdown string
+	Changes  []string
 }
 
 // getCopyEditTool returns the tool definition for copy-edit structured output.
@@ -37,11 +43,15 @@ func getCopyEditTool() anthropic.ToolParam {
 	return anthropic.ToolParam{
 		Name: "save_copy_edit",
 		Description: anthropic.String(
-			"Save the copy-edited blog post with markdown content and a list of changes made",
+			"Save the copy-edited blog post with title, markdown content, and list of changes",
 		),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",
 			Properties: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":        "string",
+					"description": "The blog post title (extracted from or to be used in frontmatter)",
+				},
 				"markdown": map[string]interface{}{
 					"type":        "string",
 					"description": "The complete markdown file including frontmatter and content",
@@ -54,7 +64,7 @@ func getCopyEditTool() anthropic.ToolParam {
 					"description": "Bullet-point list of changes made during copy-edit",
 				},
 			},
-			Required: []string{"markdown", "changes"},
+			Required: []string{"title", "markdown", "changes"},
 		},
 	}
 }
@@ -117,14 +127,13 @@ func parseCopyEditToolUse(content []anthropic.ContentBlockUnion) (*CopyEditToolI
 	return nil, errors.New("no tool use found in Anthropic API response")
 }
 
-// GenerateCopyEdit performs final copy editing and returns markdown with frontmatter,
-// extracted title, and changes list.
+// GenerateCopyEdit performs final copy editing and returns the result.
 func (c *Client) GenerateCopyEdit(
 	firstDraft string,
 	currentDate string,
-) (markdown string, title string, changes []string, err error) {
+) (*CopyEditResult, error) {
 	if c.apiKey == "" {
-		return "", "", nil, errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
+		return nil, errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
 	}
 
 	client := anthropic.NewClient(option.WithAPIKey(c.apiKey))
@@ -150,44 +159,22 @@ func (c *Client) GenerateCopyEdit(
 	ctx := context.Background()
 	resp, err := client.Messages.New(ctx, params)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to generate copy edit via Anthropic API: %w", err)
+		return nil, fmt.Errorf("failed to generate copy edit via Anthropic API: %w", err)
 	}
 
 	// Parse tool use from response
 	if len(resp.Content) == 0 {
-		return "", "", nil, errors.New("empty response from Anthropic API")
+		return nil, errors.New("empty response from Anthropic API")
 	}
 
 	toolInput, err := parseCopyEditToolUse(resp.Content)
 	if err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 
-	markdown = toolInput.Markdown
-	changes = toolInput.Changes
-
-	// Extract title from frontmatter
-	title, err = extractTitleFromFrontmatter(markdown)
-	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to extract title from frontmatter: %w", err)
-	}
-
-	return markdown, title, changes, nil
-}
-
-// extractTitleFromFrontmatter parses the title from Hugo frontmatter.
-func extractTitleFromFrontmatter(markdown string) (string, error) {
-	// Match: title: "Some Title" or title: 'Some Title' or title: Some Title
-	titleRegex := regexp.MustCompile(`(?m)^title:\s*["']?([^"'\n]+)["']?`)
-	matches := titleRegex.FindStringSubmatch(markdown)
-	if len(matches) < 2 {
-		return "", errors.New("title not found in frontmatter")
-	}
-
-	title := strings.TrimSpace(matches[1])
-	if title == "" {
-		return "", errors.New("title is empty in frontmatter")
-	}
-
-	return title, nil
+	return &CopyEditResult{
+		Title:    toolInput.Title,
+		Markdown: toolInput.Markdown,
+		Changes:  toolInput.Changes,
+	}, nil
 }

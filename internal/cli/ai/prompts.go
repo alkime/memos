@@ -30,8 +30,9 @@ func CopyEditSystemPrompt(currentDate string) string {
   {{< byline >}}
 
 When you are done editing, use the save_copy_edit tool to provide:
-1. markdown: The complete markdown file including frontmatter and byline (raw markdown, no code fences)
-2. changes: A list of bullet-point strings describing each change you made, such as:
+1. title: The blog post title (as a plain string, extracted from the frontmatter you created)
+2. markdown: The complete markdown file including frontmatter and byline (raw markdown, no code fences)
+3. changes: A list of bullet-point strings describing each change you made, such as:
    - "Fixed typo in paragraph 2: 'teh' → 'the'"
    - "Added section heading: 'Implementation Details'"
    - "Reorganized conclusion for better flow"

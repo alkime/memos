@@ -509,17 +509,17 @@ func (c *CopyEditCmd) Run() error {
 
 	// Generate copy edit
 	slog.Info("Generating copy edit with AI...")
-	markdown, title, changes, err := client.GenerateCopyEdit(firstDraft, currentDate)
+	result, err := client.GenerateCopyEdit(firstDraft, currentDate)
 	if err != nil {
 		return fmt.Errorf("failed to generate copy edit: %w", err)
 	}
 
 	// Save and display changes
-	if len(changes) > 0 {
+	if len(result.Changes) > 0 {
 		// Format changes for terminal display
 		//nolint:forbidigo // CLI output for changes display
 		fmt.Println("\n--- Changes Made ---")
-		for _, change := range changes {
+		for _, change := range result.Changes {
 			//nolint:forbidigo // CLI output for changes display
 			fmt.Printf("  • %s\n", change)
 		}
@@ -531,7 +531,7 @@ func (c *CopyEditCmd) Run() error {
 		changesPath, err := workdir.FilePath(workingName, "changes.txt")
 		if err == nil {
 			changesContent := "Changes made during copy-edit:\n\n"
-			for _, change := range changes {
+			for _, change := range result.Changes {
 				changesContent += fmt.Sprintf("• %s\n", change)
 			}
 			//nolint:gosec // Changes file needs to be readable
@@ -547,7 +547,7 @@ func (c *CopyEditCmd) Run() error {
 	outputPath := c.Output
 	if outputPath == "" {
 		// Generate filename from title
-		slug := ai.GenerateSlug(title)
+		slug := ai.GenerateSlug(result.Title)
 		filename := fmt.Sprintf("%s-%s.md", now.Format("2006-01"), slug)
 
 		// Check if file exists, add numeric suffix if needed
@@ -572,11 +572,11 @@ func (c *CopyEditCmd) Run() error {
 
 	// Write final post
 	//nolint:gosec // Markdown files need to be readable
-	if err := os.WriteFile(outputPath, []byte(markdown), 0644); err != nil {
+	if err := os.WriteFile(outputPath, []byte(result.Markdown), 0644); err != nil {
 		return fmt.Errorf("failed to write final post to %s: %w", outputPath, err)
 	}
 
-	slog.Info("Final post saved", "path", outputPath, "title", title)
+	slog.Info("Final post saved", "path", outputPath, "title", result.Title)
 
 	// Open in editor for review
 	// Ignore editor errors - user can manually edit if needed
