@@ -1,3 +1,4 @@
+//nolint:lll
 package ai
 
 import "fmt"
@@ -28,5 +29,6 @@ func CopyEditSystemPrompt(currentDate string) string {
 - Always end the post content with the byline shortcode:
   ---
   {{< byline >}}
-- Return the complete markdown file including frontmatter and byline`, currentDate)
+- Return the complete markdown file including frontmatter and byline
+- IMPORTANT: Do NOT wrap your output in a markdown code block (no `+"```markdown"+` fence). Return the raw markdown directly.`, currentDate)
 }
