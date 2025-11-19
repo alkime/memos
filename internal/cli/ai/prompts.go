@@ -1,4 +1,3 @@
-//nolint:lll
 package ai
 
 import "fmt"
@@ -29,6 +28,16 @@ func CopyEditSystemPrompt(currentDate string) string {
 - Always end the post content with the byline shortcode:
   ---
   {{< byline >}}
-- Return the complete markdown file including frontmatter and byline
-- IMPORTANT: Do NOT wrap your output in a markdown code block (no `+"```markdown"+` fence). Return the raw markdown directly.`, currentDate)
+
+Return ONLY a JSON object with this exact structure (no other text before or after):
+{
+  "markdown": "the complete markdown file including frontmatter and byline",
+  "changes": ["list", "of", "bullet", "point", "changes"]
+}
+
+Example changes array:
+- "Fixed typo in paragraph 2: 'teh' → 'the'"
+- "Added section heading: 'Implementation Details'"
+- "Reorganized conclusion for better flow"
+- "Added tags: ['Go', 'CLI Tools']"`, currentDate)
 }

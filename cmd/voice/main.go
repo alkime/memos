@@ -509,9 +509,38 @@ func (c *CopyEditCmd) Run() error {
 
 	// Generate copy edit
 	slog.Info("Generating copy edit with AI...")
-	markdown, title, err := client.GenerateCopyEdit(firstDraft, currentDate)
+	markdown, title, changes, err := client.GenerateCopyEdit(firstDraft, currentDate)
 	if err != nil {
 		return fmt.Errorf("failed to generate copy edit: %w", err)
+	}
+
+	// Save and display changes
+	if len(changes) > 0 {
+		// Format changes for terminal display
+		//nolint:forbidigo // CLI output for changes display
+		fmt.Println("\n--- Changes Made ---")
+		for _, change := range changes {
+			//nolint:forbidigo // CLI output for changes display
+			fmt.Printf("  • %s\n", change)
+		}
+		//nolint:forbidigo // CLI output for changes display
+		fmt.Println("--------------------")
+
+		// Save changes to working directory
+		workingName := getWorkingName(c.Name)
+		changesPath, err := workdir.FilePath(workingName, "changes.txt")
+		if err == nil {
+			changesContent := "Changes made during copy-edit:\n\n"
+			for _, change := range changes {
+				changesContent += fmt.Sprintf("• %s\n", change)
+			}
+			//nolint:gosec // Changes file needs to be readable
+			if err := os.WriteFile(changesPath, []byte(changesContent), 0644); err != nil {
+				slog.Warn("Failed to save changes file", "path", changesPath, "error", err)
+			} else {
+				slog.Info("Changes saved", "path", changesPath)
+			}
+		}
 	}
 
 	// Determine output path

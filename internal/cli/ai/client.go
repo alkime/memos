@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -23,6 +24,12 @@ func NewClient(apiKey string) *Client {
 		apiKey: apiKey,
 		model:  anthropic.ModelClaudeSonnet4_5_20250929,
 	}
+}
+
+// CopyEditResponse defines the structured response format for copy-edit.
+type CopyEditResponse struct {
+	Markdown string   `json:"markdown"`
+	Changes  []string `json:"changes"`
 }
 
 // GenerateFirstDraft creates a lightly edited first draft from raw transcript.
@@ -63,10 +70,14 @@ func (c *Client) GenerateFirstDraft(transcript string) (string, error) {
 	return textBlock.Text, nil
 }
 
-// GenerateCopyEdit performs final copy editing and returns markdown with frontmatter and extracted title.
-func (c *Client) GenerateCopyEdit(firstDraft string, currentDate string) (markdown string, title string, err error) {
+// GenerateCopyEdit performs final copy editing and returns markdown with frontmatter,
+// extracted title, and changes list.
+func (c *Client) GenerateCopyEdit(
+	firstDraft string,
+	currentDate string,
+) (markdown string, title string, changes []string, err error) {
 	if c.apiKey == "" {
-		return "", "", errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
+		return "", "", nil, errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
 	}
 
 	client := anthropic.NewClient(option.WithAPIKey(c.apiKey))
@@ -85,29 +96,35 @@ func (c *Client) GenerateCopyEdit(firstDraft string, currentDate string) (markdo
 	ctx := context.Background()
 	resp, err := client.Messages.New(ctx, params)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate copy edit via Anthropic API: %w", err)
+		return "", "", nil, fmt.Errorf("failed to generate copy edit via Anthropic API: %w", err)
 	}
 
 	// Extract text from response
 	if len(resp.Content) == 0 {
-		return "", "", errors.New("empty response from Anthropic API")
+		return "", "", nil, errors.New("empty response from Anthropic API")
 	}
 
 	textBlock, ok := resp.Content[0].AsAny().(anthropic.TextBlock)
 	if !ok {
-		return "", "", errors.New("unexpected response type from Anthropic API")
+		return "", "", nil, errors.New("unexpected response type from Anthropic API")
 	}
 
-	markdown = textBlock.Text
+	// Parse JSON response
+	var copyEditResp CopyEditResponse
+	if err := json.Unmarshal([]byte(textBlock.Text), &copyEditResp); err != nil {
+		return "", "", nil, fmt.Errorf("failed to parse structured response: %w", err)
+	}
+
+	markdown = copyEditResp.Markdown
+	changes = copyEditResp.Changes
 
 	// Extract title from frontmatter
-	// Simple parsing: look for 'title: "..."' pattern
 	title, err = extractTitleFromFrontmatter(markdown)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to extract title from frontmatter: %w", err)
+		return "", "", nil, fmt.Errorf("failed to extract title from frontmatter: %w", err)
 	}
 
-	return markdown, title, nil
+	return markdown, title, changes, nil
 }
 
 // extractTitleFromFrontmatter parses the title from Hugo frontmatter.
