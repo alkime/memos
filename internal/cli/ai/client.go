@@ -80,18 +80,26 @@ func getCopyEditTool() anthropic.ToolParam {
 }
 
 // GenerateFirstDraft creates a lightly edited first draft from raw transcript.
-func (c *Client) GenerateFirstDraft(transcript string) (string, error) {
+func (c *Client) GenerateFirstDraft(transcript string, mode Mode) (string, error) {
 	if c.apiKey == "" {
 		return "", errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
 	}
 
 	client := anthropic.NewClient(option.WithAPIKey(c.apiKey))
 
+	// Select appropriate prompt based on mode
+	var systemPrompt string
+	if mode == ModeJournal {
+		systemPrompt = FirstDraftSystemPromptJournal
+	} else {
+		systemPrompt = FirstDraftSystemPromptMemos
+	}
+
 	params := anthropic.MessageNewParams{
 		Model:     c.model,
 		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
-			{Text: FirstDraftSystemPrompt},
+			{Text: systemPrompt},
 		},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(transcript)),

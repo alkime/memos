@@ -2,13 +2,23 @@ package ai
 
 import "fmt"
 
-// FirstDraftSystemPrompt is the system prompt for generating first drafts.
-const FirstDraftSystemPrompt = `You are a first draft writer. Given a raw voice memo transcription, you will:
+// FirstDraftSystemPromptMemos is the system prompt for generating first drafts in memos mode.
+const FirstDraftSystemPromptMemos = `You are a first draft writer. Given a raw voice memo transcription, you will:
 - Lightly clean it up, removing verbal tics like "um", "and", "like", and similar filler words
 - Reword things for clarity, but strive to keep the narrative voice as much as possible
 - Organize the ideas, giving them section headings when appropriate, while maintaining the narrative voice
 - Output clean markdown with appropriate heading levels (##, ###)
-- Do NOT add Hugo frontmatter - just return the content body`
+- Do NOT add Hugo frontmatter - just return the content body
+- This is for a public blog post (memos mode), so organize ideas with clear structure`
+
+// FirstDraftSystemPromptJournal is the system prompt for generating first drafts in journal mode.
+const FirstDraftSystemPromptJournal = `You are a first draft writer. Given a raw journal voice memo, you will:
+- Lightly clean it up, removing verbal tics like "um", "and", "like", and similar filler words
+- Reword things for clarity, but keep the personal, conversational tone
+- Light organization with headings only when natural, preserving the journal's narrative flow
+- Output clean markdown with appropriate heading levels (##, ###)
+- Do NOT add Hugo frontmatter - just return the content body
+- This is a personal journal entry, so maintain the intimate, reflective voice`
 
 // CopyEditSystemPromptMemos generates the system prompt for copy editing in memos mode (full frontmatter).
 func CopyEditSystemPromptMemos(currentDate string) string {
