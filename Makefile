@@ -6,6 +6,7 @@ BINARY_NAME := server
 VOICE_BINARY := voice
 DOCKER_IMAGE := alkime-memos
 PORT := 8080
+GOPATH := $(shell go env GOPATH)
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -28,7 +29,7 @@ build-voice: ## Build voice CLI binary
 	@echo "Voice CLI built: bin/$(VOICE_BINARY)"
 
 install-voice: build-voice ## Install voice CLI to $GOPATH/bin
-	@echo "Installing voice CLI..."
+	@echo "Installing voice CLI into $(GOPATH)/bin..."
 	@if [ -z "$(GOPATH)" ]; then \
 		echo "Error: GOPATH not set"; \
 		exit 1; \

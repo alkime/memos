@@ -99,12 +99,21 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 
 	// Packet reading goroutine with inline limit checks
 	wg.Go(func() {
-		for packet := range dataC {
+	loop:
+		for {
+			var packet device.DataPacket
+			select {
+			case p := <-dataC:
+				packet = p
+			case <-ctx.Done():
+				break loop
+			}
+
 			// Write packet to buffer
 			n, err := buf.Write(packet)
 			if err != nil {
 				slog.Error("failed to write audio packet to buffer. halting....", "error", err)
-				break
+				break loop
 			}
 
 			// Update atomic counter
@@ -115,7 +124,6 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 				slog.Info("recording stopped", "reason", "max_bytes_reached",
 					"bytes", bytesWritten.Load())
 				limitReached.Store(ErrMaxBytesReached)
-				hardStop(ctx, dev)
 				break
 			}
 
@@ -124,12 +132,11 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 				slog.Info("recording stopped", "reason", "max_duration_reached",
 					"duration", elapsed)
 				limitReached.Store(ErrMaxDurationReached)
-				hardStop(ctx, dev)
 				break
 			}
 		}
-		cancel()      // Ensure context is cancelled
-		fmt.Println() //nolint:forbidigo // Clear progress line
+		cancel() // Ensure context is cancelled
+		slog.Info("data reading stopped")
 	})
 
 	// Progress display goroutine
@@ -162,14 +169,23 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 	// Stop signals goroutine (existing)
 	wg.Go(func() {
 		<-catchStopSignals(ctx)
-		slog.Info("received stop signal, stopping recording")
-		hardStop(ctx, dev)
+		slog.Info("received stop signal")
 		cancel()
 	})
 
 	slog.Info("running... waiting for recording to finish")
 	wg.Wait()
 	slog.Info("recording finished", "buffer_size_bytes", buf.Len())
+
+	// stop the device which should block until all data
+	// has been written to the channel.
+	if err = dev.Stop(ctx, true); err != nil {
+		return fmt.Errorf("unable to stop audio device, unable to flush: %w", err)
+	}
+
+	// now drain any remaining stuff into buffer since
+	// we've stopped it.
+	drainChannelInto(dataC, buf)
 
 	// Flush buffer to MP3 file
 	err = r.flushMP3File(r.config.OutputPath, buf)
@@ -327,4 +343,25 @@ func catchStopSignals(ctx context.Context) <-chan struct{} {
 	}()
 
 	return stopC
+}
+
+func drainChannelInto(dataC <-chan device.DataPacket, buf *bytes.Buffer) {
+loop:
+	for {
+		select {
+		case p, ok := <-dataC:
+			if !ok {
+				// Channel closed, no more data
+				break loop
+			}
+			_, err := buf.Write(p)
+			if err != nil {
+				slog.Warn("error while draining channel", "error", err)
+				break loop
+			}
+		default:
+			// Channel empty and open, nothing to drain
+			break loop
+		}
+	}
 }
