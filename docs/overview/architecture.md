@@ -1,25 +1,22 @@
-# State of the Application: Alkime Memos
+# Architecture: Alkime Memos
 
-## Executive Summary
+## Overview
 
-**Alkime Memos** is a production-ready static blog platform with an MVP voice-to-blog automation tool, demonstrating AI-augmented development practices. The platform serves as a personal development blog, combining Hugo static site generation with a security-hardened Go web server and a Voice CLI tool. The application is deployed on Fly.io with a working end-to-end workflow for voice-based content creation.
-
-**Current Status:** Operational production site with MVP voice-to-blog workflow
-**Automation Status:** Voice CLI tool provides working MVP workflow from audio recording to blog post with AI-powered content generation
+**Alkime Memos** is a static blog platform with voice-to-blog automation, combining Hugo static site generation with a security-hardened Go web server and a Voice CLI tool. The platform is deployed on Fly.io.
 
 ---
 
 ## 1. Application Purpose
 
-### Current State (Phase I - MVP)
 The application serves as:
 - **Personal development blog** at https://memos.alki.me/
 - **Learning experiment** in building-in-the-open with AI tools (primarily Claude)
 - **DevEx exploration** examining AI's impact on developer productivity
 - **Portfolio piece** showcasing production-ready architecture and security practices
-- **Voice-to-blog platform** with working MVP workflow: record → transcribe → AI first-draft → AI copy-edit → publish
+- **Voice-to-blog platform** with workflow: record → transcribe → AI first-draft → AI copy-edit → publish
 
-### Voice CLI Tool (MVP Implementation)
+### Voice CLI Tool
+
 - **Audio recording**: MP3 format with configurable duration/size limits
 - **Transcription**: OpenAI Whisper API integration
 - **AI content generation**: Anthropic Claude Sonnet 4.5 for drafting and copy-editing
@@ -27,8 +24,9 @@ The application serves as:
 - **Working directory**: ~/Documents/Alkime/Memos (cloud storage compatible)
 - **Workflow automation**: Single command for record → transcribe → first-draft flow
 
-### Future Goals (Phase II - Planned)
-- **RESTful API**: Backend services under `/api/v1/*` namespace (currently reserved but unimplemented)
+### Future Goals
+
+- **RESTful API**: Backend services under `/api/v1/*` namespace (currently reserved)
 - **Media management**: Tigris Object Store integration for audio files and media assets
 - **Enhanced observability**: Prometheus metrics and monitoring infrastructure
 - **Multi-user support**: Authentication and user management for collaborative workflows
@@ -38,6 +36,7 @@ The application serves as:
 ## 2. Technology Stack
 
 ### Backend (Go)
+
 - **Runtime**: Go 1.23.0
 - **Web Framework**: Gin v1.11.0 (high-performance HTTP framework)
 - **Middleware**:
@@ -49,7 +48,7 @@ The application serves as:
 - **Logging**: Standard library `log/slog` (structured JSON logging)
 - **Testing**: `stretchr/testify` v1.11.1
 
-**Architecture Pattern**: Modular package structure
+**Package Structure**:
 - `cmd/server/` - Web server entry point
 - `cmd/voice/` - Voice CLI tool entry point
 - `internal/config/` - Configuration management
@@ -59,6 +58,7 @@ The application serves as:
 - `internal/workdir/` - Working directory management
 
 ### Voice CLI (Go)
+
 - **CLI Framework**: Kong v1.12.1 (command-line parsing and routing)
 - **Audio Capture**: malgo v0.11.24 (cross-platform audio I/O)
 - **Audio Encoding**: shine-mp3 v0.1.0 (pure Go MP3 encoder)
@@ -74,12 +74,14 @@ The application serves as:
 - `pkg/collections/` - Utility functions for data manipulation
 
 ### Frontend/Content Generation
+
 - **Static Site Generator**: Hugo (CLI-based, not Go library)
 - **Theme**: hugo-bearblog (minimalist theme, managed as git submodule)
 - **Content Format**: Markdown with YAML frontmatter
 - **Template Engine**: Hugo's built-in Go templating
 
 ### Infrastructure & Deployment
+
 - **Containerization**: Docker (multi-stage builds)
   - Stage 1: Hugo installation + static site generation + Go binary compilation
   - Stage 2: Alpine-based runtime with compiled binary and generated static files
@@ -91,6 +93,7 @@ The application serves as:
 - **Version Control**: Git with submodules
 
 ### Development Tooling
+
 - **Build Automation**: Make (comprehensive Makefile with 15+ targets)
 - **Linting**: golangci-lint v2.5.0 (comprehensive configuration with exhaustruct, goconst, godot, wrapcheck)
 - **CI/CD**: GitHub Actions (automated testing, linting, code review)
@@ -98,9 +101,10 @@ The application serves as:
 
 ---
 
-## 3. Architecture Overview
+## 3. Architecture Diagrams
 
 ### Production Web Server
+
 ```
 Browser
   ↓
@@ -124,6 +128,7 @@ Hugo Static Site Generator (CLI)
 ```
 
 ### Voice CLI Workflow
+
 ```
 User Command: voice [--mode memos|journal] [--duration 1h] [--max-bytes 256MB]
   ↓
@@ -194,6 +199,7 @@ User Command: voice [--mode memos|journal] [--duration 1h] [--max-bytes 256MB]
 The application implements **OWASP baseline security protections**:
 
 ### Headers (Production)
+
 - `Strict-Transport-Security` - Forces HTTPS for 1 year (production only, configurable)
 - `Content-Security-Policy` - Configurable modes (strict/relaxed/report-only)
 - `X-Frame-Options: DENY` - Clickjacking protection
@@ -202,13 +208,15 @@ The application implements **OWASP baseline security protections**:
 - `Referrer-Policy: strict-origin-when-cross-origin` - Privacy protection
 
 ### Additional Protections
+
 - Path traversal protection (via `http.FileServer`)
 - Trusted proxy configuration for Fly.io deployment
 - Environment-based security profiles
 - Structured security event logging
 
-### Future Security Considerations (Documented)
-When implementing Phase II features:
+### Future Security Considerations
+
+When implementing future features:
 - CORS middleware for API endpoints
 - JWT/session authentication
 - Rate limiting (IP extraction already implemented)
@@ -217,18 +225,8 @@ When implementing Phase II features:
 
 ---
 
-## 5. Current Content & Features
+## 5. Hugo Configuration
 
-### Published Content
-- **Blog Posts**: 6 published posts
-  - Development diaries documenting the building process
-  - Voice CLI implementation posts
-  - DevEx reflections on AI-assisted development
-  - Mix of voice-generated and manually written content
-- **Static Pages**: 2 pages (README, resume)
-- **Homepage**: Custom index with project introduction and pinned posts
-
-### Hugo Configuration & Features
 - **Production URL**: https://memos.alki.me/
 - **Permalink Structure**:
   - Posts: `/posts/:year/:month/:title/`
@@ -245,43 +243,12 @@ When implementing Phase II features:
   - Byline shortcode (generated from frontmatter)
   - Custom frontmatter fields: `voiceBased`, `pinned`, `author`
 
-### Development Workflow
-```bash
-# Local development (web server)
-make dev              # Generate Hugo site + run Go server
-
-# Voice CLI workflow (content creation)
-voice                 # Record → transcribe → first-draft (end-to-end)
-voice copy-edit       # Polish first-draft → final post
-voice devices         # List available audio devices
-
-# Voice CLI individual commands (for debugging)
-voice record          # Record audio only
-voice transcribe      # Transcribe existing audio
-voice first-draft     # Generate first draft from transcript
-
-# Manual content creation (traditional)
-hugo new posts/my-post.md
-
-# Code quality
-make lint            # Run golangci-lint
-make test            # Run test suite
-make check           # Run tests + linting (CI simulation)
-
-# Build Voice CLI
-make build-voice     # Build bin/voice binary
-make install-voice   # Install to $GOPATH/bin
-
-# Docker workflow
-make docker-build    # Build production Docker image
-make docker-run      # Run container locally
-```
-
 ---
 
 ## 6. Configuration Management
 
 ### Environment Variables
+
 All configuration via environment variables, loaded from `.env` file in development:
 
 **Server:**
@@ -301,6 +268,7 @@ All configuration via environment variables, loaded from `.env` file in developm
 - `EDITOR` - Terminal editor for reviewing drafts (default: 'open')
 
 ### Production Configuration (Fly.io)
+
 Set via Fly.io secrets and `fly.toml`:
 ```toml
 [env]
@@ -321,9 +289,10 @@ Set via Fly.io secrets and `fly.toml`:
 
 ## 7. Testing & Quality Assurance
 
-### Current Test Coverage
+### Test Infrastructure
+
 - **Test Framework**: testify assertions + standard library `httptest`
-- **Existing Tests**:
+- **Test Coverage**:
   - Health endpoint validation
   - Audio recorder tests (configuration, limits, progress formatting)
   - Transcription client tests (validation, API integration)
@@ -333,75 +302,16 @@ Set via Fly.io secrets and `fly.toml`:
 - **Linter**: golangci-lint with comprehensive rule set (exhaustruct, goconst, godot, wrapcheck, etc.)
 
 ### Code Quality Standards
+
 - **Go Style Guide**: Documented in `docs/guides/go-style-guide.md`
   - Extracted from PR reviews and updated regularly
   - Core guidelines: error wrapping, structured logging, interface usage, SDK types
   - Living document updated as new patterns emerge
 - **PR Review Process**: Custom slash command `/address-pr-comments` for systematic feedback incorporation
 
-### Planned Test Expansion
-- Security headers validation tests
-- Static file serving tests
-- Configuration validation tests
-- CSP mode behavior tests
-- Environment-aware security tests
-- End-to-end Voice CLI workflow tests
-
 ---
 
-## 8. Gap Analysis: Current vs Planned State
-
-### ✅ Working MVP (Phase I)
-- Go web server with security middleware
-- Hugo static site generation
-- Docker containerization
-- Fly.io deployment with health checks
-- Environment-based configuration
-- Structured logging
-- CI/CD pipeline
-- Development workflow tooling
-- **Voice CLI tool (MVP status)**:
-  - Audio recording with MP3 encoding
-  - OpenAI Whisper transcription
-  - Anthropic Claude AI content generation
-  - Mode system (memos vs journal)
-  - Recording limits enforcement
-  - Editor integration
-- **Content generation workflows**:
-  - Basic automation: record → transcribe → first-draft
-  - Two-stage AI workflow with user review
-  - Working directory in cloud storage
-- **Content library**: 6 published posts demonstrating the workflow
-
-### 🔄 Partially Implemented
-- Testing infrastructure (framework exists, good coverage for Voice CLI, minimal for web server)
-- Documentation practices (Go style guide established, extracting learnings from PRs)
-- Hugo customizations (callout blocks, shortcodes implemented; more custom features possible)
-
-### ⏳ Planned But Not Implemented (Phase II)
-- RESTful API endpoints (`/api/v1/*` namespace reserved)
-- Tigris Object Store integration for audio archival
-- Prometheus metrics and monitoring
-- Multi-user support and authentication
-- Expanded test coverage for web server components
-- Voice CLI distribution (homebrew, binaries, etc.)
-
----
-
-## 9. Deployment Status
-
-**Production URL**: https://memos.alki.me/
-**Fly.io App**: alkime-memos
-**Status**: ✅ Deployed and operational
-**Current Branch**: `main`
-**Latest Commit**: 83080fc "fix: better signal handling (#31)"
-**Health Check**: Passing at `/health` endpoint
-**Content**: 6 published blog posts, mix of voice-generated and manually written
-**Last Major Feature**: Voice CLI mode system and signal handling improvements
-
----
-
-## 10. For Context: What to Know
+## 8. Key Concepts
 
 When working with this codebase, understand:
 
@@ -434,27 +344,3 @@ When working with this codebase, understand:
 12. **Voice CLI requires API keys** - OpenAI for transcription, Anthropic for content generation; set via environment variables
 
 13. **Mode system affects AI behavior** - "memos" mode generates structured blog posts, "journal" mode creates personal entries
-
----
-
-## Summary
-
-**Alkime Memos is a production-ready static blog platform with an MVP voice-to-blog automation tool.** It successfully serves content with enterprise-grade security practices while demonstrating modern Go development patterns, AI integration, and infrastructure-as-code practices. The Voice CLI tool provides a working workflow from audio recording to published blog posts, leveraging OpenAI Whisper for transcription and Anthropic Claude for AI-powered content generation.
-
-**Phase I Status**: ✅ MVP Complete
-- Production web server with security hardening
-- Hugo static site generation with custom features
-- Voice CLI tool with working automation workflow
-- 6 published blog posts demonstrating the workflow
-- Living documentation capturing development practices
-
-**Current State**: Stable, deployed, operational with MVP voice-to-blog automation
-**Next Phase**: API development, media management, enhanced observability
-**Philosophy**: Building in the open, AI-augmented development, production-quality fundamentals
-
-**Key Achievements**:
-- Built working MVP for voice-to-blog workflow
-- Developed reusable Go packages for audio, transcription, and AI integration
-- Established code quality practices through PR-driven style guide
-- Demonstrated practical AI integration in production software
-- Maintained security best practices throughout rapid development
