@@ -10,6 +10,10 @@ A static site generator platform for converting voice recordings into blog posts
 
 **Coding Standards:** @docs/guides/go-style-guide.md
 
+## Documentation Lookup
+
+Always use Context7 MCP tools when code generation, setup/configuration steps, or library/API documentation is needed. Automatically resolve library IDs and fetch docs without explicit requests.
+
 ## Quick Reference
 
 ```
