@@ -174,15 +174,17 @@ func (r *RecordCmd) Run() error {
 
 	// Create recorder
 	recorder, err := audio.NewRecorder(audio.FileRecorderConfig{
-		OutputPath:  outputPath,
-		MaxDuration: maxDuration,
-		MaxBytes:    r.MaxBytes,
+		OutputPath:        outputPath,
+		MaxDuration:       maxDuration,
+		MaxBytes:          r.MaxBytes,
+		IgnoreStopSignals: false,
+		DisplayProgress:   true,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create recorder: %w", err)
 	}
 
-	err = recorder.Go(context.Background())
+	err = recorder.Go(context.Background(), nil)
 	if err != nil {
 		// Check for limit errors - these are not failures
 		if errors.Is(err, audio.ErrMaxDurationReached) {
@@ -636,6 +638,9 @@ func (dcmd *DevicesCmd) Run() error {
 	}
 
 	return nil
+}
+
+type TuiCmd struct {
 }
 
 func main() {

@@ -31,9 +31,11 @@ var (
 )
 
 type FileRecorderConfig struct {
-	OutputPath  string
-	MaxDuration time.Duration
-	MaxBytes    int64
+	OutputPath        string
+	MaxDuration       time.Duration
+	MaxBytes          int64
+	IgnoreStopSignals bool
+	DisplayProgress   bool
 }
 
 // FileRecorder handles audio recording from microphone
@@ -57,7 +59,7 @@ func NewRecorder(conf FileRecorderConfig) (*FileRecorder, error) {
 }
 
 //nolint:funlen // Complex goroutine coordination
-func (r *FileRecorder) Go(ctx context.Context) (err error) {
+func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (err error) {
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(ctx)
 	defer cancel()
@@ -89,10 +91,10 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 	// Track which limit was hit (if any)
 	var limitReached atomic.Value
 
-	// spawn 3 goroutines:
+	// spawn some worker goroutines, some of which are optional:
 	// -- read the data channel with limit checking
-	// -- display progress periodically
-	// -- listen for "finished" signals from ^C, Enter, or context
+	// -- (optionally) display progress periodically
+	// -- listen for "finished" signals from ^C, Enter, or context (optionally skip this if other method of halting)
 	wg := new(sync.WaitGroup)
 
 	buf := bytes.NewBuffer(nil)
@@ -114,6 +116,11 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 			if err != nil {
 				slog.Error("failed to write audio packet to buffer. halting....", "error", err)
 				break loop
+			}
+
+			if callback != nil {
+				// Invoke callback with the captured packet
+				callback(packet)
 			}
 
 			// Update atomic counter
@@ -140,38 +147,42 @@ func (r *FileRecorder) Go(ctx context.Context) (err error) {
 	})
 
 	// Progress display goroutine
-	wg.Go(func() {
-		ticker := time.NewTicker(3 * time.Second)
-		defer ticker.Stop()
+	if r.config.DisplayProgress {
+		wg.Go(func() {
+			ticker := time.NewTicker(3 * time.Second)
+			defer ticker.Stop()
 
-		for {
-			select {
-			case <-ticker.C:
-				elapsed := time.Since(startTime)
-				bytes := bytesWritten.Load()
+			for {
+				select {
+				case <-ticker.C:
+					elapsed := time.Since(startTime)
+					bytes := bytesWritten.Load()
 
-				timePercent := int(float64(elapsed) / float64(r.config.MaxDuration) * 100)
-				bytesPercent := int(float64(bytes) / float64(r.config.MaxBytes) * 100)
+					timePercent := int(float64(elapsed) / float64(r.config.MaxDuration) * 100)
+					bytesPercent := int(float64(bytes) / float64(r.config.MaxBytes) * 100)
 
-				// Show bold if either >= 90%
-				timeWarning := timePercent >= 90
-				bytesWarning := bytesPercent >= 90
+					// Show bold if either >= 90%
+					timeWarning := timePercent >= 90
+					bytesWarning := bytesPercent >= 90
 
-				fmt.Printf("\rRecording: %s | %s\n", //nolint:forbidigo // CLI progress
-					formatDuration(elapsed, r.config.MaxDuration, timeWarning),
-					formatBytes(bytes, r.config.MaxBytes, bytesWarning))
-			case <-ctx.Done():
-				return
+					fmt.Printf("\rRecording: %s | %s\n", //nolint:forbidigo // CLI progress
+						formatDuration(elapsed, r.config.MaxDuration, timeWarning),
+						formatBytes(bytes, r.config.MaxBytes, bytesWarning))
+				case <-ctx.Done():
+					return
+				}
 			}
-		}
-	})
+		})
+	}
 
-	// Stop signals goroutine (existing)
-	wg.Go(func() {
-		<-catchStopSignals(ctx)
-		slog.Info("received stop signal")
-		cancel()
-	})
+	// Catch signals if we're not ignoring
+	if !r.config.IgnoreStopSignals {
+		wg.Go(func() {
+			<-catchStopSignals(ctx)
+			slog.Info("received stop signal")
+			cancel()
+		})
+	}
 
 	slog.Info("running... waiting for recording to finish")
 	wg.Wait()
@@ -365,3 +376,5 @@ loop:
 		}
 	}
 }
+
+type bufferdPacketCallback func(packet device.DataPacket)
