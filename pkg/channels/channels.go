@@ -9,25 +9,46 @@ import (
 	"time"
 )
 
+// subscriber holds a channel and its send timeout configuration.
+type subscriber[T any] struct {
+	ch      chan<- T
+	timeout *time.Duration // nil means non-blocking
+}
+
 // FanOut broadcasts messages from a single input channel to multiple subscriber channels.
 // It owns the input channel and handles graceful shutdown via context cancellation.
 //
-// Messages are sent to subscribers in a non-blocking manner - if a subscriber's channel
-// is full, the message is dropped for that subscriber.
+// Messages are sent to subscribers using the configured send strategy:
+// - Non-blocking (default): Messages are dropped if channel is full
+// - With timeout: Messages are dropped if send times out
 //
 // On context cancellation, the input channel is closed and all remaining messages
 // are drained to subscribers before shutdown completes.
 type FanOut[T any] struct {
-	subscribers []chan<- T
+	subscribers []subscriber[T]
 	input       chan T
 	started     atomic.Bool
 	wg          sync.WaitGroup
 }
 
-// Subscribe adds a channel to receive broadcasted messages.
+// Subscribe adds a channel to receive broadcasted messages in non-blocking mode.
+// If the channel is full, messages will be dropped for that subscriber.
 // Must be called before Run(). Not safe for concurrent use with Run().
 func (f *FanOut[T]) Subscribe(ch chan<- T) {
-	f.subscribers = append(f.subscribers, ch)
+	f.subscribers = append(f.subscribers, subscriber[T]{
+		ch:      ch,
+		timeout: nil,
+	})
+}
+
+// SubscribeWithTimeout adds a channel to receive broadcasted messages with a send timeout.
+// If the send times out, messages will be dropped for that subscriber.
+// Must be called before Run(). Not safe for concurrent use with Run().
+func (f *FanOut[T]) SubscribeWithTimeout(ch chan<- T, timeout time.Duration) {
+	f.subscribers = append(f.subscribers, subscriber[T]{
+		ch:      ch,
+		timeout: &timeout,
+	})
 }
 
 // Run starts the fan-out and returns the input channel for sending messages.
@@ -55,10 +76,12 @@ func (f *FanOut[T]) Run(ctx context.Context) (chan<- T, error) {
 			defer f.wg.Done()
 			// Drain channel until closed
 			for msg := range f.input {
-				select {
-				case sub <- msg:
-				default:
-					// Drop message if subscriber channel is full
+				if sub.timeout != nil {
+					// Send with timeout - errors (timeout/closed) mean message is dropped
+					_ = SendWithTimeout(sub.ch, msg, *sub.timeout)
+				} else {
+					// Send non-blocking - errors (full/closed) mean message is dropped
+					_ = SendNonBlock(sub.ch, msg)
 				}
 			}
 		}()
@@ -76,12 +99,19 @@ func (f *FanOut[T]) Run(ctx context.Context) (chan<- T, error) {
 	return f.input, nil
 }
 
+// Wait blocks until all subscribers have finished processing messages.
+// This is useful for waiting for graceful shutdown to complete after
+// the context is cancelled. Multiple goroutines can safely call Wait().
+func (f *FanOut[T]) Wait() {
+	f.wg.Wait()
+}
+
 // SendNonBlock attempts to send a message without blocking.
 // Returns error if the channel is full or closed.
 func SendNonBlock[T any](ch chan<- T, msg T) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("channel closed")
+			err = ErrChannelClosed
 		}
 	}()
 
@@ -89,7 +119,7 @@ func SendNonBlock[T any](ch chan<- T, msg T) (err error) {
 	case ch <- msg:
 		return nil
 	default:
-		return errors.New("channel full")
+		return ErrChannelFull
 	}
 }
 
@@ -98,7 +128,7 @@ func SendNonBlock[T any](ch chan<- T, msg T) (err error) {
 func SendWithTimeout[T any](ch chan<- T, msg T, timeout time.Duration) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("channel closed")
+			err = ErrChannelClosed
 		}
 	}()
 
@@ -106,6 +136,10 @@ func SendWithTimeout[T any](ch chan<- T, msg T, timeout time.Duration) (err erro
 	case ch <- msg:
 		return nil
 	case <-time.After(timeout):
-		return errors.New("send timeout")
+		return ErrChannelTimeout
 	}
 }
+
+var ErrChannelClosed = errors.New("channel closed")
+var ErrChannelTimeout = errors.New("send timeout")
+var ErrChannelFull = errors.New("channel full")
