@@ -1,3 +1,4 @@
+//nolint:funlen
 package channels_test
 
 import (
@@ -11,7 +12,6 @@ import (
 )
 
 func TestFanOut(t *testing.T) {
-
 	t.Run("error cases", func(t *testing.T) {
 		t.Run("run with no subscribers", func(t *testing.T) {
 			ctx := context.Background()

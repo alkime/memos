@@ -1,3 +1,4 @@
+//nolint:funlen
 package channels_test
 
 import (
@@ -9,7 +10,6 @@ import (
 )
 
 func TestReceiveAll(t *testing.T) {
-
 	t.Run("receives all messages until channel closes", func(t *testing.T) {
 		ch := make(chan int, 5)
 		ch <- 1

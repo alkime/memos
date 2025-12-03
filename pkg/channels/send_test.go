@@ -1,3 +1,4 @@
+//nolint:funlen
 package channels_test
 
 import (
@@ -9,7 +10,6 @@ import (
 )
 
 func TestSendFunctions(t *testing.T) {
-
 	t.Run("send non-blocking", func(t *testing.T) {
 		t.Run("success - buffered channel with capacity", func(t *testing.T) {
 			ch := make(chan int, 2)
