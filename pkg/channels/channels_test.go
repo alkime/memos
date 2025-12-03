@@ -8,90 +8,103 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSendFunctions(t *testing.T) {
+func TestReceiveAll(t *testing.T) {
 
-	t.Run("send non-blocking", func(t *testing.T) {
-		t.Run("success - buffered channel with capacity", func(t *testing.T) {
-			ch := make(chan int, 2)
-			err := channels.SendNonBlock(ch, 42)
-			assert.NoError(t, err)
-			assert.Equal(t, 42, <-ch) // Verify message was sent
-		})
+	t.Run("receives all messages until channel closes", func(t *testing.T) {
+		ch := make(chan int, 5)
+		ch <- 1
+		ch <- 2
+		ch <- 3
+		close(ch)
 
-		t.Run("full - buffered channel", func(t *testing.T) {
-			ch := make(chan int, 1)
-			ch <- 1 // Fill buffer
-			err := channels.SendNonBlock(ch, 42)
-			assert.ErrorIs(t, err, channels.ErrChannelFull)
-		})
-
-		t.Run("full - unbuffered with no receiver", func(t *testing.T) {
-			ch := make(chan int)
-			err := channels.SendNonBlock(ch, 42)
-			assert.ErrorIs(t, err, channels.ErrChannelFull)
-		})
-
-		t.Run("closed channel - empty", func(t *testing.T) {
-			ch := make(chan int)
-			close(ch)
-			err := channels.SendNonBlock(ch, 42)
-			assert.ErrorIs(t, err, channels.ErrChannelClosed)
-		})
-
-		t.Run("closed channel - with buffered data", func(t *testing.T) {
-			ch := make(chan int, 2)
-			ch <- 1 // Write data before closing
-			close(ch)
-			err := channels.SendNonBlock(ch, 42)
-			assert.ErrorIs(t, err, channels.ErrChannelClosed)
-			// Verify original data still readable
-			assert.Equal(t, 1, <-ch)
-		})
+		received := channels.ReceiveAll(ch, 100*time.Millisecond, 0)
+		assert.Equal(t, []int{1, 2, 3}, received)
 	})
 
-	t.Run("send with timeout", func(t *testing.T) {
-		t.Run("success - buffered channel with capacity", func(t *testing.T) {
-			ch := make(chan int, 2)
-			err := channels.SendWithTimeout(ch, 42, 10*time.Millisecond)
-			assert.NoError(t, err)
-			assert.Equal(t, 42, <-ch)
-		})
+	t.Run("stops at maxItems limit", func(t *testing.T) {
+		ch := make(chan int, 5)
+		ch <- 1
+		ch <- 2
+		ch <- 3
+		ch <- 4
+		ch <- 5
 
-		t.Run("success - unbuffered with receiver", func(t *testing.T) {
-			ch := make(chan int)
-			go func() { <-ch }()
-			err := channels.SendWithTimeout(ch, 42, 10*time.Millisecond)
-			assert.NoError(t, err)
-		})
+		received := channels.ReceiveAll(ch, 100*time.Millisecond, 3)
+		assert.Equal(t, []int{1, 2, 3}, received)
+		assert.Len(t, received, 3)
 
-		t.Run("timeout - buffered channel full", func(t *testing.T) {
-			ch := make(chan int, 1)
-			ch <- 1 // Fill buffer
-			err := channels.SendWithTimeout(ch, 42, 1*time.Millisecond)
-			assert.ErrorIs(t, err, channels.ErrChannelTimeout)
-		})
+		// Channel should still have remaining messages
+		assert.Equal(t, 4, <-ch)
+		assert.Equal(t, 5, <-ch)
+	})
 
-		t.Run("timeout - unbuffered with no receiver", func(t *testing.T) {
-			ch := make(chan int)
-			err := channels.SendWithTimeout(ch, 42, 1*time.Millisecond)
-			assert.ErrorIs(t, err, channels.ErrChannelTimeout)
-		})
+	t.Run("maxItems=0 means unlimited", func(t *testing.T) {
+		ch := make(chan int, 10)
+		for i := 1; i <= 10; i++ {
+			ch <- i
+		}
+		close(ch)
 
-		t.Run("closed channel - empty", func(t *testing.T) {
-			ch := make(chan int)
-			close(ch)
-			err := channels.SendWithTimeout(ch, 42, 10*time.Millisecond)
-			assert.ErrorIs(t, err, channels.ErrChannelClosed)
-		})
+		received := channels.ReceiveAll(ch, 100*time.Millisecond, 0)
+		assert.Len(t, received, 10)
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, received)
+	})
 
-		t.Run("closed channel - with buffered data", func(t *testing.T) {
-			ch := make(chan int, 2)
-			ch <- 1 // Write data before closing
-			close(ch)
-			err := channels.SendWithTimeout(ch, 42, 10*time.Millisecond)
-			assert.ErrorIs(t, err, channels.ErrChannelClosed)
-			// Verify original data still readable
-			assert.Equal(t, 1, <-ch)
-		})
+	t.Run("stops on timeout", func(t *testing.T) {
+		ch := make(chan int, 5)
+		ch <- 1
+		ch <- 2
+
+		// Use short timeout, no more messages coming
+		received := channels.ReceiveAll(ch, 10*time.Millisecond, 0)
+		assert.Equal(t, []int{1, 2}, received)
+	})
+
+	t.Run("returns empty for closed channel", func(t *testing.T) {
+		ch := make(chan int)
+		close(ch)
+
+		received := channels.ReceiveAll(ch, 100*time.Millisecond, 0)
+		assert.Empty(t, received)
+	})
+
+	t.Run("returns empty for timeout on empty channel", func(t *testing.T) {
+		ch := make(chan int, 5)
+
+		received := channels.ReceiveAll(ch, 10*time.Millisecond, 0)
+		assert.Empty(t, received)
+	})
+
+	t.Run("maxItems takes precedence over timeout", func(t *testing.T) {
+		ch := make(chan int, 5)
+		ch <- 1
+		ch <- 2
+		ch <- 3
+
+		// Short timeout but maxItems=2 should return first
+		start := time.Now()
+		received := channels.ReceiveAll(ch, 100*time.Millisecond, 2)
+		duration := time.Since(start)
+
+		assert.Equal(t, []int{1, 2}, received)
+		// Should return quickly due to maxItems, not wait for timeout
+		assert.Less(t, duration, 50*time.Millisecond)
+	})
+
+	t.Run("receives messages as they arrive until timeout", func(t *testing.T) {
+		ch := make(chan int, 5)
+
+		// Send messages in background with delays
+		go func() {
+			for i := 1; i <= 3; i++ {
+				ch <- i
+				time.Sleep(5 * time.Millisecond)
+			}
+		}()
+
+		// Should receive all 3 messages before timeout
+		received := channels.ReceiveAll(ch, 50*time.Millisecond, 0)
+		assert.Len(t, received, 3)
+		assert.Equal(t, []int{1, 2, 3}, received)
 	})
 }

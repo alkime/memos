@@ -30,6 +30,11 @@ type FanOut[T any] struct {
 	wg          sync.WaitGroup
 }
 
+// NewFanOut creates a new FanOut instance with subscribers for the give type T.
+func NewFanOut[T any]() *FanOut[T] {
+	return &FanOut[T]{}
+}
+
 // Subscribe adds a channel to receive broadcasted messages in non-blocking mode.
 // If the channel is full, messages will be dropped for that subscriber.
 // Must be called before Run(). Not safe for concurrent use with Run().
@@ -67,14 +72,15 @@ func (f *FanOut[T]) Run(ctx context.Context) (chan<- T, error) {
 
 	f.input = make(chan T, len(f.subscribers)*2)
 
-	// Start a goroutine for each subscriber
-	for _, sub := range f.subscribers {
-		f.wg.Add(1)
-		sub := sub // Create per-iteration copy for Go < 1.22 compatibility
-		go func() {
-			defer f.wg.Done()
-			// Drain channel until closed
-			for msg := range f.input {
+	// Start broadcaster goroutine
+	f.wg.Add(1)
+	go func() {
+		defer f.wg.Done()
+
+		// Read each message from input
+		for msg := range f.input {
+			// Broadcast to all subscribers
+			for _, sub := range f.subscribers {
 				if sub.timeout != nil {
 					// Send with timeout - errors (timeout/closed) mean message is dropped
 					_ = SendWithTimeout(sub.ch, msg, *sub.timeout)
@@ -83,8 +89,8 @@ func (f *FanOut[T]) Run(ctx context.Context) (chan<- T, error) {
 					_ = SendNonBlock(sub.ch, msg)
 				}
 			}
-		}()
-	}
+		}
+	}()
 
 	f.started.Store(true)
 
