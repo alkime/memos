@@ -40,7 +40,7 @@ func (s *subscriber[T]) send(msg T) {
 	}
 }
 
-// FanOut broadcasts messages from a single input channel to multiple subscriber channels.
+// Broadcaster broadcasts messages from a single input channel to multiple subscriber channels.
 // It owns the input channel and handles graceful shutdown via context cancellation.
 //
 // Messages are sent to subscribers using the configured send strategy:
@@ -49,22 +49,22 @@ func (s *subscriber[T]) send(msg T) {
 //
 // On context cancellation, the input channel is closed and all remaining messages
 // are drained to subscribers before shutdown completes.
-type FanOut[T any] struct {
+type Broadcaster[T any] struct {
 	subscribers []subscriber[T]
 	input       chan T
 	started     atomic.Bool
 	wg          sync.WaitGroup
 }
 
-// NewFanOut creates a new FanOut instance with subscribers for the given type T.
-func NewFanOut[T any]() *FanOut[T] {
-	return &FanOut[T]{}
+// NewBroadcaster creates a new Broadcaster instance with subscribers for the given type T.
+func NewBroadcaster[T any]() *Broadcaster[T] {
+	return &Broadcaster[T]{}
 }
 
 // Subscribe adds a channel to receive broadcasted messages in non-blocking mode.
 // If the channel is full, messages will be dropped for that subscriber.
 // Must be called before Run(). Not safe for concurrent use with Run().
-func (f *FanOut[T]) Subscribe(ch chan<- T) {
+func (f *Broadcaster[T]) Subscribe(ch chan<- T) {
 	f.subscribers = append(f.subscribers, subscriber[T]{
 		ch:      ch,
 		timeout: nil,
@@ -74,22 +74,22 @@ func (f *FanOut[T]) Subscribe(ch chan<- T) {
 // SubscribeWithTimeout adds a channel to receive broadcasted messages with a send timeout.
 // If the send times out, messages will be dropped for that subscriber.
 // Must be called before Run(). Not safe for concurrent use with Run().
-func (f *FanOut[T]) SubscribeWithTimeout(ch chan<- T, timeout time.Duration) {
+func (f *Broadcaster[T]) SubscribeWithTimeout(ch chan<- T, timeout time.Duration) {
 	f.subscribers = append(f.subscribers, subscriber[T]{
 		ch:      ch,
 		timeout: &timeout,
 	})
 }
 
-// Run starts the fan-out and returns the input channel for sending messages.
+// Run starts the broadcaster and returns the input channel for sending messages.
 //
-// The returned channel is owned by FanOut and will be closed on context cancellation.
+// The returned channel is owned by Broadcaster and will be closed on context cancellation.
 // After closure, all remaining messages are drained to subscribers.
 //
 // Returns error if already started or no subscribers exist.
-func (f *FanOut[T]) Run(ctx context.Context) (chan<- T, error) {
+func (f *Broadcaster[T]) Run(ctx context.Context) (chan<- T, error) {
 	if f.started.Load() {
-		return nil, fmt.Errorf("fan out already started")
+		return nil, fmt.Errorf("broadcaster already started")
 	}
 
 	if len(f.subscribers) == 0 {
@@ -124,7 +124,7 @@ func (f *FanOut[T]) Run(ctx context.Context) (chan<- T, error) {
 // Wait blocks until all subscribers have finished processing messages.
 // This is useful for waiting for graceful shutdown to complete after
 // the context is cancelled. Multiple goroutines can safely call Wait().
-func (f *FanOut[T]) Wait() {
+func (f *Broadcaster[T]) Wait() {
 	f.wg.Wait()
 }
 
@@ -133,7 +133,7 @@ type SubscriberStats struct {
 	Inactive bool
 }
 
-func (f *FanOut[T]) Stats() []SubscriberStats {
+func (f *Broadcaster[T]) Stats() []SubscriberStats {
 	stats := make([]SubscriberStats, 0, len(f.subscribers))
 	for i := range f.subscribers {
 		stats = append(stats, SubscriberStats{

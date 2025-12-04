@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFanOut(t *testing.T) {
+func TestBroadcaster(t *testing.T) {
 	t.Run("error cases", func(t *testing.T) {
 		t.Run("run with no subscribers", func(t *testing.T) {
 			ctx := context.Background()
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			_, err := fo.Run(ctx)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "no subscribers")
@@ -23,7 +23,7 @@ func TestFanOut(t *testing.T) {
 
 		t.Run("run twice", func(t *testing.T) {
 			ctx := context.Background()
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			ch := make(chan int, 10)
 			fo.Subscribe(ch)
 
@@ -41,7 +41,7 @@ func TestFanOut(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			sub := make(chan int, 10)
 			fo.Subscribe(sub)
 
@@ -66,7 +66,7 @@ func TestFanOut(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			sub1 := make(chan int, 10)
 			sub2 := make(chan int, 10)
 			sub3 := make(chan int, 10)
@@ -106,7 +106,7 @@ func TestFanOut(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			sub := make(chan int, 1) // Small buffer
 			fo.Subscribe(sub)
 
@@ -133,7 +133,7 @@ func TestFanOut(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			sub := make(chan int, 1) // Small buffer
 			fo.SubscribeWithTimeout(sub, 1*time.Millisecond)
 
@@ -160,7 +160,7 @@ func TestFanOut(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			fullSub := make(chan int, 1)
 			fullSub <- 99 // Pre-fill to make it full
 			readySub := make(chan int, 10)
@@ -199,7 +199,7 @@ func TestFanOut(t *testing.T) {
 		t.Run("context cancellation stops processing", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			sub := make(chan int, 10)
 			fo.Subscribe(sub)
 
@@ -222,7 +222,7 @@ func TestFanOut(t *testing.T) {
 		t.Run("messages in flight are drained", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			sub := make(chan int, 10)
 			fo.Subscribe(sub)
 
@@ -247,7 +247,7 @@ func TestFanOut(t *testing.T) {
 		t.Run("wait blocks until complete", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 
-			fo := channels.NewFanOut[int]()
+			fo := channels.NewBroadcaster[int]()
 			sub := make(chan int, 10)
 			fo.Subscribe(sub)
 
