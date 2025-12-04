@@ -75,17 +75,18 @@ func (e *StreamingEncoder) Start(ctx context.Context) error {
 	// See: https://github.com/braheezy/shine-mp3/issues/XXX
 	e.encoder = mp3encoder.NewEncoder(e.config.SampleRate, 2)
 
-	slog.Info("starting MP3 encoder",
-		"sampleRate", e.config.SampleRate,
-		"channels", e.config.Channels,
-		"bufferThreshold", e.config.BufferThreshold)
+	// todo: figure out logging w/ tui bubbletea...
+	// slog.Info("starting MP3 encoder",
+	// 	"sampleRate", e.config.SampleRate,
+	// 	"channels", e.config.Channels,
+	// 	"bufferThreshold", e.config.BufferThreshold)
 
 	e.wg.Go(func() {
 		defer func() {
 			if err := e.Flush(); err != nil {
 				e.setError(fmt.Errorf("failed to flush encoder on shutdown: %w", err))
 			}
-			slog.Info("MP3 encoder stopped")
+			// slog.Info("MP3 encoder stopped")
 		}()
 
 		for {
@@ -177,6 +178,6 @@ func (e *StreamingEncoder) Wait() error {
 func (e *StreamingEncoder) setError(err error) {
 	e.errOnce.Do(func() {
 		e.err = err
-		slog.Error("streaming encoder error", "error", err)
+		slog.Debug("streaming encoder error", "error", err)
 	})
 }

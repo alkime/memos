@@ -10,12 +10,14 @@ import (
 type model struct {
 	cancel      context.CancelFunc
 	recordingUI recording.Model
+	outputFile  string
 }
 
-func New(cancel context.CancelFunc) tea.Model {
+func New(cancel context.CancelFunc, outputFile string) tea.Model {
 	return model{
 		cancel:      cancel,
 		recordingUI: recording.Model{},
+		outputFile:  outputFile,
 	}
 }
 
@@ -52,5 +54,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return m.recordingUI.View()
+	// return m.recordingUI.View()
+	return "recording: " + m.outputFile + "\n\n> ctrl+c or q to quit.\n\n"
 }

@@ -7,16 +7,21 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/alkime/memos/internal/audiofile"
 	"github.com/alkime/memos/internal/cli/ai"
 	"github.com/alkime/memos/internal/cli/audio"
 	"github.com/alkime/memos/internal/cli/audio/device"
 	"github.com/alkime/memos/internal/cli/editor"
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/git"
+	"github.com/alkime/memos/internal/tui"
 	"github.com/alkime/memos/internal/workdir"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gen2brain/malgo"
 )
 
 // CLI defines the voice command structure.
@@ -31,6 +36,7 @@ type CLI struct {
 	FirstDraft FirstDraftCmd `cmd:"" help:"Generate AI first draft from transcript"`
 	CopyEdit   CopyEditCmd   `cmd:"" help:"Final copy-edit and save to content/posts"`
 	Devices    DevicesCmd    `cmd:"" help:"List available audio devices"`
+	Tui        TuiCmd        `cmd:"" help:"Launch terminal UI for recording"`
 }
 
 // RunCmd executes the end-to-end workflow: record -> transcribe -> first-draft -> editor.
@@ -146,24 +152,28 @@ func getWorkingName(explicitName string) string {
 	return time.Now().Format("2006-01-02-150405")
 }
 
+func prepRecordingOutputPath(outputPath, nameParam string) (string, error) {
+	if outputPath == "" {
+		workinginName := getWorkingName(nameParam)
+		var err error
+		outputPath, err = workdir.FilePath(workinginName, "recording.mp3")
+		if err != nil {
+			return "", fmt.Errorf("failed to determine output path: %w", err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return "", fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	return outputPath, nil
+}
+
 // Run executes the record command.
 func (r *RecordCmd) Run() error {
 	// Determine output path
-	outputPath := r.Output
-	if outputPath == "" {
-		// Default to ~/Documents/Alkime/Memos/work/{name}/recording.mp3
-		workingName := getWorkingName(r.Name)
-		var err error
-		outputPath, err = workdir.FilePath(workingName, "recording.mp3")
-		if err != nil {
-			return fmt.Errorf("failed to determine output path: %w", err)
-		}
-	}
-
-	// Create parent directory if needed
-	parentDir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(parentDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory %s: %w", parentDir, err)
+	outputPath, err := prepRecordingOutputPath(r.Output, r.Name)
+	if err != nil {
+		return fmt.Errorf("failed to prepare output path: %w", err)
 	}
 
 	// Parse max duration
@@ -641,6 +651,94 @@ func (dcmd *DevicesCmd) Run() error {
 }
 
 type TuiCmd struct {
+	Output      string `arg:"" optional:"" help:"Output file path"`
+	Name        string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	MaxDuration string `flag:"" default:"1h" help:"Max recording duration"`
+	MaxBytes    int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
+}
+
+func (tc *TuiCmd) Run() error {
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	wg := sync.WaitGroup{}
+
+	// input
+
+	var (
+		defaultSampleRate = 16_000
+		defaultChannels   = 1
+	)
+
+	dataC := make(chan []byte, 64)
+
+	dev := device.NewAudioDevice(&device.AudioDeviceConfig{
+		Format:          malgo.FormatS16,
+		SampleRate:      defaultSampleRate,
+		CaptureChannels: defaultChannels,
+	})
+
+	err := dev.CaptureInto(ctx, dataC)
+	if err != nil {
+		return fmt.Errorf("failed to start audio capture: %w", err)
+	}
+
+	// Output
+
+	outputPath, err := prepRecordingOutputPath(tc.Output, tc.Name)
+	if err != nil {
+		return fmt.Errorf("failed to prepare output path: %w", err)
+	}
+
+	// Create audio file recorder
+	recorder, err := audiofile.NewRecorder(audiofile.Config{
+		SampleRate: defaultSampleRate,
+		Channels:   defaultChannels,
+		MP3Path:    outputPath,
+	}, dataC)
+	if err != nil {
+		return fmt.Errorf("failed to create audio recorder: %w", err)
+	}
+
+	// Audio device goroutine
+	wg.Go(func() {
+		defer cancel() // Trigger shutdown if device goroutine ends
+		err := dev.Start(ctx)
+		if err != nil {
+			slog.Error("Audio device error", "error", err)
+		}
+
+		<-ctx.Done()
+
+		err = dev.Stop(ctx, true)
+		if err != nil {
+			slog.Error("Failed to stop audio device", "error", err)
+		}
+		slog.Info("Audio device stopped")
+	})
+
+	// Audio recorder goroutine (waits for PCM buffering, MP3 conversion, cleanup)
+	wg.Go(func() {
+		if err := recorder.Start(ctx); err != nil {
+			slog.Error("Audio recorder error", "error", err)
+		}
+
+		<-ctx.Done()
+
+		if err := recorder.Wait(); err != nil {
+			slog.Error("Audio recorder error", "error", err)
+		}
+	})
+
+	p := tea.NewProgram(tui.New(cancel, recorder.GetPCMPath()))
+	if _, err := p.Run(); err != nil {
+		return fmt.Errorf("failed to start TUI: %w", err)
+	}
+
+	wg.Wait()
+
+	return nil
 }
 
 func main() {

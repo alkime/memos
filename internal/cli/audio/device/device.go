@@ -117,9 +117,9 @@ func (d *device) allocMGDevice(devType malgo.DeviceType, dataC chan DataPacket) 
 		return nil, nil, fmt.Errorf("data channel is nil. unable to allocate device")
 	}
 
-	mgCtx, err := malgo.InitContext(nil, malgo.ContextConfig{}, func(msg string) {
-		slog.Info("malgo audio device log", "msg", msg)
-	})
+	// mgCtx, err := malgo.InitContext(nil, malgo.ContextConfig{}, func(msg string) {slog.Info("malgo audio device log", "msg", msg)})
+	// todo figure out logging w/ tui bubbletea...
+	mgCtx, err := malgo.InitContext(nil, malgo.ContextConfig{}, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize malgo context: %w", err)
 	}
