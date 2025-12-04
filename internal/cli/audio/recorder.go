@@ -1,9 +1,7 @@
 package audio
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -15,7 +13,7 @@ import (
 	"time"
 
 	"github.com/alkime/memos/internal/cli/audio/device"
-	mp3 "github.com/braheezy/shine-mp3/pkg/mp3"
+	"github.com/alkime/memos/internal/mp3"
 	"github.com/gen2brain/malgo"
 )
 
@@ -91,16 +89,40 @@ func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (
 	// Track which limit was hit (if any)
 	var limitReached atomic.Value
 
+	// Create MP3 file and encoder
+	mp3File, err := os.Create(r.config.OutputPath)
+	if err != nil {
+		return fmt.Errorf("failed to create MP3 file %s: %w", r.config.OutputPath, err)
+	}
+	defer closeFd(mp3File)
+
+	encoderInput := make(chan []byte, 64)
+
+	encoderConfig := mp3.EncoderConfig{
+		SampleRate:      defaultSampleRate,
+		Channels:        defaultChannels,
+		BufferThreshold: 4096,
+	}.WithDefaults()
+
+	encoder, err := mp3.NewStreamingEncoder(encoderConfig, encoderInput, mp3File)
+	if err != nil {
+		return fmt.Errorf("failed to create MP3 encoder: %w", err)
+	}
+
+	if err := encoder.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start encoder: %w", err)
+	}
+
 	// spawn some worker goroutines, some of which are optional:
 	// -- read the data channel with limit checking
 	// -- (optionally) display progress periodically
 	// -- listen for "finished" signals from ^C, Enter, or context (optionally skip this if other method of halting)
 	wg := new(sync.WaitGroup)
 
-	buf := bytes.NewBuffer(nil)
-
 	// Packet reading goroutine with inline limit checks
 	wg.Go(func() {
+		defer close(encoderInput) // Signal encoder to finish
+
 	loop:
 		for {
 			var packet device.DataPacket
@@ -111,12 +133,8 @@ func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (
 				break loop
 			}
 
-			// Write packet to buffer
-			n, err := buf.Write(packet)
-			if err != nil {
-				slog.Error("failed to write audio packet to buffer. halting....", "error", err)
-				break loop
-			}
+			// Send to encoder
+			encoderInput <- []byte(packet)
 
 			if callback != nil {
 				// Invoke callback with the captured packet
@@ -124,7 +142,7 @@ func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (
 			}
 
 			// Update atomic counter
-			bytesWritten.Add(int64(n))
+			bytesWritten.Add(int64(len(packet)))
 
 			// Inline limit checks
 			if bytesWritten.Load() >= r.config.MaxBytes {
@@ -186,7 +204,7 @@ func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (
 
 	slog.Info("running... waiting for recording to finish")
 	wg.Wait()
-	slog.Info("recording finished", "buffer_size_bytes", buf.Len())
+	slog.Info("recording finished")
 
 	// stop the device which should block until all data
 	// has been written to the channel.
@@ -194,63 +212,17 @@ func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (
 		return fmt.Errorf("unable to stop audio device, unable to flush: %w", err)
 	}
 
-	// now drain any remaining stuff into buffer since
-	// we've stopped it.
-	drainChannelInto(dataC, buf)
-
-	// Flush buffer to MP3 file
-	err = r.flushMP3File(r.config.OutputPath, buf)
-	if err != nil {
-		return fmt.Errorf("failed to flush MP3 file: %w", err)
+	// Wait for encoder to finish processing all data
+	if err := encoder.Wait(); err != nil {
+		return fmt.Errorf("failed to encode MP3: %w", err)
 	}
+
+	slog.Info("MP3 encoding completed", "path", r.config.OutputPath)
 
 	// Return sentinel error if limit was reached
 	if err := limitReached.Load(); err != nil {
 		return err.(error)
 	}
-
-	return nil
-}
-
-func (r *FileRecorder) flushMP3File(mp3FilePath string, buf *bytes.Buffer) error {
-	fd, err := os.Create(mp3FilePath)
-	if err != nil {
-		return fmt.Errorf("failed to create MP3 file %s: %w", mp3FilePath, err)
-	}
-	defer closeFd(fd)
-
-	// Convert buffer bytes to []int16
-	// The buffer contains S16LE (16-bit signed little-endian) PCM data
-	numSamples := buf.Len() / 2 // 2 bytes per int16 sample
-	monoSamples := make([]int16, numSamples)
-
-	// Read raw bytes directly into int16 slice using binary.Read
-	reader := bytes.NewReader(buf.Bytes())
-	err = binary.Read(reader, binary.LittleEndian, monoSamples)
-	if err != nil {
-		return fmt.Errorf("failed to read PCM samples: %w", err)
-	}
-
-	// WORKAROUND: shine-mp3 Write() has a bug for mono (always increments by samples_per_pass * 2)
-	// Convert mono to stereo by duplicating samples (L=R)
-	stereoSamples := make([]int16, numSamples*2)
-	for i, sample := range monoSamples {
-		stereoSamples[i*2] = sample   // Left channel
-		stereoSamples[i*2+1] = sample // Right channel (duplicate)
-	}
-
-	slog.Info("encoding MP3", "monoSamples", numSamples, "stereoSamples", len(stereoSamples))
-
-	// Create MP3 encoder as STEREO (workaround for mono bug)
-	encoder := mp3.NewEncoder(defaultSampleRate, 2) // 2 channels
-
-	// Write stereo PCM samples to MP3 file
-	err = encoder.Write(fd, stereoSamples)
-	if err != nil {
-		return fmt.Errorf("failed to encode audio to MP3 %s: %w", mp3FilePath, err)
-	}
-
-	slog.Info("MP3 file saved", "path", mp3FilePath)
 
 	return nil
 }
@@ -354,27 +326,6 @@ func catchStopSignals(ctx context.Context) <-chan struct{} {
 	}()
 
 	return stopC
-}
-
-func drainChannelInto(dataC <-chan device.DataPacket, buf *bytes.Buffer) {
-loop:
-	for {
-		select {
-		case p, ok := <-dataC:
-			if !ok {
-				// Channel closed, no more data
-				break loop
-			}
-			_, err := buf.Write(p)
-			if err != nil {
-				slog.Warn("error while draining channel", "error", err)
-				break loop
-			}
-		default:
-			// Channel empty and open, nothing to drain
-			break loop
-		}
-	}
 }
 
 type bufferdPacketCallback func(packet device.DataPacket)

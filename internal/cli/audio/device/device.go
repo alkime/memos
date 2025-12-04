@@ -19,6 +19,10 @@ type AudioDevice interface {
 	// that device and writing packets of sampled bytes into the channel.
 	Capture(ctx context.Context) (<-chan DataPacket, error)
 
+	// CaptureInto initializes the underlying device and uses the provided
+	// data channel to write packets of sampled bytes into when Start() is called.
+	CaptureInto(ctx context.Context, dataC chan DataPacket) error
+
 	Start(ctx context.Context) error
 	// Stop stops the audio device and optionally deallocates the underlying resources.
 	// if the underlying device has already been deallocated this is a no-op.
@@ -30,7 +34,6 @@ type device struct {
 
 	mgCtx    *malgo.AllocatedContext
 	mgDevice *malgo.Device
-	dataC    chan DataPacket
 }
 
 func NewAudioDevice(conf *AudioDeviceConfig) AudioDevice {
@@ -55,15 +58,23 @@ func (d *device) EnumerateDevices(ctx context.Context) ([]Info, error) {
 }
 
 func (d *device) Capture(ctx context.Context) (<-chan DataPacket, error) {
-	var err error
-	d.dataC = make(chan DataPacket, 64)
-
-	d.mgCtx, d.mgDevice, err = d.allocMGDevice(malgo.Capture)
+	dataC := make(chan DataPacket, 64)
+	err := d.CaptureInto(ctx, dataC)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create malgo capture device: %w", err)
+		return nil, fmt.Errorf("failed to capture into channel: %w", err)
 	}
 
-	return d.dataC, nil
+	return dataC, nil
+}
+
+func (d *device) CaptureInto(ctx context.Context, dataC chan DataPacket) error {
+	var err error
+	d.mgCtx, d.mgDevice, err = d.allocMGDevice(malgo.Capture, dataC)
+	if err != nil {
+		return fmt.Errorf("failed to create malgo capture device: %w", err)
+	}
+
+	return nil
 }
 
 func (d *device) Start(ctx context.Context) error {
@@ -96,14 +107,13 @@ func (d *device) Stop(ctx context.Context, dealloc bool) error {
 
 	if dealloc {
 		d.deallocMGDevice()
-		close(d.dataC)
 	}
 
 	return nil
 }
 
-func (d *device) allocMGDevice(devType malgo.DeviceType) (*malgo.AllocatedContext, *malgo.Device, error) {
-	if d.dataC == nil {
+func (d *device) allocMGDevice(devType malgo.DeviceType, dataC chan DataPacket) (*malgo.AllocatedContext, *malgo.Device, error) {
+	if dataC == nil {
 		return nil, nil, fmt.Errorf("data channel is nil. unable to allocate device")
 	}
 
@@ -126,7 +136,7 @@ func (d *device) allocMGDevice(devType malgo.DeviceType) (*malgo.AllocatedContex
 
 		callBacks = malgo.DeviceCallbacks{
 			Data: func(_, samples []byte, framecount uint32) {
-				d.dataC <- DataPacket(samples)
+				dataC <- DataPacket(samples)
 			},
 		}
 
@@ -176,7 +186,7 @@ func malgoDeviceInfoToDeviceInfo(mdi malgo.DeviceInfo) Info {
 	}
 }
 
-type DataPacket []byte
+type DataPacket = []byte
 
 func uninitializeContext(deviceCtx *malgo.AllocatedContext) {
 	if deviceCtx == nil {
