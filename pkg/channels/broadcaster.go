@@ -128,11 +128,13 @@ func (f *Broadcaster[T]) Wait() {
 	f.wg.Wait()
 }
 
+// SubscriberStats holds statistics for a subscriber channel.
 type SubscriberStats struct {
 	Dropped  int
 	Inactive bool
 }
 
+// Stats returns statistics for each subscriber channel.
 func (f *Broadcaster[T]) Stats() []SubscriberStats {
 	stats := make([]SubscriberStats, 0, len(f.subscribers))
 	for i := range f.subscribers {
@@ -141,5 +143,6 @@ func (f *Broadcaster[T]) Stats() []SubscriberStats {
 			Inactive: f.subscribers[i].inactive.Load(),
 		})
 	}
+
 	return stats
 }
