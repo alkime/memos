@@ -64,21 +64,36 @@ func NewBroadcaster[T any]() *Broadcaster[T] {
 // Subscribe adds a channel to receive broadcasted messages in non-blocking mode.
 // If the channel is full, messages will be dropped for that subscriber.
 // Must be called before Run(). Not safe for concurrent use with Run().
-func (f *Broadcaster[T]) Subscribe(ch chan<- T) {
+// Returns error if ch is nil.
+func (f *Broadcaster[T]) Subscribe(ch chan<- T) error {
+	if ch == nil {
+		return fmt.Errorf("subscribe channel cannot be nil")
+	}
 	f.subscribers = append(f.subscribers, subscriber[T]{
 		ch:      ch,
 		timeout: nil,
 	})
+
+	return nil
 }
 
 // SubscribeWithTimeout adds a channel to receive broadcasted messages with a send timeout.
 // If the send times out, messages will be dropped for that subscriber.
 // Must be called before Run(). Not safe for concurrent use with Run().
-func (f *Broadcaster[T]) SubscribeWithTimeout(ch chan<- T, timeout time.Duration) {
+// Returns error if ch is nil or timeout is not positive.
+func (f *Broadcaster[T]) SubscribeWithTimeout(ch chan<- T, timeout time.Duration) error {
+	if ch == nil {
+		return fmt.Errorf("subscribe channel cannot be nil")
+	}
+	if timeout <= 0 {
+		return fmt.Errorf("timeout must be positive")
+	}
 	f.subscribers = append(f.subscribers, subscriber[T]{
 		ch:      ch,
 		timeout: &timeout,
 	})
+
+	return nil
 }
 
 // Run starts the broadcaster and returns the input channel for sending messages.
@@ -88,11 +103,12 @@ func (f *Broadcaster[T]) SubscribeWithTimeout(ch chan<- T, timeout time.Duration
 //
 // Returns error if already started or no subscribers exist.
 func (f *Broadcaster[T]) Run(ctx context.Context) (chan<- T, error) {
-	if f.started.Load() {
+	if !f.started.CompareAndSwap(false, true) {
 		return nil, fmt.Errorf("broadcaster already started")
 	}
 
 	if len(f.subscribers) == 0 {
+		f.started.Store(false) // Reset on error
 		return nil, fmt.Errorf("no subscribers available")
 	}
 
@@ -108,8 +124,6 @@ func (f *Broadcaster[T]) Run(ctx context.Context) (chan<- T, error) {
 			}
 		}
 	})
-
-	f.started.Store(true)
 
 	// Shutdown handler: close input and wait for drain to complete
 	go func() {

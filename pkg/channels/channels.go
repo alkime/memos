@@ -25,6 +25,7 @@ var (
 func ReceiveAll[T any](ch <-chan T, timeout time.Duration, maxItems int) []T {
 	var results []T
 	deadline := time.After(timeout)
+
 	for {
 		// Check if we've reached the item limit
 		if maxItems > 0 && len(results) >= maxItems {

@@ -328,6 +328,96 @@ fmt.Println(result.Title)
 
 ---
 
+### 7. Verify Standard Library Best Practices for Current Go Version
+
+**Rule:** Before applying or accepting advice about Go standard library usage, verify it's current for the project's Go version. The standard library evolves, and advice that was correct in older versions may be outdated or unnecessarily complex.
+
+**Why:** Go improvements can make previously recommended workarounds obsolete. Following outdated advice adds unnecessary complexity and maintenance burden. This is especially important when receiving code review feedback from AI tools or older documentation.
+
+**How to verify:**
+
+1. **Check project Go version:**
+   ```bash
+   # In go.mod
+   grep "^go " go.mod
+   # Returns: go 1.23.0
+   ```
+
+2. **Check current standard library documentation:**
+   ```bash
+   # View official docs for current Go installation
+   go doc time.After
+   go doc sync.WaitGroup
+
+   # Or visit: https://pkg.go.dev/time@go1.23.0
+   ```
+
+3. **Look for version-specific notes:**
+   - Release notes often mention performance improvements
+   - Package documentation includes "As of Go X.Y" notes
+   - Search for phrases like "Before Go 1.X" or "As of Go 1.Y"
+
+**Example 1: time.After() Evolution**
+
+**Outdated advice (pre-Go 1.23):**
+```go
+// DON'T: Unnecessarily complex in Go 1.23+
+timer := time.NewTimer(timeout)
+defer timer.Stop()
+select {
+case <-timer.C:
+    return ErrTimeout
+}
+```
+
+**Current best practice (Go 1.23+):**
+```go
+// DO: Simple and correct in Go 1.23+
+select {
+case <-time.After(timeout):
+    return ErrTimeout
+}
+```
+
+**Why the change:** Go 1.23 improved the garbage collector to recover unreferenced `time.After()` timers automatically. The old "memory leak" concern no longer applies, making `time.After()` the preferred choice for its simplicity.
+
+From Go 1.23 docs:
+> "Before Go 1.23, this documentation warned that the underlying Timer would not be recovered by the garbage collector until the timer fired... As of Go 1.23, the garbage collector can recover unreferenced, unstopped timers. There is no reason to prefer NewTimer when After will do."
+
+**Example 2: sync.WaitGroup.Go() Addition**
+
+**Outdated advice (pre-Go 1.23):**
+```go
+// DON'T: Verbose pattern no longer necessary in Go 1.23+
+var wg sync.WaitGroup
+wg.Add(1)
+go func() {
+    defer wg.Done()
+    doWork()
+}()
+wg.Wait()
+```
+
+**Current best practice (Go 1.23+):**
+```go
+// DO: Use WaitGroup.Go() for cleaner code
+var wg sync.WaitGroup
+wg.Go(doWork)
+wg.Wait()
+```
+
+**Why the change:** Go 1.23 added the `WaitGroup.Go()` method, which handles `Add(1)`, launching the goroutine, and calling `Done()` automatically. This eliminates boilerplate and prevents forgetting to call `Done()`.
+
+From Go 1.23 docs:
+> "WaitGroup.Go calls Add(1), then runs fn in a new goroutine, and calls Done when fn returns."
+
+**When reviewing code:**
+- If advice seems to add complexity without clear benefit, check if it's version-specific
+- AI code reviewers may give outdated advice based on older training data
+- Cross-reference with current official Go documentation before accepting
+
+---
+
 ## Additional Standards
 
 ### Linter Configuration
