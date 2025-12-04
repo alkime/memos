@@ -2,6 +2,7 @@ package channels
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -10,8 +11,33 @@ import (
 
 // subscriber holds a channel and its send timeout configuration.
 type subscriber[T any] struct {
-	ch      chan<- T
-	timeout *time.Duration // nil means non-blocking
+	ch       chan<- T
+	timeout  *time.Duration // nil means non-blocking
+	inactive atomic.Bool
+	dropped  atomic.Int32
+}
+
+func (s *subscriber[T]) send(msg T) {
+	if s.inactive.Load() {
+		s.dropped.Add(1)
+		return
+	}
+	var err error
+	if s.timeout != nil {
+		// Send with timeout
+		err = SendWithTimeout(s.ch, msg, *s.timeout)
+	} else {
+		// Non-blocking send.
+		err = SendNonBlock(s.ch, msg)
+	}
+	if err != nil {
+		// if channel is closed, mark inactive
+		// otherwise just count dropped messages
+		s.dropped.Add(1)
+		if errors.Is(err, ErrChannelClosed) {
+			s.inactive.Store(true)
+		}
+	}
 }
 
 // FanOut broadcasts messages from a single input channel to multiple subscriber channels.
@@ -30,7 +56,7 @@ type FanOut[T any] struct {
 	wg          sync.WaitGroup
 }
 
-// NewFanOut creates a new FanOut instance with subscribers for the give type T.
+// NewFanOut creates a new FanOut instance with subscribers for the given type T.
 func NewFanOut[T any]() *FanOut[T] {
 	return &FanOut[T]{}
 }
@@ -73,24 +99,15 @@ func (f *FanOut[T]) Run(ctx context.Context) (chan<- T, error) {
 	f.input = make(chan T, len(f.subscribers)*2)
 
 	// Start broadcaster goroutine
-	f.wg.Add(1)
-	go func() {
-		defer f.wg.Done()
-
+	f.wg.Go(func() {
 		// Read each message from input
 		for msg := range f.input {
 			// Broadcast to all subscribers
-			for _, sub := range f.subscribers {
-				if sub.timeout != nil {
-					// Send with timeout - errors (timeout/closed) mean message is dropped
-					_ = SendWithTimeout(sub.ch, msg, *sub.timeout)
-				} else {
-					// Send non-blocking - errors (full/closed) mean message is dropped
-					_ = SendNonBlock(sub.ch, msg)
-				}
+			for i := range f.subscribers {
+				f.subscribers[i].send(msg)
 			}
 		}
-	}()
+	})
 
 	f.started.Store(true)
 
@@ -109,4 +126,20 @@ func (f *FanOut[T]) Run(ctx context.Context) (chan<- T, error) {
 // the context is cancelled. Multiple goroutines can safely call Wait().
 func (f *FanOut[T]) Wait() {
 	f.wg.Wait()
+}
+
+type SubscriberStats struct {
+	Dropped  int
+	Inactive bool
+}
+
+func (f *FanOut[T]) Stats() []SubscriberStats {
+	stats := make([]SubscriberStats, 0, len(f.subscribers))
+	for i := range f.subscribers {
+		stats = append(stats, SubscriberStats{
+			Dropped:  int(f.subscribers[i].dropped.Load()),
+			Inactive: f.subscribers[i].inactive.Load(),
+		})
+	}
+	return stats
 }
