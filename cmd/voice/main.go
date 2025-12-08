@@ -19,6 +19,7 @@ import (
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/git"
 	"github.com/alkime/memos/internal/tui"
+	tui_recording "github.com/alkime/memos/internal/tui/recording"
 	"github.com/alkime/memos/internal/workdir"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gen2brain/malgo"
@@ -684,6 +685,12 @@ func (tc *TuiCmd) Run() error {
 		return fmt.Errorf("failed to start audio capture: %w", err)
 	}
 
+	// always dealloc when we're done
+	defer func() {
+		dev.Dealloc(ctx)
+		slog.Info("Audio device deallocated")
+	}()
+
 	// Output
 
 	outputPath, err := prepRecordingOutputPath(tc.Output, tc.Name)
@@ -701,23 +708,6 @@ func (tc *TuiCmd) Run() error {
 		return fmt.Errorf("failed to create audio recorder: %w", err)
 	}
 
-	// Audio device goroutine
-	wg.Go(func() {
-		defer cancel() // Trigger shutdown if device goroutine ends
-		err := dev.Start(ctx)
-		if err != nil {
-			slog.Error("Audio device error", "error", err)
-		}
-
-		<-ctx.Done()
-
-		err = dev.Stop(ctx, true)
-		if err != nil {
-			slog.Error("Failed to stop audio device", "error", err)
-		}
-		slog.Info("Audio device stopped")
-	})
-
 	// Audio recorder goroutine (waits for PCM buffering, MP3 conversion, cleanup)
 	wg.Go(func() {
 		if err := recorder.Start(ctx); err != nil {
@@ -731,7 +721,8 @@ func (tc *TuiCmd) Run() error {
 		}
 	})
 
-	p := tea.NewProgram(tui.New(cancel, recorder.GetPCMPath()))
+	ctrls := makeRecordingControls(ctx, dev, recorder, tc.MaxBytes)
+	p := tea.NewProgram(tui.New(cancel, recorder.GetPCMPath(), ctrls))
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("failed to start TUI: %w", err)
 	}
@@ -755,4 +746,64 @@ func main() {
 	err := ctx.Run()
 	ctx.FatalIfErrorf(err)
 	os.Exit(0)
+}
+
+// *
+
+func makeRecordingControls(ctx context.Context, dev device.AudioDevice, recorder *audiofile.Recorder, maxBytes int64) tui_recording.RecordingControls {
+	return tui_recording.RecordingControls{
+		StartStopPause: audioDevKnob{
+			ctx: ctx,
+			dev: dev,
+		},
+		FileSize: audioFileDial{
+			ctx:      ctx,
+			recorder: recorder,
+			maxBytes: maxBytes,
+		},
+	}
+}
+
+type audioDevKnob struct {
+	ctx context.Context
+	dev device.AudioDevice
+}
+
+func (adk audioDevKnob) Read() bool {
+	return adk.dev.IsStarted()
+}
+
+func (adk audioDevKnob) On() {
+	err := adk.dev.Start(adk.ctx)
+	if err != nil {
+		slog.Error("audioDevKnob On error", "error", err)
+	}
+}
+
+func (adk audioDevKnob) Off() {
+	err := adk.dev.Stop(adk.ctx)
+	if err != nil {
+		slog.Error("audioDevKnob Off error", "error", err)
+	}
+}
+
+func (adk audioDevKnob) Toggle() {
+	err := adk.dev.Toggle(adk.ctx)
+	if err != nil {
+		slog.Error("audioDevKnob Toggle error", "error", err)
+	}
+}
+
+type audioFileDial struct {
+	ctx      context.Context
+	recorder *audiofile.Recorder
+	maxBytes int64
+}
+
+func (afd audioFileDial) Read() int64 {
+	return afd.recorder.BytesWritten()
+}
+
+func (afd audioFileDial) Cap() (int64, int64) {
+	return afd.Read(), afd.maxBytes
 }

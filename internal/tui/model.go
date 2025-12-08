@@ -13,10 +13,10 @@ type model struct {
 	outputFile  string
 }
 
-func New(cancel context.CancelFunc, outputFile string) tea.Model {
+func New(cancel context.CancelFunc, outputFile string, recordingControls recording.RecordingControls) tea.Model {
 	return model{
 		cancel:      cancel,
-		recordingUI: recording.Model{},
+		recordingUI: recording.New(recordingControls),
 		outputFile:  outputFile,
 	}
 }
@@ -35,14 +35,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
-	switch msg := msg.(type) {
+	switch typedMsg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
+		switch typedMsg.String() {
 		case "ctrl+c", "q":
 			if m.cancel != nil {
 				m.cancel()
 			}
 			return m, tea.Quit
+		case " ", "enter":
+			msg = recording.ToggleMsg{}
 		}
 	}
 
@@ -54,6 +56,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	// return m.recordingUI.View()
-	return "recording: " + m.outputFile + "\n\n> ctrl+c or q to quit.\n\n"
+	s := "recording to: " + m.outputFile + "\n\n"
+	s += "> ctrl+c or q to quit.\n"
+	s += "> space or enter to start/stop/pause.\n\n"
+	s += m.recordingUI.View() + "\n"
+
+	return s
 }

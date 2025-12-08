@@ -208,9 +208,11 @@ func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (
 
 	// stop the device which should block until all data
 	// has been written to the channel.
-	if err = dev.Stop(ctx, true); err != nil {
+	if err = dev.Stop(ctx); err != nil {
 		return fmt.Errorf("unable to stop audio device, unable to flush: %w", err)
 	}
+
+	defer dev.Dealloc(ctx)
 
 	// Wait for encoder to finish processing all data
 	if err := encoder.Wait(); err != nil {
@@ -229,10 +231,12 @@ func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (
 
 func hardStop(ctx context.Context, dev device.AudioDevice) {
 	slog.Info("hard stopping audio device")
-	err := dev.Stop(ctx, true)
+	err := dev.Stop(ctx)
 	if err != nil {
 		slog.Warn("failed to hard stop audio device", "error", err)
 	}
+
+	dev.Dealloc(ctx)
 }
 
 func closeFd(fd *os.File) {

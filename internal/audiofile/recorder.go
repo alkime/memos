@@ -22,10 +22,12 @@ type Recorder struct {
 	pcmPath    string
 	mp3Path    string
 
-	pcmFile *os.File
-	wg      sync.WaitGroup
-	errOnce sync.Once
-	err     error
+	pcmFile      *os.File
+	bytesWritten int64
+	mu           sync.RWMutex
+	wg           sync.WaitGroup
+	errOnce      sync.Once
+	err          error
 }
 
 // Config holds configuration for the audio recorder.
@@ -117,10 +119,16 @@ func (r *Recorder) Start(ctx context.Context) error {
 					return
 				}
 
-				if _, err := r.pcmFile.Write(data); err != nil {
+				n, err := r.pcmFile.Write(data)
+				if err != nil {
 					r.setError(fmt.Errorf("failed to write PCM data: %w", err))
 					return
 				}
+
+				// Track bytes written
+				r.mu.Lock()
+				r.bytesWritten += int64(n)
+				r.mu.Unlock()
 
 			case <-ctx.Done():
 				return
@@ -209,6 +217,14 @@ func (r *Recorder) cleanup() error {
 // GetPCMPath returns the path to the temporary PCM file (for TUI display).
 func (r *Recorder) GetPCMPath() string {
 	return r.pcmPath
+}
+
+// BytesWritten returns the number of bytes written to the PCM file.
+// This method is safe to call concurrently from multiple goroutines.
+func (r *Recorder) BytesWritten() int64 {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.bytesWritten
 }
 
 // setError records the first error that occurs (subsequent calls are no-ops).

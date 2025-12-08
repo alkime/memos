@@ -6,6 +6,7 @@ require (
 	github.com/alecthomas/kong v1.12.1
 	github.com/anthropics/anthropic-sdk-go v1.18.0
 	github.com/braheezy/shine-mp3 v0.1.0
+	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/gen2brain/malgo v0.11.24
 	github.com/gin-contrib/secure v1.1.2
@@ -15,6 +16,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/openai/openai-go v1.12.0
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 )
 
 require (

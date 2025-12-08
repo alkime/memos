@@ -2,52 +2,56 @@ package recording
 
 import (
 	"fmt"
-	"time"
 
+	"github.com/alkime/memos/pkg/uictl"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type CapturedPacketMsg struct {
-	Samples []byte
-	Bytes   int64
-	Elapsed int64
-}
+type ToggleMsg struct{}
 
 type Model struct {
-	samples []int16 // 16-bit coming from the audio.Device
+	controls RecordingControls
+	spinner  spinner.Model
+}
 
-	totalBytes int64 // sent from Recorder in CapturedPacketMsg
-	maxBytes   int64 // configured limit
-
-	elapsed     time.Duration // sent from Recorder in CapturedPacketMsg
-	maxDuration time.Duration // configured limit
+func New(controls RecordingControls) Model {
+	return Model{
+		controls: controls,
+		spinner:  spinner.New(spinner.WithSpinner(spinner.Points)),
+	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return m.spinner.Tick
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case CapturedPacketMsg:
-		m.elapsed = time.Duration(msg.Elapsed)
-		m.totalBytes = msg.Bytes
+	case ToggleMsg:
+		m.controls.StartStopPause.Toggle()
 		return m, nil
-	default:
-		return m, nil
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
 	}
+
+	return m, nil
 }
 
 func (m Model) View() string {
-	// todo: make this more bester.
-	return fmt.Sprintf("[RECORDING %s +|+ %s]\n",
-		formatDuration(m.elapsed, m.maxDuration, 90),
-		formatBytes(m.totalBytes, m.maxBytes, 90),
-	)
+	s := ""
+	if m.controls.StartStopPause.Read() {
+		s += m.spinner.View() + " "
+	}
+
+	num, max := m.controls.FileSize.Cap()
+	s += formatBytes(num, max, 90)
+	return s
 }
 
 // format functions copy n pasted from recorder.go.
-// todo: clean these up after this lands
 
 // formatWithBold wraps text in ANSI bold codes if shouldBold is true.
 // this is leftover, we should definitely move to using bubbletea style system (called lipgloss ofc)
@@ -59,25 +63,6 @@ func formatWithBold(text string, shouldBold bool) string {
 	return text
 }
 
-// formatDuration formats elapsed and maxDuration duration with optional bold.
-func formatDuration(elapsed, maxDuration time.Duration, thresholdPerc int) string {
-	// Format as HH:MM:SS
-	formatTime := func(d time.Duration) string {
-		h := int(d.Hours())
-		m := int(d.Minutes()) % 60
-		s := int(d.Seconds()) % 60
-		return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
-	}
-
-	elapsedStr := formatTime(elapsed)
-	maxStr := formatTime(maxDuration)
-	percent := int(float64(elapsed) / float64(maxDuration) * 100)
-
-	text := fmt.Sprintf("%s / %s (%d%%)", elapsedStr, maxStr, percent)
-
-	return formatWithBold(text, percent >= thresholdPerc)
-}
-
 // formatBytes formats bytes in MB with optional bold.
 func formatBytes(current, maxBytes int64, thresholdPerc int) string {
 	currentMB := float64(current) / (1024 * 1024)
@@ -87,4 +72,9 @@ func formatBytes(current, maxBytes int64, thresholdPerc int) string {
 	text := fmt.Sprintf("%.1f MB / %.1f MB (%d%%)", currentMB, maxMB, percent)
 
 	return formatWithBold(text, percent >= thresholdPerc)
+}
+
+type RecordingControls struct {
+	FileSize       uictl.CappedDial[int64]
+	StartStopPause uictl.Knob
 }

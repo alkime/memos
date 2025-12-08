@@ -23,10 +23,20 @@ type AudioDevice interface {
 	// data channel to write packets of sampled bytes into when Start() is called.
 	CaptureInto(ctx context.Context, dataC chan DataPacket) error
 
+	// Start starts the audio device.
 	Start(ctx context.Context) error
-	// Stop stops the audio device and optionally deallocates the underlying resources.
+	// Stop stops the audio device.
 	// if the underlying device has already been deallocated this is a no-op.
-	Stop(ctx context.Context, dealloc bool) error
+	Stop(ctx context.Context) error
+
+	// Toggle starts or stops the audio device depending on its current state.
+	Toggle(ctx context.Context) error
+
+	// IsStarted returns whether the audio device is currently started.
+	IsStarted() bool
+
+	// Dealloc deallocates the underlying audio device and frees resources.
+	Dealloc(ctx context.Context) error
 }
 
 type device struct {
@@ -95,7 +105,7 @@ func (d *device) Start(ctx context.Context) error {
 	return nil
 }
 
-func (d *device) Stop(ctx context.Context, dealloc bool) error {
+func (d *device) Stop(ctx context.Context) error {
 	if d.mgDevice == nil {
 		// noop
 		return nil
@@ -105,11 +115,32 @@ func (d *device) Stop(ctx context.Context, dealloc bool) error {
 		return fmt.Errorf("failed to stop malgo device: %w", err)
 	}
 
-	if dealloc {
-		d.deallocMGDevice()
+	return nil
+}
+
+func (d *device) Toggle(ctx context.Context) error {
+	if d.mgDevice == nil {
+		return fmt.Errorf("device nil. have you allocated and Capture()ed it?")
 	}
 
+	if d.mgDevice.IsStarted() {
+		return d.Stop(ctx)
+	}
+
+	return d.Start(ctx)
+}
+
+func (d *device) Dealloc(ctx context.Context) error {
+	d.deallocMGDevice()
 	return nil
+}
+
+func (d *device) IsStarted() bool {
+	if d.mgDevice == nil {
+		return false
+	}
+
+	return d.mgDevice.IsStarted()
 }
 
 func (d *device) allocMGDevice(devType malgo.DeviceType, dataC chan DataPacket) (*malgo.AllocatedContext, *malgo.Device, error) {
