@@ -69,6 +69,12 @@ func formatWithBold(text string, shouldBold bool) string {
 func formatBytes(current, maxBytes int64, thresholdPerc int) string {
 	currentMB := float64(current) / (1024 * 1024)
 	maxMB := float64(maxBytes) / (1024 * 1024)
+
+	if maxBytes == 0 {
+		text := fmt.Sprintf("%.1f MB / unlimited", currentMB)
+		return text
+	}
+
 	percent := int(float64(current) / float64(maxBytes) * 100)
 
 	text := fmt.Sprintf("%.1f MB / %.1f MB (%d%%)", currentMB, maxMB, percent)

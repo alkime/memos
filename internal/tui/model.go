@@ -23,7 +23,7 @@ func New(cancel context.CancelFunc, outputFile string, recordingControls recordi
 
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
-		// only one for now abut we'll have more...
+		// only one for now but we'll have more...
 		m.recordingUI.Init(),
 	)
 }

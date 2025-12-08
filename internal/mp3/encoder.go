@@ -72,7 +72,6 @@ func (e *StreamingEncoder) Start(ctx context.Context) error {
 	}
 
 	// Create shine-mp3 encoder as STEREO (workaround for mono bug)
-	// See: https://github.com/braheezy/shine-mp3/issues/XXX
 	e.encoder = mp3encoder.NewEncoder(e.config.SampleRate, 2)
 
 	// todo: figure out logging w/ tui bubbletea...
@@ -86,7 +85,6 @@ func (e *StreamingEncoder) Start(ctx context.Context) error {
 			if err := e.Flush(); err != nil {
 				e.setError(fmt.Errorf("failed to flush encoder on shutdown: %w", err))
 			}
-			// slog.Info("MP3 encoder stopped")
 		}()
 
 		for {

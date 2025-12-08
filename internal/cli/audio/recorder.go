@@ -57,7 +57,7 @@ func NewRecorder(conf FileRecorderConfig) (*FileRecorder, error) {
 }
 
 //nolint:funlen // Complex goroutine coordination
-func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (err error) {
+func (r *FileRecorder) Go(ctx context.Context, callback bufferedPacketCallback) (err error) {
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(ctx)
 	defer cancel()
@@ -332,4 +332,4 @@ func catchStopSignals(ctx context.Context) <-chan struct{} {
 	return stopC
 }
 
-type bufferdPacketCallback func(packet device.DataPacket)
+type bufferedPacketCallback func(packet device.DataPacket)

@@ -155,9 +155,9 @@ func getWorkingName(explicitName string) string {
 
 func prepRecordingOutputPath(outputPath, nameParam string) (string, error) {
 	if outputPath == "" {
-		workinginName := getWorkingName(nameParam)
+		workingName := getWorkingName(nameParam)
 		var err error
-		outputPath, err = workdir.FilePath(workinginName, "recording.mp3")
+		outputPath, err = workdir.FilePath(workingName, "recording.mp3")
 		if err != nil {
 			return "", fmt.Errorf("failed to determine output path: %w", err)
 		}
@@ -746,8 +746,6 @@ func main() {
 	ctx.FatalIfErrorf(err)
 	os.Exit(0)
 }
-
-// *
 
 func makeRecordingControls(
 	ctx context.Context,
