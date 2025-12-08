@@ -22,7 +22,7 @@ type Dial[N Number] interface {
 // CappedDial is a Dial with a maximum cap value.
 type CappedDial[N Number] interface {
 	Dial[N]
-	Cap() (num, max N)
+	Cap() (num, maxValue N)
 }
 
 // Levels is a control that can read multiple float32 levels.

@@ -659,7 +659,6 @@ type TuiCmd struct {
 }
 
 func (tc *TuiCmd) Run() error {
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -750,8 +749,13 @@ func main() {
 
 // *
 
-func makeRecordingControls(ctx context.Context, dev device.AudioDevice, recorder *audiofile.Recorder, maxBytes int64) tui_recording.RecordingControls {
-	return tui_recording.RecordingControls{
+func makeRecordingControls(
+	ctx context.Context,
+	dev device.AudioDevice,
+	recorder *audiofile.Recorder,
+	maxBytes int64,
+) tui_recording.Controls {
+	return tui_recording.Controls{
 		StartStopPause: audioDevKnob{
 			ctx: ctx,
 			dev: dev,

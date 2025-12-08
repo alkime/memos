@@ -11,11 +11,11 @@ import (
 type ToggleMsg struct{}
 
 type Model struct {
-	controls RecordingControls
+	controls Controls
 	spinner  spinner.Model
 }
 
-func New(controls RecordingControls) Model {
+func New(controls Controls) Model {
 	return Model{
 		controls: controls,
 		spinner:  spinner.New(spinner.WithSpinner(spinner.Points)),
@@ -46,15 +46,17 @@ func (m Model) View() string {
 		s += m.spinner.View() + " "
 	}
 
-	num, max := m.controls.FileSize.Cap()
-	s += formatBytes(num, max, 90)
+	num, maxValue := m.controls.FileSize.Cap()
+
+	s += formatBytes(num, maxValue, 90)
+
 	return s
 }
 
 // format functions copy n pasted from recorder.go.
 
 // formatWithBold wraps text in ANSI bold codes if shouldBold is true.
-// this is leftover, we should definitely move to using bubbletea style system (called lipgloss ofc)
+// this is leftover, we should definitely move to using bubbletea style system (called lipgloss ofc).
 func formatWithBold(text string, shouldBold bool) string {
 	if shouldBold {
 		return fmt.Sprintf("\033[1m%s\033[0m", text)
@@ -74,7 +76,7 @@ func formatBytes(current, maxBytes int64, thresholdPerc int) string {
 	return formatWithBold(text, percent >= thresholdPerc)
 }
 
-type RecordingControls struct {
+type Controls struct {
 	FileSize       uictl.CappedDial[int64]
 	StartStopPause uictl.Knob
 }

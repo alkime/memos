@@ -36,7 +36,7 @@ type AudioDevice interface {
 	IsStarted() bool
 
 	// Dealloc deallocates the underlying audio device and frees resources.
-	Dealloc(ctx context.Context) error
+	Dealloc(ctx context.Context)
 }
 
 type device struct {
@@ -130,9 +130,8 @@ func (d *device) Toggle(ctx context.Context) error {
 	return d.Start(ctx)
 }
 
-func (d *device) Dealloc(ctx context.Context) error {
+func (d *device) Dealloc(ctx context.Context) {
 	d.deallocMGDevice()
-	return nil
 }
 
 func (d *device) IsStarted() bool {
@@ -143,13 +142,14 @@ func (d *device) IsStarted() bool {
 	return d.mgDevice.IsStarted()
 }
 
-func (d *device) allocMGDevice(devType malgo.DeviceType, dataC chan DataPacket) (*malgo.AllocatedContext, *malgo.Device, error) {
+func (d *device) allocMGDevice(
+	devType malgo.DeviceType,
+	dataC chan DataPacket,
+) (*malgo.AllocatedContext, *malgo.Device, error) {
 	if dataC == nil {
 		return nil, nil, fmt.Errorf("data channel is nil. unable to allocate device")
 	}
 
-	// mgCtx, err := malgo.InitContext(nil, malgo.ContextConfig{}, func(msg string) {slog.Info("malgo audio device log", "msg", msg)})
-	// todo figure out logging w/ tui bubbletea...
 	mgCtx, err := malgo.InitContext(nil, malgo.ContextConfig{}, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize malgo context: %w", err)
@@ -167,7 +167,7 @@ func (d *device) allocMGDevice(devType malgo.DeviceType, dataC chan DataPacket) 
 
 		callBacks = malgo.DeviceCallbacks{
 			Data: func(_, samples []byte, framecount uint32) {
-				dataC <- DataPacket(samples)
+				dataC <- samples
 			},
 		}
 

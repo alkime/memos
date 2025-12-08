@@ -134,7 +134,7 @@ func (r *FileRecorder) Go(ctx context.Context, callback bufferdPacketCallback) (
 			}
 
 			// Send to encoder
-			encoderInput <- []byte(packet)
+			encoderInput <- packet
 
 			if callback != nil {
 				// Invoke callback with the captured packet

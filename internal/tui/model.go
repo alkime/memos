@@ -13,7 +13,7 @@ type model struct {
 	outputFile  string
 }
 
-func New(cancel context.CancelFunc, outputFile string, recordingControls recording.RecordingControls) tea.Model {
+func New(cancel context.CancelFunc, outputFile string, recordingControls recording.Controls) tea.Model {
 	return model{
 		cancel:      cancel,
 		recordingUI: recording.New(recordingControls),
@@ -29,7 +29,6 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd

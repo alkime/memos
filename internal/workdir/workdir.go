@@ -38,11 +38,16 @@ func FilePath(workingName, filename string) (string, error) {
 	return filepath.Join(workPath, filename), nil
 }
 
-// Prep ensures that the working directory for the given name exists,
+// Prep ensures that the working directory for the given name exists.
 func Prep(workingName string) error {
 	workPath, err := WorkPath(workingName)
 	if err != nil {
 		return err
 	}
-	return os.MkdirAll(workPath, 0755)
+
+	if err := os.MkdirAll(workPath, 0755); err != nil {
+		return fmt.Errorf("failed to create working directory %s: %w", workPath, err)
+	}
+
+	return nil
 }
