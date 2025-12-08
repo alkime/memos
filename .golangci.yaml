@@ -54,6 +54,9 @@ linters:
       statements: 45
     gocognit:
       min-complexity: 40
+    gocritic:
+      disabled-checks:
+        - singleCaseSwitch
     godox:
       keywords:
         - HACK

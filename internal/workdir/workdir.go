@@ -8,7 +8,9 @@ import (
 )
 
 // Root returns the base directory for all voice CLI working files.
-// The path is expanded at runtime to resolve the user's home directory.
+// The path is expanded at runtime to resolve to:
+//
+//	$HOME/Documents/Alkime/Memos
 func Root() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -34,4 +36,18 @@ func FilePath(workingName, filename string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(workPath, filename), nil
+}
+
+// Prep ensures that the working directory for the given name exists.
+func Prep(workingName string) error {
+	workPath, err := WorkPath(workingName)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(workPath, 0755); err != nil {
+		return fmt.Errorf("failed to create working directory %s: %w", workPath, err)
+	}
+
+	return nil
 }
