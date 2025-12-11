@@ -4,7 +4,7 @@ package finalizing
 import (
 	"time"
 
-	"github.com/alkime/memos/internal/tui/style"
+	"github.com/alkime/memos/internal/tui/component"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -13,51 +13,39 @@ import (
 // It displays a spinner while waiting for an external signal
 // (AudioFinalizingCompleteMsg) that the MP3 conversion is complete.
 type Model struct {
-	spinner   spinner.Model
+	spinner   component.LabeledSpinner
 	startTime time.Time
 }
 
 // New creates a new finalizing phase model.
 func New() Model {
-	s := spinner.New()
-	s.Spinner = spinner.Dot
-
 	return Model{
-		spinner:   s,
+		spinner: component.NewLabeledSpinner(
+			spinner.Dot,
+			"Finalizing audio...",
+			"Converting to MP3 format",
+			"", // Help text is dynamic (elapsed time)
+		),
 		startTime: time.Now(),
 	}
 }
 
 // Init returns the initial command for the finalizing phase.
 func (m Model) Init() tea.Cmd {
-	return m.spinner.Tick
+	return m.spinner.Init()
 }
 
 // Update handles messages for the finalizing phase.
 func (m Model) Update(teaMsg tea.Msg) (Model, tea.Cmd) {
-	if tickMsg, ok := teaMsg.(spinner.TickMsg); ok {
-		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(tickMsg)
+	var cmd tea.Cmd
+	m.spinner, cmd = m.spinner.Update(teaMsg)
 
-		return m, cmd
-	}
-
-	return m, nil
+	return m, cmd
 }
 
 // View renders the finalizing phase UI.
 func (m Model) View() string {
-	var s string
-
-	s += m.spinner.View() + " "
-	s += style.TitleStyle.Render("Finalizing audio...")
-	s += "\n\n"
-
-	s += style.SubtitleStyle.Render("Converting to MP3 format")
-	s += "\n\n"
-
 	elapsed := time.Since(m.startTime).Round(time.Second)
-	s += style.HelpStyle.Render("Elapsed: " + elapsed.String())
 
-	return s
+	return m.spinner.ViewWithHelp("Elapsed: " + elapsed.String())
 }

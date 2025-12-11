@@ -19,7 +19,7 @@ import (
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/git"
 	"github.com/alkime/memos/internal/tui"
-	"github.com/alkime/memos/internal/tui/msg"
+	"github.com/alkime/memos/internal/tui/phase/msg"
 	tui_recording "github.com/alkime/memos/internal/tui/phase/recording"
 	"github.com/alkime/memos/internal/workdir"
 	tea "github.com/charmbracelet/bubbletea"

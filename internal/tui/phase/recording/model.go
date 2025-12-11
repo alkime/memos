@@ -3,6 +3,7 @@ package recording
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alkime/memos/internal/tui/style"
 	"github.com/alkime/memos/pkg/uictl"
@@ -94,21 +95,25 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 // View renders the recording phase UI.
 func (m Model) View() string {
-	var s string
+	var sb strings.Builder
 
 	// Recording indicator with spinner and stopwatch
 	switch {
 	case m.controls.StartStopPause.Read():
-		s += m.spinner.View() + " "
-		s += style.TitleStyle.Render("Recording") + " "
-		s += style.SubtitleStyle.Render(m.stopwatch.View())
+		sb.WriteString(m.spinner.View())
+		sb.WriteString(" ")
+		sb.WriteString(style.Title.Render("Recording"))
+		sb.WriteString(" ")
+		sb.WriteString(style.Subtitle.Render(m.stopwatch.View()))
 	case m.started:
-		s += style.WarningStyle.Render("Paused") + " "
-		s += style.SubtitleStyle.Render(m.stopwatch.View())
+		sb.WriteString(style.Warning.Render("Paused"))
+		sb.WriteString(" ")
+		sb.WriteString(style.Subtitle.Render(m.stopwatch.View()))
 	default:
-		s += style.SubtitleStyle.Render("Press space to start recording")
+		sb.WriteString(style.Subtitle.Render("Press space to start recording"))
 	}
-	s += "\n\n"
+
+	sb.WriteString("\n\n")
 
 	// File size progress
 	current, maxValue := m.controls.FileSize.Cap()
@@ -117,20 +122,30 @@ func (m Model) View() string {
 		percent = float64(current) / float64(maxValue)
 	}
 
-	s += m.progress.ViewAs(percent) + "\n"
-	s += style.SubtitleStyle.Render(formatBytes(current, maxValue))
-	s += "\n\n"
+	sb.WriteString(m.progress.ViewAs(percent))
+	sb.WriteString("\n")
+	sb.WriteString(style.Subtitle.Render(formatBytes(current, maxValue)))
+	sb.WriteString("\n\n")
 
 	// Help text
 	if m.started {
-		s += style.HelpStyle.Render("[") + style.KeyStyle.Render("space") + style.HelpStyle.Render("] pause/resume  ")
-		s += style.HelpStyle.Render("[") + style.KeyStyle.Render("enter") + style.HelpStyle.Render("] stop  ")
+		sb.WriteString(style.Help.Render("["))
+		sb.WriteString(style.Key.Render("space"))
+		sb.WriteString(style.Help.Render("] pause/resume  "))
+		sb.WriteString(style.Help.Render("["))
+		sb.WriteString(style.Key.Render("enter"))
+		sb.WriteString(style.Help.Render("] stop  "))
 	} else {
-		s += style.HelpStyle.Render("[") + style.KeyStyle.Render("space") + style.HelpStyle.Render("] start  ")
+		sb.WriteString(style.Help.Render("["))
+		sb.WriteString(style.Key.Render("space"))
+		sb.WriteString(style.Help.Render("] start  "))
 	}
-	s += style.HelpStyle.Render("[") + style.KeyStyle.Render("q") + style.HelpStyle.Render("] quit")
 
-	return s
+	sb.WriteString(style.Help.Render("["))
+	sb.WriteString(style.Key.Render("q"))
+	sb.WriteString(style.Help.Render("] quit"))
+
+	return sb.String()
 }
 
 // IsRecording returns whether recording is currently active.

@@ -6,15 +6,15 @@ import (
 	"os"
 
 	"github.com/alkime/memos/internal/cli/transcription"
-	"github.com/alkime/memos/internal/tui/msg"
-	"github.com/alkime/memos/internal/tui/style"
+	"github.com/alkime/memos/internal/tui/component"
+	"github.com/alkime/memos/internal/tui/phase/msg"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 // Model represents the transcription phase UI state.
 type Model struct {
-	spinner    spinner.Model
+	spinner    component.LabeledSpinner
 	audioPath  string
 	outputPath string
 	client     *transcription.Client
@@ -22,11 +22,13 @@ type Model struct {
 
 // New creates a new transcription phase model.
 func New(audioPath, outputPath, apiKey string) Model {
-	s := spinner.New()
-	s.Spinner = spinner.Dot
-
 	return Model{
-		spinner:    s,
+		spinner: component.NewLabeledSpinner(
+			spinner.Dot,
+			"Transcribing audio...",
+			"Sending to Whisper API",
+			"This may take a moment depending on audio length",
+		),
 		audioPath:  audioPath,
 		outputPath: outputPath,
 		client:     transcription.NewClient(apiKey),
@@ -36,37 +38,22 @@ func New(audioPath, outputPath, apiKey string) Model {
 // Init returns the initial command for the transcription phase.
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
-		m.spinner.Tick,
+		m.spinner.Init(),
 		m.transcribeCmd(),
 	)
 }
 
 // Update handles messages for the transcription phase.
 func (m Model) Update(teaMsg tea.Msg) (Model, tea.Cmd) {
-	switch teaMsg := teaMsg.(type) {
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(teaMsg)
-		return m, cmd
-	}
+	var cmd tea.Cmd
+	m.spinner, cmd = m.spinner.Update(teaMsg)
 
-	return m, nil
+	return m, cmd
 }
 
 // View renders the transcription phase UI.
 func (m Model) View() string {
-	var s string
-
-	s += m.spinner.View() + " "
-	s += style.TitleStyle.Render("Transcribing audio...")
-	s += "\n\n"
-
-	s += style.SubtitleStyle.Render("Sending to Whisper API")
-	s += "\n\n"
-
-	s += style.HelpStyle.Render("This may take a moment depending on audio length")
-
-	return s
+	return m.spinner.View()
 }
 
 // transcribeCmd returns a command that performs the transcription.

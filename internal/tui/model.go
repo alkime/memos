@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/alkime/memos/internal/cli/ai"
-	"github.com/alkime/memos/internal/tui/msg"
 	"github.com/alkime/memos/internal/tui/phase"
 	"github.com/alkime/memos/internal/tui/phase/finalizing"
 	"github.com/alkime/memos/internal/tui/phase/generating"
+	"github.com/alkime/memos/internal/tui/phase/msg"
 	"github.com/alkime/memos/internal/tui/phase/recording"
 	"github.com/alkime/memos/internal/tui/phase/transcribing"
 	"github.com/alkime/memos/internal/tui/phase/viewtranscript"
@@ -312,80 +313,89 @@ func (m model) openEditorCmd() tea.Cmd {
 
 // View renders the current UI.
 func (m model) View() string {
-	var s string
+	var sb strings.Builder
 
 	// Add header with current phase
-	s += style.SubtitleStyle.Render(fmt.Sprintf("Phase: %s", m.phase.String()))
-	s += "\n\n"
+	sb.WriteString(style.Subtitle.Render(fmt.Sprintf("Phase: %s", m.phase.String())))
+	sb.WriteString("\n\n")
 
 	switch m.phase {
 	case phase.PhaseRecording:
-		s += m.viewRecording()
+		sb.WriteString(m.viewRecording())
 	case phase.PhaseFinalizingAudio:
-		s += m.finalizingUI.View()
+		sb.WriteString(m.finalizingUI.View())
 	case phase.PhaseTranscribing:
-		s += m.transcribingUI.View()
+		sb.WriteString(m.transcribingUI.View())
 	case phase.PhaseViewTranscript:
-		s += m.viewTranscriptUI.View()
+		sb.WriteString(m.viewTranscriptUI.View())
 	case phase.PhaseGeneratingDraft:
-		s += m.generatingUI.View()
+		sb.WriteString(m.generatingUI.View())
 	case phase.PhaseComplete:
-		s += m.viewComplete()
+		sb.WriteString(m.viewComplete())
 	case phase.PhaseError:
-		s += m.viewError()
+		sb.WriteString(m.viewError())
 	}
 
-	return s
+	return sb.String()
 }
 
 func (m model) viewRecording() string {
-	var s string
+	var sb strings.Builder
 
-	s += style.TitleStyle.Render("Recording to: ") + m.config.AudioPath
-	s += "\n\n"
-	s += m.recordingUI.View()
+	sb.WriteString(style.Title.Render("Recording to: "))
+	sb.WriteString(m.config.AudioPath)
+	sb.WriteString("\n\n")
+	sb.WriteString(m.recordingUI.View())
 
-	return s
+	return sb.String()
 }
 
 func (m model) viewComplete() string {
-	var s string
+	var sb strings.Builder
 
-	s += style.SuccessStyle.Render("Workflow complete!")
-	s += "\n\n"
+	sb.WriteString(style.Success.Render("Workflow complete!"))
+	sb.WriteString("\n\n")
 
 	if m.draftPath != "" {
-		s += "First draft saved to: " + m.draftPath
-		s += "\n\n"
-		s += style.HelpStyle.Render("Opening in editor...")
+		sb.WriteString("First draft saved to: ")
+		sb.WriteString(m.draftPath)
+		sb.WriteString("\n\n")
+		sb.WriteString(style.Help.Render("Opening in editor..."))
 	} else if m.transcript != "" {
-		s += "Transcript saved to: " + m.config.TranscriptPath
-		s += "\n\n"
-		s += style.HelpStyle.Render("First draft generation was skipped")
+		sb.WriteString("Transcript saved to: ")
+		sb.WriteString(m.config.TranscriptPath)
+		sb.WriteString("\n\n")
+		sb.WriteString(style.Help.Render("First draft generation was skipped"))
 	}
 
-	s += "\n\n"
-	s += style.HelpStyle.Render("Press any key to exit")
+	sb.WriteString("\n\n")
+	sb.WriteString(style.Help.Render("Press any key to exit"))
 
-	return s
+	return sb.String()
 }
 
 func (m model) viewError() string {
-	var s string
+	var sb strings.Builder
 
-	s += style.ErrorStyle.Render("Error occurred:")
-	s += "\n\n"
+	sb.WriteString(style.Error.Render("Error occurred:"))
+	sb.WriteString("\n\n")
 
 	if m.err != nil {
-		s += m.err.Error()
+		sb.WriteString(m.err.Error())
 	} else {
-		s += "Unknown error"
+		sb.WriteString("Unknown error")
 	}
 
-	s += "\n\n"
-	s += style.HelpStyle.Render("[") + style.KeyStyle.Render("r") + style.HelpStyle.Render("] retry  ")
-	s += style.HelpStyle.Render("[") + style.KeyStyle.Render("s") + style.HelpStyle.Render("] skip  ")
-	s += style.HelpStyle.Render("[") + style.KeyStyle.Render("q") + style.HelpStyle.Render("] quit")
+	sb.WriteString("\n\n")
+	sb.WriteString(style.Help.Render("["))
+	sb.WriteString(style.Key.Render("r"))
+	sb.WriteString(style.Help.Render("] retry  "))
+	sb.WriteString(style.Help.Render("["))
+	sb.WriteString(style.Key.Render("s"))
+	sb.WriteString(style.Help.Render("] skip  "))
+	sb.WriteString(style.Help.Render("["))
+	sb.WriteString(style.Key.Render("q"))
+	sb.WriteString(style.Help.Render("] quit"))
 
-	return s
+	return sb.String()
 }
