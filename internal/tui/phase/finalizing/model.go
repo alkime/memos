@@ -4,7 +4,7 @@ package finalizing
 import (
 	"time"
 
-	"github.com/alkime/memos/internal/tui/component"
+	"github.com/alkime/memos/internal/tui/components/labeledspinner"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -13,14 +13,14 @@ import (
 // It displays a spinner while waiting for an external signal
 // (AudioFinalizingCompleteMsg) that the MP3 conversion is complete.
 type Model struct {
-	spinner   component.LabeledSpinner
+	spinner   labeledspinner.LabeledSpinner
 	startTime time.Time
 }
 
 // New creates a new finalizing phase model.
 func New() Model {
 	return Model{
-		spinner: component.NewLabeledSpinner(
+		spinner: labeledspinner.New(
 			spinner.Dot,
 			"Finalizing audio...",
 			"Converting to MP3 format",

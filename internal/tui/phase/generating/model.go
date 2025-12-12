@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/alkime/memos/internal/cli/ai"
-	"github.com/alkime/memos/internal/tui/component"
+	"github.com/alkime/memos/internal/tui/components/labeledspinner"
 	"github.com/alkime/memos/internal/tui/phase/msg"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,7 +14,7 @@ import (
 
 // Model represents the generating phase UI state.
 type Model struct {
-	spinner    component.LabeledSpinner
+	spinner    labeledspinner.LabeledSpinner
 	transcript string
 	mode       ai.Mode
 	outputPath string
@@ -24,7 +24,7 @@ type Model struct {
 // New creates a new generating phase model.
 func New(transcript string, mode ai.Mode, apiKey, outputPath string) Model {
 	return Model{
-		spinner: component.NewLabeledSpinner(
+		spinner: labeledspinner.New(
 			spinner.Pulse,
 			"Generating first draft...",
 			fmt.Sprintf("Mode: %s", mode),

@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/alkime/memos/internal/cli/transcription"
-	"github.com/alkime/memos/internal/tui/component"
+	"github.com/alkime/memos/internal/tui/components/labeledspinner"
 	"github.com/alkime/memos/internal/tui/phase/msg"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,7 +14,7 @@ import (
 
 // Model represents the transcription phase UI state.
 type Model struct {
-	spinner    component.LabeledSpinner
+	spinner    labeledspinner.LabeledSpinner
 	audioPath  string
 	outputPath string
 	client     *transcription.Client
@@ -23,7 +23,7 @@ type Model struct {
 // New creates a new transcription phase model.
 func New(audioPath, outputPath, apiKey string) Model {
 	return Model{
-		spinner: component.NewLabeledSpinner(
+		spinner: labeledspinner.New(
 			spinner.Dot,
 			"Transcribing audio...",
 			"Sending to Whisper API",

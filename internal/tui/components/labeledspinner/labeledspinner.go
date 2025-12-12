@@ -1,5 +1,5 @@
 // Package component provides reusable TUI components.
-package component
+package labeledspinner
 
 import (
 	"strings"
@@ -18,8 +18,8 @@ type LabeledSpinner struct {
 	Help     string
 }
 
-// NewLabeledSpinner creates a new labeled spinner with the given configuration.
-func NewLabeledSpinner(s spinner.Spinner, title, subtitle, help string) LabeledSpinner {
+// New creates a new labeled spinner with the given configuration.
+func New(s spinner.Spinner, title, subtitle, help string) LabeledSpinner {
 	sp := spinner.New()
 	sp.Spinner = s
 
