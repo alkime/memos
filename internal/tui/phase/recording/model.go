@@ -7,10 +7,13 @@ import (
 
 	"github.com/alkime/memos/internal/tui/style"
 	"github.com/alkime/memos/pkg/uictl"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/stopwatch"
 	tea "github.com/charmbracelet/bubbletea"
+
+	phase_msg "github.com/alkime/memos/internal/tui/phase/msg"
 )
 
 // ToggleMsg signals a toggle of recording state.
@@ -18,6 +21,7 @@ type ToggleMsg struct{}
 
 // Model represents the recording phase UI state.
 type Model struct {
+	keys      KeyMap
 	controls  Controls
 	spinner   spinner.Model
 	stopwatch stopwatch.Model
@@ -29,6 +33,7 @@ type Model struct {
 type Controls struct {
 	FileSize       uictl.CappedDial[int64]
 	StartStopPause uictl.Knob
+	Finish         func()
 }
 
 // New creates a new recording phase model.
@@ -43,6 +48,7 @@ func New(controls Controls, maxBytes int64) Model {
 	)
 
 	return Model{
+		keys:      DefaultKeyMap(),
 		controls:  controls,
 		spinner:   s,
 		stopwatch: stopwatch.New(),
@@ -62,15 +68,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case ToggleMsg:
-		m.controls.StartStopPause.Toggle()
-		if m.IsRecording() {
-			cmds = append(cmds, m.stopwatch.Start())
-		} else {
-			cmds = append(cmds, m.stopwatch.Stop())
-		}
-		return m, tea.Batch(cmds...)
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.keys.Toggle):
+			m.controls.StartStopPause.Toggle()
+			if m.IsRecording() {
+				cmds = append(cmds, m.stopwatch.Start())
+			} else {
+				cmds = append(cmds, m.stopwatch.Stop())
+			}
+			return m, tea.Batch(cmds...)
+		case key.Matches(msg, m.keys.Finish):
+			if m.controls.Finish != nil {
+				m.controls.Finish()
+			}
 
+		}
+	case phase_msg.AudioFinalizingCompleteMsg:
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)

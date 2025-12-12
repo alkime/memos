@@ -24,6 +24,10 @@ import (
 // continue even if the TUI is shutting down.
 var editorContext = context.Background() //nolint:gochecknoglobals // Package-level for exec context
 
+type SetPhaseMsg struct {
+	Phase phase.Phase
+}
+
 // Config holds TUI configuration.
 type Config struct {
 	Cancel          context.CancelFunc
