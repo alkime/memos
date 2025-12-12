@@ -23,7 +23,6 @@ type Model struct {
 	stopwatch stopwatch.Model
 	progress  progress.Model
 	maxBytes  int64
-	started   bool
 }
 
 // Controls provides read/write access to recording hardware.
@@ -46,19 +45,16 @@ func New(controls Controls, maxBytes int64) Model {
 	return Model{
 		controls:  controls,
 		spinner:   s,
-		stopwatch: stopwatch.NewWithInterval(0), // Default interval
+		stopwatch: stopwatch.New(),
 		progress:  p,
 		maxBytes:  maxBytes,
-		started:   false,
 	}
 }
 
 // Init returns the initial command for the recording phase.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		m.spinner.Tick,
-		m.stopwatch.Init(),
-	)
+	// Only start spinner - stopwatch starts when user toggles recording
+	return m.spinner.Tick
 }
 
 // Update handles messages for the recording phase.
@@ -68,9 +64,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ToggleMsg:
 		m.controls.StartStopPause.Toggle()
-		if !m.started {
-			m.started = true
+		if m.IsRecording() {
 			cmds = append(cmds, m.stopwatch.Start())
+		} else {
+			cmds = append(cmds, m.stopwatch.Stop())
 		}
 		return m, tea.Batch(cmds...)
 
@@ -79,15 +76,17 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.spinner, cmd = m.spinner.Update(msg)
 		cmds = append(cmds, cmd)
 
-	case stopwatch.TickMsg:
-		var cmd tea.Cmd
-		m.stopwatch, cmd = m.stopwatch.Update(msg)
-		cmds = append(cmds, cmd)
-
 	case progress.FrameMsg:
 		progressModel, cmd := m.progress.Update(msg)
 		m.progress = progressModel.(progress.Model)
 		cmds = append(cmds, cmd)
+	}
+
+	// Always update stopwatch - it needs StartStopMsg, TickMsg, and ResetMsg
+	var stopwatchCmd tea.Cmd
+	m.stopwatch, stopwatchCmd = m.stopwatch.Update(msg)
+	if stopwatchCmd != nil {
+		cmds = append(cmds, stopwatchCmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -98,19 +97,16 @@ func (m Model) View() string {
 	var sb strings.Builder
 
 	// Recording indicator with spinner and stopwatch
-	switch {
-	case m.controls.StartStopPause.Read():
+	if m.IsRecording() {
 		sb.WriteString(m.spinner.View())
 		sb.WriteString(" ")
 		sb.WriteString(style.Title.Render("Recording"))
 		sb.WriteString(" ")
 		sb.WriteString(style.Subtitle.Render(m.stopwatch.View()))
-	case m.started:
+	} else {
 		sb.WriteString(style.Warning.Render("Paused"))
 		sb.WriteString(" ")
 		sb.WriteString(style.Subtitle.Render(m.stopwatch.View()))
-	default:
-		sb.WriteString(style.Subtitle.Render("Press space to start recording"))
 	}
 
 	sb.WriteString("\n\n")
@@ -128,18 +124,12 @@ func (m Model) View() string {
 	sb.WriteString("\n\n")
 
 	// Help text
-	if m.started {
-		sb.WriteString(style.Help.Render("["))
-		sb.WriteString(style.Key.Render("space"))
-		sb.WriteString(style.Help.Render("] pause/resume  "))
-		sb.WriteString(style.Help.Render("["))
-		sb.WriteString(style.Key.Render("enter"))
-		sb.WriteString(style.Help.Render("] stop  "))
-	} else {
-		sb.WriteString(style.Help.Render("["))
-		sb.WriteString(style.Key.Render("space"))
-		sb.WriteString(style.Help.Render("] start  "))
-	}
+	sb.WriteString(style.Help.Render("["))
+	sb.WriteString(style.Key.Render("space"))
+	sb.WriteString(style.Help.Render("] start/pause  "))
+	sb.WriteString(style.Help.Render("["))
+	sb.WriteString(style.Key.Render("enter"))
+	sb.WriteString(style.Help.Render("] stop and transcribe  "))
 
 	sb.WriteString(style.Help.Render("["))
 	sb.WriteString(style.Key.Render("q"))
@@ -151,11 +141,6 @@ func (m Model) View() string {
 // IsRecording returns whether recording is currently active.
 func (m Model) IsRecording() bool {
 	return m.controls.StartStopPause.Read()
-}
-
-// HasStarted returns whether recording has been started at least once.
-func (m Model) HasStarted() bool {
-	return m.started
 }
 
 // formatBytes formats bytes as a human-readable string.

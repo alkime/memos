@@ -131,24 +131,22 @@ func (m model) updateRecording(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, func() tea.Msg { return recording.ToggleMsg{} }
 		case "enter":
 			// Stop recording and transition to finalizing (wait for MP3)
-			if m.recordingUI.HasStarted() {
-				if m.config.Cancel != nil {
-					m.config.Cancel()
-				}
-
-				// Check if we have API key for transcription
-				if m.config.OpenAIAPIKey == "" {
-					m.err = fmt.Errorf("OPENAI_API_KEY not set, cannot transcribe")
-					m.phase = phase.PhaseError
-
-					return m, nil
-				}
-
-				m.phase = phase.PhaseFinalizingAudio
-				m.finalizingUI = finalizing.New()
-
-				return m, m.finalizingUI.Init()
+			if m.config.Cancel != nil {
+				m.config.Cancel()
 			}
+
+			// Check if we have API key for transcription
+			if m.config.OpenAIAPIKey == "" {
+				m.err = fmt.Errorf("OPENAI_API_KEY not set, cannot transcribe")
+				m.phase = phase.PhaseError
+
+				return m, nil
+			}
+
+			m.phase = phase.PhaseFinalizingAudio
+			m.finalizingUI = finalizing.New()
+
+			return m, m.finalizingUI.Init()
 		}
 	}
 
