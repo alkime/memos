@@ -13,7 +13,7 @@ import (
 // It displays a spinner while waiting for an external signal
 // (AudioFinalizingCompleteMsg) that the MP3 conversion is complete.
 type Model struct {
-	spinner   labeledspinner.LabeledSpinner
+	spinner   labeledspinner.Model
 	startTime time.Time
 }
 

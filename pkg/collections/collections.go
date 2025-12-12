@@ -8,3 +8,12 @@ func Apply[T, V any](items []T, applicator func(T) V) []V {
 	}
 	return result
 }
+
+func ApplyVariadic[T, V any](applicator func(T) V, items ...T) []V {
+	return Apply(items, applicator)
+}
+
+// SliceFromVariadic creates a slice from variadic arguments.
+func SliceFromVariadic[T any](items ...T) []T {
+	return items
+}

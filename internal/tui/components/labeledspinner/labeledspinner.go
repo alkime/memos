@@ -9,9 +9,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// LabeledSpinner displays a spinner with title, subtitle, and help text.
+// Model displays a spinner with title, subtitle, and help text.
 // This pattern is used across multiple TUI phases (finalizing, transcribing, generating).
-type LabeledSpinner struct {
+type Model struct {
 	Spinner  spinner.Model
 	Title    string
 	Subtitle string
@@ -19,11 +19,11 @@ type LabeledSpinner struct {
 }
 
 // New creates a new labeled spinner with the given configuration.
-func New(s spinner.Spinner, title, subtitle, help string) LabeledSpinner {
+func New(s spinner.Spinner, title, subtitle, help string) Model {
 	sp := spinner.New()
 	sp.Spinner = s
 
-	return LabeledSpinner{
+	return Model{
 		Spinner:  sp,
 		Title:    title,
 		Subtitle: subtitle,
@@ -32,12 +32,12 @@ func New(s spinner.Spinner, title, subtitle, help string) LabeledSpinner {
 }
 
 // Init returns the initial command for the spinner.
-func (ls LabeledSpinner) Init() tea.Cmd {
+func (ls Model) Init() tea.Cmd {
 	return ls.Spinner.Tick
 }
 
 // Update handles spinner tick messages.
-func (ls LabeledSpinner) Update(teaMsg tea.Msg) (LabeledSpinner, tea.Cmd) {
+func (ls Model) Update(teaMsg tea.Msg) (Model, tea.Cmd) {
 	if tickMsg, ok := teaMsg.(spinner.TickMsg); ok {
 		var cmd tea.Cmd
 		ls.Spinner, cmd = ls.Spinner.Update(tickMsg)
@@ -49,13 +49,13 @@ func (ls LabeledSpinner) Update(teaMsg tea.Msg) (LabeledSpinner, tea.Cmd) {
 }
 
 // View renders the labeled spinner with static help text.
-func (ls LabeledSpinner) View() string {
+func (ls Model) View() string {
 	return ls.ViewWithHelp(ls.Help)
 }
 
 // ViewWithHelp renders the labeled spinner with dynamic help text.
 // Use this when help text needs to be computed at render time (e.g., elapsed time).
-func (ls LabeledSpinner) ViewWithHelp(help string) string {
+func (ls Model) ViewWithHelp(help string) string {
 	var sb strings.Builder
 
 	sb.WriteString(ls.Spinner.View())

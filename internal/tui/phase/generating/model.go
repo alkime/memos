@@ -14,7 +14,7 @@ import (
 
 // Model represents the generating phase UI state.
 type Model struct {
-	spinner    labeledspinner.LabeledSpinner
+	spinner    labeledspinner.Model
 	transcript string
 	mode       ai.Mode
 	outputPath string

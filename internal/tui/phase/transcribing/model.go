@@ -14,7 +14,7 @@ import (
 
 // Model represents the transcription phase UI state.
 type Model struct {
-	spinner    labeledspinner.LabeledSpinner
+	spinner    labeledspinner.Model
 	audioPath  string
 	outputPath string
 	client     *transcription.Client
