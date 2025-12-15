@@ -21,6 +21,7 @@ import (
 	"github.com/alkime/memos/internal/tui"
 	"github.com/alkime/memos/internal/tui/phase/msg"
 	tui_recording "github.com/alkime/memos/internal/tui/phase/recording"
+	tuiPhases "github.com/alkime/memos/internal/tui/phases"
 	"github.com/alkime/memos/internal/workdir"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gen2brain/malgo"
@@ -743,17 +744,16 @@ func (tc *TuiCmd) Run() error {
 		EditorCmd:       os.Getenv("MEMOS_EDITOR"),
 	}
 
-	ctrls := makeRecordingControls(ctx, dev, recorder, tc.MaxBytes)
-	p := tea.NewProgram(tui.New(config, ctrls))
+	ctrls := makeRecordingControls2(ctx, dev, recorder, dataC, tc.MaxBytes)
+	p := tea.NewProgram(tui.New2(config, ctrls))
 
-	// Audio recorder goroutine (waits for PCM buffering, MP3 conversion, cleanup)
+	// Audio recorder goroutine (waits for channel close, MP3 conversion, cleanup)
 	wg.Go(func() {
 		if err := recorder.Start(ctx); err != nil {
 			slog.Error("Audio recorder error", "error", err)
 		}
 
-		<-ctx.Done()
-
+		// Wait for recorder to finish (triggered by Finish() closing dataC)
 		if err := recorder.Wait(); err != nil {
 			slog.Error("Audio recorder error", "error", err)
 		}
@@ -786,6 +786,7 @@ func main() {
 	os.Exit(0)
 }
 
+//nolint:unused // Kept for old TUI model during migration
 func makeRecordingControls(
 	ctx context.Context,
 	dev device.AudioDevice,
@@ -801,6 +802,32 @@ func makeRecordingControls(
 			ctx:      ctx,
 			recorder: recorder,
 			maxBytes: maxBytes,
+		},
+	}
+}
+
+func makeRecordingControls2(
+	ctx context.Context,
+	dev device.AudioDevice,
+	recorder *audiofile.Recorder,
+	dataC chan []byte,
+	maxBytes int64,
+) tuiPhases.RecordingControls {
+	return tuiPhases.RecordingControls{
+		StartStopPause: audioDevKnob{
+			ctx: ctx,
+			dev: dev,
+		},
+		FileSize: audioFileDial{
+			ctx:      ctx,
+			recorder: recorder,
+			maxBytes: maxBytes,
+		},
+		Finish: func() {
+			if err := dev.Stop(ctx); err != nil {
+				slog.Error("Failed to stop audio device", "error", err)
+			}
+			close(dataC)
 		},
 	}
 }

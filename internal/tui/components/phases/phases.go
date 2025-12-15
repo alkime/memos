@@ -4,8 +4,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// NextPhaseMsg signals the phases container to advance to the next phase.
 type NextPhaseMsg struct{}
 
+// PrevPhaseMsg signals the phases container to go back to the previous phase.
 type PrevPhaseMsg struct{}
 
 type Phase struct {
@@ -54,8 +56,8 @@ func (m Model) Init() tea.Cmd {
 	return m.currentPhase().Init()
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg.(type) {
+func (m Model) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
+	switch teaMsg.(type) {
 	case NextPhaseMsg:
 		if m.curr >= len(m.phases)-1 {
 			return m, nil
@@ -72,11 +74,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.currentPhase().Init()
 	}
 
-	ph, cmd := m.currentPhase().Update(msg)
+	ph, cmd := m.currentPhase().Update(teaMsg)
 	m.phases[m.curr] = ph
+
 	return m, cmd
 }
 
 func (m Model) View() string {
 	return m.currentPhase().View()
+}
+
+// CurrentPhaseName returns the name of the current phase.
+func (m Model) CurrentPhaseName() string {
+	return m.currentPhase().Name
 }
