@@ -702,10 +702,11 @@ func (tc *TuiCmd) Run() error {
 	// always dealloc when we're done
 	defer func() {
 		dev.Dealloc(ctx)
-		slog.Info("Audio device deallocated")
+		slog.Debug("Audio device deallocated")
 	}()
 
 	// Output paths
+
 	outputPath, err := prepRecordingOutputPath(tc.Output, tc.Name)
 	if err != nil {
 		return fmt.Errorf("failed to prepare output path: %w", err)
@@ -737,6 +738,7 @@ func (tc *TuiCmd) Run() error {
 		AudioPath:       outputPath,
 		TranscriptPath:  transcriptPath,
 		DraftPath:       draftPath,
+		WorkingName:     workingName,
 		OpenAIAPIKey:    tc.OpenAIAPIKey,
 		AnthropicAPIKey: tc.AnthropicAPIKey,
 		Mode:            mode,
@@ -766,6 +768,8 @@ func (tc *TuiCmd) Run() error {
 	}
 
 	wg.Wait()
+
+	fmt.Println("finished. bye!")
 
 	return nil
 }

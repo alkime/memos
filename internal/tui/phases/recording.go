@@ -42,8 +42,8 @@ func defaultRecordingKeyMap() recordingKeyMap {
 	}
 }
 
-// Recording represents the recording phase UI state.
-type Recording struct {
+// recordingPhase represents the recording phase UI state.
+type recordingPhase struct {
 	keys      recordingKeyMap
 	controls  RecordingControls
 	spinner   spinner.Model
@@ -53,7 +53,7 @@ type Recording struct {
 }
 
 // NewRecording creates a new recording phase model.
-func NewRecording(controls RecordingControls, maxBytes int64) *Recording {
+func NewRecording(controls RecordingControls, maxBytes int64) tea.Model {
 	s := spinner.New()
 	s.Spinner = spinner.Points
 
@@ -63,7 +63,7 @@ func NewRecording(controls RecordingControls, maxBytes int64) *Recording {
 		progress.WithoutPercentage(),
 	)
 
-	return &Recording{
+	return &recordingPhase{
 		keys:      defaultRecordingKeyMap(),
 		controls:  controls,
 		spinner:   s,
@@ -74,12 +74,12 @@ func NewRecording(controls RecordingControls, maxBytes int64) *Recording {
 }
 
 // Init returns the initial command for the recording phase.
-func (r *Recording) Init() tea.Cmd {
+func (r *recordingPhase) Init() tea.Cmd {
 	return r.spinner.Tick
 }
 
 // Update handles messages for the recording phase.
-func (r *Recording) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
+func (r *recordingPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch typedMsg := teaMsg.(type) {
@@ -127,7 +127,7 @@ func (r *Recording) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View renders the recording phase UI.
-func (r *Recording) View() string {
+func (r *recordingPhase) View() string {
 	var sb strings.Builder
 
 	// Recording indicator with spinner and stopwatch
@@ -158,21 +158,15 @@ func (r *Recording) View() string {
 	sb.WriteString("\n\n")
 
 	// Help text
-	sb.WriteString(style.Help.Render("["))
-	sb.WriteString(style.Key.Render("space"))
-	sb.WriteString(style.Help.Render("] start/pause  "))
-	sb.WriteString(style.Help.Render("["))
-	sb.WriteString(style.Key.Render("enter"))
-	sb.WriteString(style.Help.Render("] stop and transcribe  "))
-	sb.WriteString(style.Help.Render("["))
-	sb.WriteString(style.Key.Render("q"))
-	sb.WriteString(style.Help.Render("] quit"))
+	sb.WriteString(renderKeyHelp(r.keys.Toggle, " "))
+	sb.WriteString(renderKeyHelp(r.keys.Finish, "\n"))
+	sb.WriteString(renderGlobalKeyHelp())
 
 	return sb.String()
 }
 
 // IsRecording returns whether recording is currently active.
-func (r *Recording) IsRecording() bool {
+func (r *recordingPhase) IsRecording() bool {
 	return r.controls.StartStopPause.Read()
 }
 

@@ -7,6 +7,12 @@ import (
 	"path/filepath"
 )
 
+const (
+	MP3File        = "recording.mp3"
+	TranscriptFile = "transcript.txt"
+	FirstDraftFile = "first-draft.md"
+)
+
 // Root returns the base directory for all voice CLI working files.
 // The path is expanded at runtime to resolve to:
 //
@@ -36,6 +42,15 @@ func FilePath(workingName, filename string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(workPath, filename), nil
+}
+
+// MustFilePath is like FilePath but panics on error.
+func MustFilePath(workingName, filename string) string {
+	path, err := FilePath(workingName, filename)
+	if err != nil {
+		panic("failed to determine file path: " + err.Error())
+	}
+	return path
 }
 
 // Prep ensures that the working directory for the given name exists.

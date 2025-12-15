@@ -14,6 +14,7 @@ import (
 	"github.com/alkime/memos/internal/tui/phase/recording"
 	"github.com/alkime/memos/internal/tui/phase/transcribing"
 	"github.com/alkime/memos/internal/tui/phase/viewtranscript"
+	tuiPhases "github.com/alkime/memos/internal/tui/phases"
 	"github.com/alkime/memos/internal/tui/style"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -30,10 +31,16 @@ type SetPhaseMsg struct {
 
 // Config holds TUI configuration.
 type Config struct {
-	Cancel          context.CancelFunc
-	AudioPath       string
-	TranscriptPath  string
-	DraftPath       string
+	Cancel      context.CancelFunc
+	WorkingName string
+
+	// deprecated: use WorkingName + workdir.FilePath
+	AudioPath string
+	// deprecated: use WorkingName + workdir.FilePath
+	TranscriptPath string
+	// deprecated: use WorkingName + workdir.FilePath
+	DraftPath string
+
 	OpenAIAPIKey    string
 	AnthropicAPIKey string
 	Mode            ai.Mode
@@ -43,7 +50,7 @@ type Config struct {
 
 type model struct {
 	config Config
-	keys   KeyMap
+	keys   tuiPhases.KeyMap
 	phase  phase.Phase
 
 	// Sub-models (only one active at a time)
@@ -65,7 +72,7 @@ type model struct {
 func New(config Config, recordingControls recording.Controls) tea.Model {
 	return model{
 		config:       config,
-		keys:         DefaultKeyMap(),
+		keys:         tuiPhases.DefaultKeyMap(),
 		phase:        phase.PhaseRecording,
 		recordingUI:  recording.New(recordingControls, config.MaxBytes),
 		windowWidth:  80, // Default

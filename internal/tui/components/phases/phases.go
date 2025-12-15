@@ -7,8 +7,12 @@ import (
 // NextPhaseMsg signals the phases container to advance to the next phase.
 type NextPhaseMsg struct{}
 
+var NextPhaseCmd = func() tea.Msg { return NextPhaseMsg{} }
+
 // PrevPhaseMsg signals the phases container to go back to the previous phase.
 type PrevPhaseMsg struct{}
+
+var PrevPhaseCmd = func() tea.Msg { return PrevPhaseMsg{} }
 
 type Phase struct {
 	Name string
