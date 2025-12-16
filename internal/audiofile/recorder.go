@@ -97,7 +97,7 @@ func (r *Recorder) Start(ctx context.Context) error {
 			}
 
 			// Convert PCM to MP3
-			slog.Info("converting PCM to MP3")
+			slog.Debug("converting PCM to MP3")
 			if err := r.convertToMP3(); err != nil {
 				r.setError(fmt.Errorf("failed to convert to MP3: %w", err))
 				return
@@ -108,7 +108,7 @@ func (r *Recorder) Start(ctx context.Context) error {
 				slog.Warn("failed to cleanup temporary PCM file", "error", err)
 			}
 
-			slog.Info("recording complete", "output", r.mp3Path)
+			slog.Debug("recording complete", "output", r.mp3Path)
 		}()
 
 		for {
@@ -179,7 +179,7 @@ func (r *Recorder) convertToMP3() error {
 		samples = monoSamples
 	}
 
-	slog.Info("converting PCM to MP3",
+	slog.Debug("converting PCM to MP3",
 		"pcmPath", r.pcmPath,
 		"mp3Path", r.mp3Path,
 		"samples", numSamples,

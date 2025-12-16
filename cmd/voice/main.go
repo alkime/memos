@@ -19,7 +19,9 @@ import (
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/git"
 	"github.com/alkime/memos/internal/tui"
-	tui_recording "github.com/alkime/memos/internal/tui/recording"
+	"github.com/alkime/memos/internal/tui/phase/msg"
+	tui_recording "github.com/alkime/memos/internal/tui/phase/recording"
+	tuiPhases "github.com/alkime/memos/internal/tui/phases"
 	"github.com/alkime/memos/internal/workdir"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gen2brain/malgo"
@@ -652,17 +654,30 @@ func (dcmd *DevicesCmd) Run() error {
 }
 
 type TuiCmd struct {
-	Output      string `arg:"" optional:"" help:"Output file path"`
-	Name        string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
-	MaxDuration string `flag:"" default:"1h" help:"Max recording duration"`
-	MaxBytes    int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
+	Output          string `arg:"" optional:"" help:"Output file path"`
+	Name            string `flag:"" optional:"" help:"Working name (overrides git branch detection)"`
+	MaxDuration     string `flag:"" default:"1h" help:"Max recording duration"`
+	MaxBytes        int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
+	Mode            string `flag:"" default:"memos" help:"Content mode: memos (full) or journal (minimal)"`
+	OpenAIAPIKey    string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key for transcription"`
+	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key for first draft"`
 }
 
+//nolint:funlen // CLI command with multiple setup steps
 func (tc *TuiCmd) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	wg := sync.WaitGroup{}
+
+	// Parse and validate mode
+	mode := ai.Mode(tc.Mode)
+	if mode != ai.ModeMemos && mode != ai.ModeJournal {
+		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", tc.Mode)
+	}
+
+	// Determine working paths
+	workingName := getWorkingName(tc.Name)
 
 	// input
 
@@ -687,14 +702,24 @@ func (tc *TuiCmd) Run() error {
 	// always dealloc when we're done
 	defer func() {
 		dev.Dealloc(ctx)
-		slog.Info("Audio device deallocated")
+		slog.Debug("Audio device deallocated")
 	}()
 
-	// Output
+	// Output paths
 
 	outputPath, err := prepRecordingOutputPath(tc.Output, tc.Name)
 	if err != nil {
 		return fmt.Errorf("failed to prepare output path: %w", err)
+	}
+
+	transcriptPath, err := workdir.FilePath(workingName, "transcript.txt")
+	if err != nil {
+		return fmt.Errorf("failed to determine transcript path: %w", err)
+	}
+
+	draftPath, err := workdir.FilePath(workingName, "first-draft.md")
+	if err != nil {
+		return fmt.Errorf("failed to determine draft path: %w", err)
 	}
 
 	// Create audio file recorder
@@ -707,26 +732,45 @@ func (tc *TuiCmd) Run() error {
 		return fmt.Errorf("failed to create audio recorder: %w", err)
 	}
 
-	// Audio recorder goroutine (waits for PCM buffering, MP3 conversion, cleanup)
+	// Build TUI config
+	config := tui.Config{
+		Cancel:          cancel,
+		AudioPath:       outputPath,
+		TranscriptPath:  transcriptPath,
+		DraftPath:       draftPath,
+		WorkingName:     workingName,
+		OpenAIAPIKey:    tc.OpenAIAPIKey,
+		AnthropicAPIKey: tc.AnthropicAPIKey,
+		Mode:            mode,
+		MaxBytes:        tc.MaxBytes,
+		EditorCmd:       os.Getenv("MEMOS_EDITOR"),
+	}
+
+	ctrls := makeRecordingControls2(ctx, dev, recorder, dataC, tc.MaxBytes)
+	p := tea.NewProgram(tui.New2(config, ctrls))
+
+	// Audio recorder goroutine (waits for channel close, MP3 conversion, cleanup)
 	wg.Go(func() {
 		if err := recorder.Start(ctx); err != nil {
 			slog.Error("Audio recorder error", "error", err)
 		}
 
-		<-ctx.Done()
-
+		// Wait for recorder to finish (triggered by Finish() closing dataC)
 		if err := recorder.Wait(); err != nil {
 			slog.Error("Audio recorder error", "error", err)
 		}
+
+		p.Send(msg.AudioFinalizingCompleteMsg{AudioPath: outputPath})
 	})
 
-	ctrls := makeRecordingControls(ctx, dev, recorder, tc.MaxBytes)
-	p := tea.NewProgram(tui.New(cancel, recorder.GetPCMPath(), ctrls))
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("failed to start TUI: %w", err)
 	}
 
 	wg.Wait()
+
+	//nolint:forbidigo // CLI output for completion notification
+	fmt.Println("\nfinished. bye!")
 
 	return nil
 }
@@ -747,6 +791,7 @@ func main() {
 	os.Exit(0)
 }
 
+//nolint:unused // Kept for old TUI model during migration
 func makeRecordingControls(
 	ctx context.Context,
 	dev device.AudioDevice,
@@ -762,6 +807,32 @@ func makeRecordingControls(
 			ctx:      ctx,
 			recorder: recorder,
 			maxBytes: maxBytes,
+		},
+	}
+}
+
+func makeRecordingControls2(
+	ctx context.Context,
+	dev device.AudioDevice,
+	recorder *audiofile.Recorder,
+	dataC chan []byte,
+	maxBytes int64,
+) tuiPhases.RecordingControls {
+	return tuiPhases.RecordingControls{
+		StartStopPause: audioDevKnob{
+			ctx: ctx,
+			dev: dev,
+		},
+		FileSize: audioFileDial{
+			ctx:      ctx,
+			recorder: recorder,
+			maxBytes: maxBytes,
+		},
+		Finish: func() {
+			if err := dev.Stop(ctx); err != nil {
+				slog.Error("Failed to stop audio device", "error", err)
+			}
+			close(dataC)
 		},
 	}
 }

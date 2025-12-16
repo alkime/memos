@@ -418,6 +418,56 @@ From Go 1.23 docs:
 
 ---
 
+### 8. Use strings.Builder for String Concatenation in Loops
+
+**Rule:** When building strings through multiple concatenations (especially in loops or render functions), use `strings.Builder` instead of `+=` concatenation.
+
+**Why:** String concatenation with `+=` creates a new string allocation on each operation, leading to O(n²) time complexity. `strings.Builder` pre-allocates buffer space and provides O(n) performance.
+
+**Don't:**
+```go
+func (m Model) View() string {
+    var output string
+    output += "Header\n"
+    output += "Content: " + m.content + "\n"
+    for _, item := range m.items {
+        output += "- " + item + "\n"
+    }
+    output += "Footer"
+    return output
+}
+```
+
+**Do:**
+```go
+func (m Model) View() string {
+    var sb strings.Builder
+    sb.WriteString("Header\n")
+    sb.WriteString("Content: ")
+    sb.WriteString(m.content)
+    sb.WriteString("\n")
+    for _, item := range m.items {
+        sb.WriteString("- ")
+        sb.WriteString(item)
+        sb.WriteString("\n")
+    }
+    sb.WriteString("Footer")
+    return sb.String()
+}
+```
+
+**When to use:**
+- Render/View functions that build display output
+- Any function that concatenates strings in a loop
+- Building large strings from multiple parts
+
+**When `+=` is acceptable:**
+- Single concatenation: `return "prefix: " + value`
+- 2-3 small concatenations outside loops
+- One-time string building in initialization
+
+---
+
 ## Additional Standards
 
 ### Linter Configuration
