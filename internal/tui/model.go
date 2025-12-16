@@ -58,7 +58,12 @@ func New(config Config, recordingControls workflow.RecordingControls) tea.Model 
 		workdir.MustFilePath(config.WorkingName, workdir.FirstDraftFile),
 		config.EditorCmd,
 	)))
-	// TODO: Add remaining phases as we migrate them
+
+	phs = append(phs, phases.NewPhase("Copy Edit", workflow.NewCopyEditPhase(
+		workdir.MustFilePath(config.WorkingName, workdir.FirstDraftFile),
+		config.AnthropicAPIKey,
+		config.Mode,
+	)))
 
 	return &model{
 		config:       config,
