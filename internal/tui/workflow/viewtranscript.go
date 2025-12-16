@@ -121,8 +121,13 @@ func (vtp *viewTranscriptPhase) loadViewportCmd() tea.Cmd {
 }
 
 func (vtp *viewTranscriptPhase) setupViewport(msg viewportReadyMsg) {
-	headerHeight := 3
-	footerHeight := 3
+	// Account for all rendered elements:
+	// - Main model "Phase: X\n\n" = 2 lines
+	// - This view's "=== Transcript ===\n\n" = 2 lines
+	// - Viewport border = 2 lines (top + bottom)
+	// - Footer help text "\n\n" + 2 lines = 4 lines
+	headerHeight := 6
+	footerHeight := 4
 	viewportHeight := msg.height - headerHeight - footerHeight
 	if viewportHeight < 5 {
 		viewportHeight = 5
