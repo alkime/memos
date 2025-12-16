@@ -1,4 +1,4 @@
-package phases
+package workflow
 
 import (
 	"strings"
