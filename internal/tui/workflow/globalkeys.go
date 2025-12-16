@@ -1,4 +1,4 @@
-package phases
+package workflow
 
 import "github.com/charmbracelet/bubbles/key"
 

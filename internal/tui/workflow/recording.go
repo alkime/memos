@@ -1,12 +1,11 @@
-// Package phases provides TUI phase implementations.
-package phases
+// Package workflow provides TUI workflow step implementations.
+package workflow
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/alkime/memos/internal/tui/components/phases"
-	"github.com/alkime/memos/internal/tui/phase/msg"
 	"github.com/alkime/memos/internal/tui/style"
 	"github.com/alkime/memos/pkg/uictl"
 	"github.com/charmbracelet/bubbles/key"
@@ -103,7 +102,7 @@ func (r *recordingPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 			return r, nil
 		}
 
-	case msg.AudioFinalizingCompleteMsg:
+	case AudioFinalizingCompleteMsg:
 		return r, func() tea.Msg { return phases.NextPhaseMsg{} }
 	case spinner.TickMsg:
 		var cmd tea.Cmd
