@@ -43,6 +43,12 @@ gh pr view --json number,title,body,state 2>/dev/null
 - If not pushed, push first: `git push -u origin $(git branch --show-current)`
 - Proceed to create flow (Step 5a)
 
+**Important:** After creating a PR (Step 5a), verify tracking is set up:
+```bash
+# Verify tracking exists, set it if not
+git rev-parse --abbrev-ref @{upstream} 2>/dev/null || git branch --set-upstream-to=origin/$(git branch --show-current)
+```
+
 ### 3. Analyze Changes
 
 Review the commits and changes to understand:
@@ -106,3 +112,4 @@ Output the PR URL so the user can review it.
 - The `--body-file` flag avoids shell quoting issues with complex markdown
 - Use `gh pr view` to check existing PR state before deciding create vs edit
 - Ask before overwriting existing descriptions that have content
+- **Always verify upstream tracking** after creating a PR - `gh pr create` doesn't set local tracking automatically
