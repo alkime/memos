@@ -1,5 +1,5 @@
 ---
-name: address-pr-comments
+name: pr:address-comments
 description: Process PR review comments - fetch, validate, fix issues, update style guide
 ---
 
@@ -93,8 +93,8 @@ After all fixes are complete:
    **If gaps are found:**
    ```
    Style guide gap analysis:
-   - Gap 1: [Describe the pattern from PR feedback] → Missing from guide
-   - Gap 2: [Pattern from user response to AI reviewer] → User explained why they rejected AI suggestion; rationale should be documented
+   - Gap 1: [Describe the pattern from PR feedback] -> Missing from guide
+   - Gap 2: [Pattern from user response to AI reviewer] -> User explained why they rejected AI suggestion; rationale should be documented
 
    Proposed additions:
    [Show the specific text to add and where in the guide it should go]
