@@ -6,8 +6,8 @@ import (
 
 	"github.com/alkime/memos/internal/cli/ai"
 	"github.com/alkime/memos/internal/tui/components/phases"
-	"github.com/alkime/memos/internal/tui/workflow"
 	"github.com/alkime/memos/internal/tui/style"
+	"github.com/alkime/memos/internal/tui/workflow"
 	"github.com/alkime/memos/internal/workdir"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -37,7 +37,11 @@ type model struct {
 func New(config Config, recordingControls workflow.RecordingControls) tea.Model {
 	var phs []phases.Phase
 
-	phs = append(phs, phases.NewPhase("Recording", workflow.NewRecording(recordingControls, config.MaxBytes)))
+	phs = append(phs, phases.NewPhase("Recording", workflow.NewRecording(
+		recordingControls,
+		config.MaxBytes,
+		workdir.MustFilePath(config.WorkingName, workdir.MP3File),
+	)))
 	phs = append(phs, phases.NewPhase("Transcribing", workflow.NewTranscribePhase(
 		workdir.MustFilePath(config.WorkingName, workdir.MP3File),
 		workdir.MustFilePath(config.WorkingName, workdir.TranscriptFile),

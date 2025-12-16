@@ -43,16 +43,18 @@ func defaultRecordingKeyMap() recordingKeyMap {
 
 // recordingPhase represents the recording phase UI state.
 type recordingPhase struct {
-	keys      recordingKeyMap
-	controls  RecordingControls
-	spinner   spinner.Model
-	stopwatch stopwatch.Model
-	progress  progress.Model
-	maxBytes  int64
+	keys           recordingKeyMap
+	controls       RecordingControls
+	spinner        spinner.Model
+	stopwatch      stopwatch.Model
+	progress       progress.Model
+	maxBytes       int64
+	outputPath     string
+	existingOutput existingOutputState
 }
 
 // NewRecording creates a new recording phase model.
-func NewRecording(controls RecordingControls, maxBytes int64) tea.Model {
+func NewRecording(controls RecordingControls, maxBytes int64, outputPath string) tea.Model {
 	s := spinner.New()
 	s.Spinner = spinner.Points
 
@@ -63,12 +65,14 @@ func NewRecording(controls RecordingControls, maxBytes int64) tea.Model {
 	)
 
 	return &recordingPhase{
-		keys:      defaultRecordingKeyMap(),
-		controls:  controls,
-		spinner:   s,
-		stopwatch: stopwatch.New(),
-		progress:  p,
-		maxBytes:  maxBytes,
+		keys:           defaultRecordingKeyMap(),
+		controls:       controls,
+		spinner:        s,
+		stopwatch:      stopwatch.New(),
+		progress:       p,
+		maxBytes:       maxBytes,
+		outputPath:     outputPath,
+		existingOutput: newExistingOutputState(outputPath),
 	}
 }
 
@@ -83,6 +87,20 @@ func (r *recordingPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch typedMsg := teaMsg.(type) {
 	case tea.KeyMsg:
+		// Handle existing output keybindings first
+		if r.existingOutput.found {
+			switch {
+			case key.Matches(typedMsg, r.existingOutput.keys.UseExisting):
+				return r, phases.NextPhaseCmd
+			case key.Matches(typedMsg, r.existingOutput.keys.Redo):
+				r.existingOutput.found = false
+
+				return r, r.spinner.Tick
+			}
+
+			return r, nil
+		}
+
 		switch {
 		case key.Matches(typedMsg, r.keys.Toggle):
 			r.controls.StartStopPause.Toggle()
@@ -115,11 +133,13 @@ func (r *recordingPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	// Always update stopwatch
-	var stopwatchCmd tea.Cmd
-	r.stopwatch, stopwatchCmd = r.stopwatch.Update(teaMsg)
-	if stopwatchCmd != nil {
-		cmds = append(cmds, stopwatchCmd)
+	// Always update stopwatch (but only if not showing existing output)
+	if !r.existingOutput.found {
+		var stopwatchCmd tea.Cmd
+		r.stopwatch, stopwatchCmd = r.stopwatch.Update(teaMsg)
+		if stopwatchCmd != nil {
+			cmds = append(cmds, stopwatchCmd)
+		}
 	}
 
 	return r, tea.Batch(cmds...)
@@ -127,6 +147,11 @@ func (r *recordingPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the recording phase UI.
 func (r *recordingPhase) View() string {
+	// Show existing output view if recording already exists
+	if r.existingOutput.found {
+		return renderExistingOutputView(r.existingOutput, "Recording")
+	}
+
 	var sb strings.Builder
 
 	// Recording indicator with spinner and stopwatch
