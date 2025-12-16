@@ -7,6 +7,7 @@ import (
 	"github.com/alkime/memos/internal/cli/ai"
 	"github.com/alkime/memos/internal/tui/components/labeledspinner"
 	"github.com/alkime/memos/internal/tui/components/phases"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -17,6 +18,7 @@ type firstDraftPhase struct {
 	outputPath     string
 	mode           ai.Mode
 	client         *ai.Client
+	existingOutput existingOutputState
 }
 
 // NewFirstDraftPhase creates a new first draft generation phase.
@@ -32,10 +34,16 @@ func NewFirstDraftPhase(transcriptPath, outputPath, apiKey string, mode ai.Mode)
 		outputPath:     outputPath,
 		mode:           mode,
 		client:         ai.NewClient(apiKey),
+		existingOutput: newExistingOutputState(outputPath),
 	}
 }
 
 func (fp *firstDraftPhase) Init() tea.Cmd {
+	// Skip generation if output already exists
+	if fp.existingOutput.found {
+		return nil
+	}
+
 	return tea.Sequence(
 		fp.spinner.Init(),
 		fp.generateCmd(),
@@ -43,6 +51,22 @@ func (fp *firstDraftPhase) Init() tea.Cmd {
 }
 
 func (fp *firstDraftPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
+	// Handle existing output keybindings
+	if fp.existingOutput.found {
+		if keyMsg, ok := teaMsg.(tea.KeyMsg); ok {
+			switch {
+			case key.Matches(keyMsg, fp.existingOutput.keys.UseExisting):
+				return fp, phases.NextPhaseCmd
+			case key.Matches(keyMsg, fp.existingOutput.keys.Redo):
+				fp.existingOutput.found = false
+
+				return fp, tea.Sequence(fp.spinner.Init(), fp.generateCmd())
+			}
+		}
+
+		return fp, nil
+	}
+
 	var cmd tea.Cmd
 	fp.spinner, cmd = fp.spinner.Update(teaMsg)
 
@@ -50,6 +74,10 @@ func (fp *firstDraftPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (fp *firstDraftPhase) View() string {
+	if fp.existingOutput.found {
+		return renderExistingOutputView(fp.existingOutput, "First draft")
+	}
+
 	return fp.spinner.View()
 }
 

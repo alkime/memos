@@ -7,6 +7,7 @@ import (
 	"github.com/alkime/memos/internal/cli/transcription"
 	"github.com/alkime/memos/internal/tui/components/labeledspinner"
 	"github.com/alkime/memos/internal/tui/components/phases"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -16,6 +17,7 @@ type transcribePhase struct {
 	audioInputPath          string
 	transcriptionOutputPath string
 	client                  *transcription.Client
+	existingOutput          existingOutputState
 }
 
 func NewTranscribePhase(audioInputPath, transcriptionOutputPath, apiKey string) tea.Model {
@@ -29,10 +31,16 @@ func NewTranscribePhase(audioInputPath, transcriptionOutputPath, apiKey string) 
 		audioInputPath:          audioInputPath,
 		transcriptionOutputPath: transcriptionOutputPath,
 		client:                  transcription.NewClient(apiKey),
+		existingOutput:          newExistingOutputState(transcriptionOutputPath),
 	}
 }
 
 func (tp *transcribePhase) Init() tea.Cmd {
+	// Skip transcription if output already exists
+	if tp.existingOutput.found {
+		return nil
+	}
+
 	return tea.Sequence(
 		tp.spinner.Init(),
 		tp.transcribeCmd(),
@@ -40,6 +48,22 @@ func (tp *transcribePhase) Init() tea.Cmd {
 }
 
 func (tp *transcribePhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
+	// Handle existing output keybindings
+	if tp.existingOutput.found {
+		if keyMsg, ok := teaMsg.(tea.KeyMsg); ok {
+			switch {
+			case key.Matches(keyMsg, tp.existingOutput.keys.UseExisting):
+				return tp, phases.NextPhaseCmd
+			case key.Matches(keyMsg, tp.existingOutput.keys.Redo):
+				tp.existingOutput.found = false
+
+				return tp, tea.Sequence(tp.spinner.Init(), tp.transcribeCmd())
+			}
+		}
+
+		return tp, nil
+	}
+
 	var cmd tea.Cmd
 	tp.spinner, cmd = tp.spinner.Update(teaMsg)
 
@@ -47,6 +71,10 @@ func (tp *transcribePhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (tp *transcribePhase) View() string {
+	if tp.existingOutput.found {
+		return renderExistingOutputView(tp.existingOutput, "Transcript")
+	}
+
 	return tp.spinner.View()
 }
 
