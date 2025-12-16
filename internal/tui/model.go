@@ -34,11 +34,11 @@ type Config struct {
 	Cancel      context.CancelFunc
 	WorkingName string
 
-	// deprecated: use WorkingName + workdir.FilePath
+	// Deprecated: use WorkingName + workdir.FilePath
 	AudioPath string
-	// deprecated: use WorkingName + workdir.FilePath
+	// Deprecated: use WorkingName + workdir.FilePath
 	TranscriptPath string
-	// deprecated: use WorkingName + workdir.FilePath
+	// Deprecated: use WorkingName + workdir.FilePath
 	DraftPath string
 
 	OpenAIAPIKey    string

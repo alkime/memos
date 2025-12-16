@@ -7,11 +7,17 @@ import (
 // NextPhaseMsg signals the phases container to advance to the next phase.
 type NextPhaseMsg struct{}
 
+// NextPhaseCmd is a command that returns a NextPhaseMsg.
+//
+//nolint:gochecknoglobals // Command variable
 var NextPhaseCmd = func() tea.Msg { return NextPhaseMsg{} }
 
 // PrevPhaseMsg signals the phases container to go back to the previous phase.
 type PrevPhaseMsg struct{}
 
+// PrevPhaseCmd is a command that returns a PrevPhaseMsg.
+//
+//nolint:gochecknoglobals // Command variable
 var PrevPhaseCmd = func() tea.Msg { return PrevPhaseMsg{} }
 
 type Phase struct {

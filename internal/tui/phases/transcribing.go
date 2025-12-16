@@ -65,6 +65,7 @@ func (tp *transcribePhase) transcribeCmd() tea.Cmd {
 			return tea.Quit
 		}
 
+		//nolint:gosec // Transcript files need to be readable
 		if err := os.WriteFile(tp.transcriptionOutputPath, []byte(text), 0o644); err != nil {
 			slog.Error("Failed to write transcription output", "error", err)
 			return tea.Quit
@@ -72,5 +73,4 @@ func (tp *transcribePhase) transcribeCmd() tea.Cmd {
 
 		return phases.NextPhaseMsg{}
 	}
-
 }

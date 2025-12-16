@@ -67,6 +67,7 @@ func (fp *firstDraftPhase) generateCmd() tea.Cmd {
 			return tea.Quit
 		}
 
+		//nolint:gosec // Transcript files need to be readable
 		if err := os.WriteFile(fp.outputPath, []byte(draft), 0o644); err != nil {
 			slog.Error("Failed to write first draft", "error", err)
 			return tea.Quit

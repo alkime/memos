@@ -22,7 +22,6 @@ type model2 struct {
 
 // New2 creates a new TUI model using the phases component.
 func New2(config Config, recordingControls tuiPhases.RecordingControls) tea.Model {
-
 	var phs []phases.Phase
 
 	phs = append(phs, phases.NewPhase("Recording", tuiPhases.NewRecording(recordingControls, config.MaxBytes)))

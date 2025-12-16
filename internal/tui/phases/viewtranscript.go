@@ -45,10 +45,8 @@ func (vtp *viewTranscriptPhase) Init() tea.Cmd {
 }
 
 func (vtp *viewTranscriptPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
-
 	switch teaMsg := teaMsg.(type) {
 	case tea.WindowSizeMsg:
-		tea.WindowSize()
 		return vtp, vtp.reloadViewportCommand(teaMsg.Width, teaMsg.Height)
 	case tea.KeyMsg:
 		switch {
@@ -59,6 +57,7 @@ func (vtp *viewTranscriptPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	vtp.viewport, cmd = vtp.viewport.Update(teaMsg)
+
 	return vtp, cmd
 }
 
@@ -82,7 +81,6 @@ func (vtp *viewTranscriptPhase) View() string {
 
 func (vtp *viewTranscriptPhase) reloadViewportCommand(width, height int) tea.Cmd {
 	return func() tea.Msg {
-
 		transcript, err := vtp.readTranscriptFile()
 		if err != nil {
 			slog.Error("Failed to read transcript file", "error", err)

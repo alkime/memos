@@ -1,3 +1,4 @@
+//nolint:funlen // Test file
 package phases_test
 
 import (
@@ -14,12 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:gochecknoinits // recommend for CI by bubbletea folks
 func init() {
 	lipgloss.SetColorProfile(termenv.Ascii)
 }
 
 func TestPhases(t *testing.T) {
-
 	checker := outputChecker{
 		intervl: 100 * time.Millisecond,
 		timeout: 1 * time.Second,
@@ -91,7 +92,6 @@ func TestPhases(t *testing.T) {
 			require.Equal(t, []bool{false, true, false, false}, checks, "check state of updates across phases")
 		})
 	})
-
 }
 
 type modelMock struct {

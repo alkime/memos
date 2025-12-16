@@ -82,7 +82,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			if m.controls.Finish != nil {
 				m.controls.Finish()
 			}
-
 		}
 	case phase_msg.AudioFinalizingCompleteMsg:
 	case spinner.TickMsg:

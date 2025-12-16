@@ -769,7 +769,8 @@ func (tc *TuiCmd) Run() error {
 
 	wg.Wait()
 
-	fmt.Println("finished. bye!")
+	//nolint:forbidigo // CLI output for completion notification
+	fmt.Println("\nfinished. bye!")
 
 	return nil
 }

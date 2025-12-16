@@ -1,6 +1,7 @@
 package phases
 
 import (
+	"context"
 	"log/slog"
 	"os/exec"
 	"time"
@@ -42,7 +43,7 @@ func (ep *editDraftPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Error("Editor closed with error", "error", msg.err)
 		}
 
-		//return ep, func() tea.Msg { return phases.NextPhaseMsg{} }
+		// return ep, func() tea.Msg { return phases.NextPhaseMsg{} }
 		// FOR NOW, this is the final stage--quit the TUI
 		return ep, tea.Quit
 	}
@@ -58,13 +59,14 @@ type editorCompleteMsg struct {
 	err error
 }
 
+//nolint:gosec // subprocess launching
 func (ep *editDraftPhase) openEditorCmd() tea.Cmd {
 	var c *exec.Cmd
 	if ep.editorCmd == "" {
 		// macOS default: blocking open in new window
-		c = exec.Command("open", "-Wn", ep.draftPath)
+		c = exec.CommandContext(context.Background(), "open", "-Wn", ep.draftPath)
 	} else {
-		c = exec.Command(ep.editorCmd, ep.draftPath)
+		c = exec.CommandContext(context.Background(), ep.editorCmd, ep.draftPath)
 	}
 
 	return tea.ExecProcess(c, func(err error) tea.Msg {

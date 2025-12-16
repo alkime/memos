@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint:gochecknoinits // recommend for CI by bubbletea folks
 func init() {
 	lipgloss.SetColorProfile(termenv.Ascii)
 }
 
 func TestLabeledSpinner(t *testing.T) {
-
 	m := labeledspinner.New(spinner.Dot, "Title", "Subtitle", "Help")
 	t.Run("initial state", func(t *testing.T) {
 		assert.Equal(t, "Title", m.Title)
