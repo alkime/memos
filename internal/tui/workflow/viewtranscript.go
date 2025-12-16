@@ -27,10 +27,20 @@ func defaultViewTranscriptKeyMap() viewTranscriptKeyMap {
 	}
 }
 
+// viewportReadyMsg signals that viewport content has been loaded.
+type viewportReadyMsg struct {
+	content string
+	width   int
+	height  int
+}
+
 type viewTranscriptPhase struct {
 	transcriptPath string
 	viewport       viewport.Model
 	keys           viewTranscriptKeyMap
+	ready          bool
+	width          int
+	height         int
 }
 
 func NewViewTranscriptPhase(transcriptPath string) tea.Model {
@@ -45,12 +55,22 @@ func (vtp *viewTranscriptPhase) Init() tea.Cmd {
 }
 
 func (vtp *viewTranscriptPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
-	switch teaMsg := teaMsg.(type) {
+	switch msg := teaMsg.(type) {
 	case tea.WindowSizeMsg:
-		return vtp, vtp.reloadViewportCommand(teaMsg.Width, teaMsg.Height)
+		vtp.width = msg.Width
+		vtp.height = msg.Height
+
+		return vtp, vtp.loadViewportCmd()
+
+	case viewportReadyMsg:
+		vtp.setupViewport(msg)
+		vtp.ready = true
+
+		return vtp, nil
+
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(teaMsg, vtp.keys.Proceed):
+		case key.Matches(msg, vtp.keys.Proceed):
 			return vtp, phases.NextPhaseCmd
 		}
 	}
@@ -62,6 +82,10 @@ func (vtp *viewTranscriptPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (vtp *viewTranscriptPhase) View() string {
+	if !vtp.ready {
+		return "Loading transcript..."
+	}
+
 	var sb strings.Builder
 
 	// Header
@@ -79,31 +103,38 @@ func (vtp *viewTranscriptPhase) View() string {
 	return sb.String()
 }
 
-func (vtp *viewTranscriptPhase) reloadViewportCommand(width, height int) tea.Cmd {
+func (vtp *viewTranscriptPhase) loadViewportCmd() tea.Cmd {
 	return func() tea.Msg {
 		transcript, err := vtp.readTranscriptFile()
 		if err != nil {
 			slog.Error("Failed to read transcript file", "error", err)
+
 			return tea.Quit
 		}
 
-		headerHeight := 3
-		footerHeight := 3
-		viewportHeight := height - headerHeight - footerHeight
-		if viewportHeight < 5 {
-			viewportHeight = 5
+		return viewportReadyMsg{
+			content: transcript,
+			width:   vtp.width,
+			height:  vtp.height,
 		}
-
-		viewportWidth := width - 4
-		vtp.viewport.Width = viewportWidth
-		vtp.viewport.Height = viewportHeight
-
-		// Re-wrap content for new width
-		wrappedContent := wrapText(transcript, viewportWidth)
-		vtp.viewport.SetContent(wrappedContent)
-
-		return nil
 	}
+}
+
+func (vtp *viewTranscriptPhase) setupViewport(msg viewportReadyMsg) {
+	headerHeight := 3
+	footerHeight := 3
+	viewportHeight := msg.height - headerHeight - footerHeight
+	if viewportHeight < 5 {
+		viewportHeight = 5
+	}
+
+	viewportWidth := msg.width - 4
+	if viewportWidth < 10 {
+		viewportWidth = 10
+	}
+
+	vtp.viewport = viewport.New(viewportWidth, viewportHeight)
+	vtp.viewport.SetContent(wrapText(msg.content, viewportWidth))
 }
 
 func (vtp *viewTranscriptPhase) readTranscriptFile() (string, error) {
