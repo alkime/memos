@@ -51,4 +51,17 @@ var (
 	// Progress is used for progress indicators.
 	Progress = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("63"))
+
+	// Label is used for inline labels (e.g., "Title:", "Saved:").
+	Label = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("255"))
+
+	// Muted is used for de-emphasized text (e.g., file paths).
+	Muted = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("245"))
+
+	// Bullet is used for list item markers.
+	Bullet = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("205"))
 )

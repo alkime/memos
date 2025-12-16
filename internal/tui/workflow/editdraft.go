@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/alkime/memos/internal/tui/components/phases"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -43,9 +44,7 @@ func (ep *editDraftPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Error("Editor closed with error", "error", msg.err)
 		}
 
-		// return ep, func() tea.Msg { return phases.NextPhaseMsg{} }
-		// FOR NOW, this is the final stage--quit the TUI
-		return ep, tea.Quit
+		return ep, func() tea.Msg { return phases.NextPhaseMsg{} }
 	}
 
 	return ep, nil
