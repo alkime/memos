@@ -13,6 +13,10 @@ import (
 	mp3encoder "github.com/braheezy/shine-mp3/pkg/mp3"
 )
 
+// DefaultSampleBufferCapacity is the default number of samples to buffer for visualization.
+// At 16kHz, 16384 samples represents approximately 1 second of audio.
+const DefaultSampleBufferCapacity = 16384
+
 // Recorder reads raw PCM audio data from a channel and buffers it to disk.
 // After recording completes, it can convert the buffered PCM to MP3 format.
 type Recorder struct {
@@ -24,6 +28,7 @@ type Recorder struct {
 
 	pcmFile      *os.File
 	bytesWritten int64
+	sampleBuffer *SampleRingBuffer
 	mu           sync.RWMutex
 	wg           sync.WaitGroup
 	errOnce      sync.Once
@@ -65,11 +70,12 @@ func NewRecorder(config Config, input <-chan []byte) (*Recorder, error) {
 	pcmPath := config.MP3Path + ".tmp.pcm"
 
 	return &Recorder{ //nolint:exhaustruct // wg, errOnce, err initialized later
-		sampleRate: config.SampleRate,
-		channels:   config.Channels,
-		input:      input,
-		pcmPath:    pcmPath,
-		mp3Path:    config.MP3Path,
+		sampleRate:   config.SampleRate,
+		channels:     config.Channels,
+		input:        input,
+		pcmPath:      pcmPath,
+		mp3Path:      config.MP3Path,
+		sampleBuffer: NewSampleRingBuffer(DefaultSampleBufferCapacity),
 	}, nil
 }
 
@@ -129,6 +135,10 @@ func (r *Recorder) Start(ctx context.Context) error {
 				r.mu.Lock()
 				r.bytesWritten += int64(n)
 				r.mu.Unlock()
+
+				// Cache samples for visualization
+				samples := BytesToInt16(data)
+				r.sampleBuffer.Write(samples)
 
 			case <-ctx.Done():
 				return
@@ -225,6 +235,13 @@ func (r *Recorder) BytesWritten() int64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.bytesWritten
+}
+
+// ReadSamples returns up to n most recent audio samples for visualization.
+// Returns samples in chronological order (oldest first).
+// This method is safe to call concurrently from any goroutine.
+func (r *Recorder) ReadSamples(n int) []int16 {
+	return r.sampleBuffer.ReadSamples(n)
 }
 
 // setError records the first error that occurs (subsequent calls are no-ops).

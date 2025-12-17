@@ -221,6 +221,9 @@ func makeRecordingControls(
 			recorder: recorder,
 			maxBytes: maxBytes,
 		},
+		SampleLevels: audioSampleLevels{
+			recorder: recorder,
+		},
 		Finish: func() {
 			if err := dev.Stop(ctx); err != nil {
 				slog.Error("Failed to stop audio device", "error", err)
@@ -272,4 +275,15 @@ func (afd audioFileDial) Read() int64 {
 
 func (afd audioFileDial) Cap() (int64, int64) {
 	return afd.Read(), afd.maxBytes
+}
+
+// audioSampleLevels implements uictl.Levels[int16] for waveform visualization.
+type audioSampleLevels struct {
+	recorder *audiofile.Recorder
+}
+
+// Read returns recent audio samples for visualization.
+// Returns approximately 50ms of samples at 16kHz (800 samples).
+func (asl audioSampleLevels) Read() []int16 {
+	return asl.recorder.ReadSamples(800)
 }
