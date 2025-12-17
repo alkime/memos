@@ -60,18 +60,28 @@ The application serves as:
 ### Voice CLI (Go)
 
 - **CLI Framework**: Kong v1.12.1 (command-line parsing and routing)
+- **TUI Framework**: Bubbletea v1.3.10 (Elm-architecture terminal UI)
+  - Bubbles v0.21.0 - Pre-built TUI components
+  - Lipgloss v1.1.0 - Terminal styling and layout
 - **Audio Capture**: malgo v0.11.24 (cross-platform audio I/O)
 - **Audio Encoding**: shine-mp3 v0.1.0 (pure Go MP3 encoder)
 - **Transcription**: OpenAI Go SDK v1.12.0 (Whisper API integration)
 - **AI Generation**: Anthropic SDK Go v1.18.0 (Claude API integration)
 
 **Voice CLI Package Structure**:
-- `internal/cli/audio/` - Audio recording with MP3 encoding
+- `internal/tui/` - Bubbletea TUI application
+  - `internal/tui/workflow/` - Phase-based workflow states
+  - `internal/tui/components/` - Reusable UI components (spinners, phase indicators)
+  - `internal/tui/style/` - Lipgloss styling definitions
 - `internal/cli/audio/device/` - Low-level audio device operations
 - `internal/cli/transcription/` - OpenAI Whisper integration
 - `internal/cli/ai/` - Anthropic Claude content generation
-- `internal/cli/editor/` - Terminal editor integration
+- `internal/audiofile/` - Audio file recording (PCM buffering, MP3 conversion)
+- `internal/mp3/` - MP3 encoder configuration
+- `internal/git/` - Git operations (branch detection)
+- `pkg/channels/` - Broadcaster pattern for fan-out channel communication
 - `pkg/collections/` - Utility functions for data manipulation
+- `pkg/uictl/` - UI control utilities
 
 ### Frontend/Content Generation
 
@@ -129,43 +139,66 @@ Hugo Static Site Generator (CLI)
 
 ### Voice CLI Workflow
 
+The Voice CLI uses a Bubbletea-based TUI with a phase-based workflow. The pipeline is resilient to existing outputs—if a phase's output already exists, it can be skipped or resumed.
+
 ```
 User Command: voice [--mode memos|journal] [--duration 1h] [--max-bytes 256MB]
   ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 1. Audio Recording (internal/cli/audio)                         │
+│                    Bubbletea TUI Application                    │
+│                     (internal/tui/model.go)                     │
+│                                                                 │
+│  Phase indicators show progress through workflow stages         │
+│  Press 'q' to quit, Enter to proceed, navigation keys for UI   │
+└─────────────────────────────────────────────────────────────────┘
+  ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ Phase 1: Recording (internal/tui/workflow/recording.go)         │
 │    - Capture from system microphone (malgo)                     │
 │    - Encode to MP3 in real-time (shine-mp3)                     │
-│    - Enforce duration/size limits with progress display         │
+│    - Live progress display with duration/size limits            │
 │    - Save to ~/Documents/Alkime/Memos/work/{branch}/            │
 │    Output: recording.mp3                                        │
+│    [Skipped if recording.mp3 exists]                            │
 └─────────────────────────────────────────────────────────────────┘
   ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 2. Transcription (internal/cli/transcription)                   │
+│ Phase 2: Transcribing (internal/tui/workflow/transcribing.go)   │
 │    - Submit MP3 to OpenAI Whisper API                           │
-│    - Receive text transcript                                    │
+│    - Spinner with status updates                                │
 │    Output: transcript.txt                                       │
+│    [Skipped if transcript.txt exists]                           │
 └─────────────────────────────────────────────────────────────────┘
   ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 3. First Draft (internal/cli/ai)                                │
+│ Phase 3: View Transcript (internal/tui/workflow/viewtranscript) │
+│    - Display transcript for user review                         │
+│    - Option to proceed or quit                                  │
+└─────────────────────────────────────────────────────────────────┘
+  ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ Phase 4: First Draft (internal/tui/workflow/firstdraft.go)      │
 │    - Send transcript to Anthropic Claude Sonnet 4.5             │
 │    - Mode-specific prompts (memos: structured, journal: casual) │
 │    - Light cleanup: remove verbal tics, improve clarity         │
-│    - Open in $EDITOR for user review/edits                      │
 │    Output: first-draft.md (no frontmatter)                      │
+│    [Skipped if first-draft.md exists]                           │
 └─────────────────────────────────────────────────────────────────┘
-  ↓ (User manually runs: voice copy-edit)
+  ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 4. Copy Edit (internal/cli/ai)                                  │
+│ Phase 5: Edit Draft (internal/tui/workflow/editdraft.go)        │
+│    - Open first-draft.md in $EDITOR for user review/edits       │
+│    - User makes manual changes as desired                       │
+│    Output: first-draft.md (user-edited)                         │
+└─────────────────────────────────────────────────────────────────┘
+  ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ Phase 6: Copy Edit (internal/tui/workflow/copyedit.go)          │
 │    - Send first-draft to Anthropic Claude Sonnet 4.5            │
 │    - Generate Hugo frontmatter (title, date, tags, etc.)        │
 │    - Polish grammar, style, markdown formatting                 │
 │    - Return structured output via tool use API                  │
 │    - Save to content/posts/{YYYY-MM}-{slug}.md                  │
-│    - Display changes summary in terminal                        │
-│    - Open final post in $EDITOR                                 │
 │    Output: Final blog post ready for git commit                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -191,6 +224,12 @@ User Command: voice [--mode memos|journal] [--duration 1h] [--max-bytes 256MB]
 9. **Two-stage AI workflow**: Separate first-draft and copy-edit commands allow user review and manual edits between AI generations
 
 10. **Mode system for content types**: Distinct prompts and frontmatter for public "memos" vs personal "journal" entries
+
+11. **Bubbletea TUI framework**: Elm-architecture terminal UI provides structured state management, composable components, and testable UI logic. Lipgloss handles styling.
+
+12. **Phase-based workflow with resume capability**: Pipeline checks for existing phase outputs (recording.mp3, transcript.txt, first-draft.md) and skips completed phases, enabling interrupted workflows to resume
+
+13. **Broadcaster pattern for concurrent communication**: `pkg/channels` provides fan-out channel utilities for coordinating between audio recording goroutines and the TUI update loop
 
 ---
 
@@ -292,12 +331,14 @@ Set via Fly.io secrets and `fly.toml`:
 ### Test Infrastructure
 
 - **Test Framework**: testify assertions + standard library `httptest`
+- **TUI Testing**: charmbracelet/x/exp/teatest for Bubbletea component testing
 - **Test Coverage**:
   - Health endpoint validation
   - Audio recorder tests (configuration, limits, progress formatting)
   - Transcription client tests (validation, API integration)
   - AI client tests (slug generation)
   - Collections utility tests
+  - Channel broadcaster tests
 - **CI/CD**: GitHub Actions running tests + linting on all PRs and main branch pushes
 - **Linter**: golangci-lint with comprehensive rule set (exhaustruct, goconst, godot, wrapcheck, etc.)
 
@@ -344,3 +385,9 @@ When working with this codebase, understand:
 12. **Voice CLI requires API keys** - OpenAI for transcription, Anthropic for content generation; set via environment variables
 
 13. **Mode system affects AI behavior** - "memos" mode generates structured blog posts, "journal" mode creates personal entries
+
+14. **TUI uses Elm architecture** - Bubbletea's Model-Update-View pattern; state changes flow through `Update()`, rendering through `View()`
+
+15. **Pipeline is resumable** - If interrupted, running `voice` again detects existing outputs (recording.mp3, transcript.txt, first-draft.md) and skips completed phases
+
+16. **Broadcaster for concurrent updates** - `pkg/channels.Broadcaster` fans out audio recording progress to multiple subscribers (TUI display, size tracking)
