@@ -9,66 +9,66 @@ import (
 
 const serviceName = "memos-voice"
 
-// Key represents a named API key stored in the keychain.
-type Key string
+// APIKey represents a named API key stored in the keychain.
+type APIKey string
 
 const (
-	// OpenAIKey is the keychain entry for the OpenAI API key.
-	OpenAIKey Key = "openai-api-key"
-	// AnthropicKey is the keychain entry for the Anthropic API key.
-	AnthropicKey Key = "anthropic-api-key"
+	// OpenAI is the keychain entry for the OpenAI API key.
+	OpenAI APIKey = "openai-api-key"
+	// Anthropic is the keychain entry for the Anthropic API key.
+	Anthropic APIKey = "anthropic-api-key"
 )
 
-// AllKeys returns all known key types for iteration.
-func AllKeys() []Key {
-	return []Key{OpenAIKey, AnthropicKey}
+// AllAPIKeys returns all known API key types for iteration.
+func AllAPIKeys() []APIKey {
+	return []APIKey{OpenAI, Anthropic}
 }
 
-// DisplayName returns a human-readable name for the key.
-func (k Key) DisplayName() string {
+// DisplayName returns a human-readable name for the API key.
+func (k APIKey) DisplayName() string {
 	switch k {
-	case OpenAIKey:
+	case OpenAI:
 		return "openai"
-	case AnthropicKey:
+	case Anthropic:
 		return "anthropic"
 	default:
 		return string(k)
 	}
 }
 
-// Get retrieves a key value from the system keychain.
-func Get(key Key) (string, error) {
-	value, err := keyring.Get(serviceName, string(key))
+// Get retrieves an API key value from the system keychain.
+func Get(apiKey APIKey) (string, error) {
+	value, err := keyring.Get(serviceName, string(apiKey))
 	if err != nil {
-		return "", fmt.Errorf("failed to get %s from keychain: %w", key.DisplayName(), err)
+		return "", fmt.Errorf("failed to get %s from keychain: %w", apiKey.DisplayName(), err)
 	}
 
 	return value, nil
 }
 
-// Set stores a key value in the system keychain.
-func Set(key Key, value string) error {
-	if err := keyring.Set(serviceName, string(key), value); err != nil {
-		return fmt.Errorf("failed to set %s in keychain: %w", key.DisplayName(), err)
+// Set stores an API key value in the system keychain.
+func Set(apiKey APIKey, value string) error {
+	if err := keyring.Set(serviceName, string(apiKey), value); err != nil {
+		return fmt.Errorf("failed to set %s in keychain: %w", apiKey.DisplayName(), err)
 	}
 
 	return nil
 }
 
-// IsSet checks if a key exists in the keychain.
-func IsSet(key Key) bool {
-	_, err := keyring.Get(serviceName, string(key))
+// IsSet checks if an API key exists in the keychain.
+func IsSet(apiKey APIKey) bool {
+	_, err := keyring.Get(serviceName, string(apiKey))
 
 	return err == nil
 }
 
-// KeyFromServiceName maps a service name (e.g., "openai") to a Key.
-func KeyFromServiceName(name string) (Key, error) {
+// APIKeyFromServiceName maps a service name (e.g., "openai") to an APIKey.
+func APIKeyFromServiceName(name string) (APIKey, error) {
 	switch name {
 	case "openai":
-		return OpenAIKey, nil
+		return OpenAI, nil
 	case "anthropic":
-		return AnthropicKey, nil
+		return Anthropic, nil
 	default:
 		return "", fmt.Errorf("unknown service: %s", name)
 	}

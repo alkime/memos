@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/alecthomas/kong"
@@ -59,19 +60,33 @@ func (c *TUICmd) Run() error {
 
 	// Resolve API keys: environment variables take priority, fallback to keychain
 	if c.OpenAIAPIKey == "" {
-		if key, err := keyring.Get(keyring.OpenAIKey); err == nil {
-			c.OpenAIAPIKey = key
+		if secret, err := keyring.Get(keyring.OpenAI); err == nil {
+			c.OpenAIAPIKey = secret
+		} else {
+			slog.Debug("keychain lookup failed", "key", "openai", "error", err)
 		}
 	}
 
 	if c.AnthropicAPIKey == "" {
-		if key, err := keyring.Get(keyring.AnthropicKey); err == nil {
-			c.AnthropicAPIKey = key
+		if secret, err := keyring.Get(keyring.Anthropic); err == nil {
+			c.AnthropicAPIKey = secret
+		} else {
+			slog.Debug("keychain lookup failed", "key", "anthropic", "error", err)
 		}
 	}
 
-	if c.OpenAIAPIKey == "" || c.AnthropicAPIKey == "" {
-		return errors.New("missing API keys: set via environment variables or run 'voice config set-key'")
+	var missing []string
+	if c.OpenAIAPIKey == "" {
+		missing = append(missing, "openai")
+	}
+
+	if c.AnthropicAPIKey == "" {
+		missing = append(missing, "anthropic")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing API keys: %s. Set via environment variables or run 'voice config set-key'",
+			strings.Join(missing, ", "))
 	}
 
 	// Determine working paths
@@ -199,18 +214,22 @@ type ConfigCmd struct {
 // SetKeyCmd stores an API key in the system keychain.
 type SetKeyCmd struct {
 	Service string `arg:"" enum:"openai,anthropic" help:"Service name (openai or anthropic)"`
-	Key     string `arg:"" help:"API key value"`
+	Secret  string `arg:"" help:"API key value"`
 }
 
 // Run executes the set-key command.
 func (c *SetKeyCmd) Run() error {
-	key, err := keyring.KeyFromServiceName(c.Service)
+	if strings.TrimSpace(c.Secret) == "" {
+		return errors.New("API key cannot be empty")
+	}
+
+	apiKey, err := keyring.APIKeyFromServiceName(c.Service)
 	if err != nil {
 		return fmt.Errorf("invalid service: %w", err)
 	}
 
-	if err := keyring.Set(key, c.Key); err != nil {
-		return fmt.Errorf("failed to store key: %w", err)
+	if err := keyring.Set(apiKey, c.Secret); err != nil {
+		return fmt.Errorf("failed to store API key: %w", err)
 	}
 
 	//nolint:forbidigo // CLI output
@@ -228,13 +247,13 @@ type ListKeysCmd struct{}
 func (c *ListKeysCmd) Run() error {
 	allSet := true
 
-	for _, key := range keyring.AllKeys() {
-		if keyring.IsSet(key) {
+	for _, apiKey := range keyring.AllAPIKeys() {
+		if keyring.IsSet(apiKey) {
 			//nolint:forbidigo // CLI output
-			fmt.Printf("%s: configured\n", key.DisplayName())
+			fmt.Printf("%s: configured\n", apiKey.DisplayName())
 		} else {
 			//nolint:forbidigo // CLI output
-			fmt.Printf("%s: not set\n", key.DisplayName())
+			fmt.Printf("%s: not set\n", apiKey.DisplayName())
 			allSet = false
 		}
 	}
