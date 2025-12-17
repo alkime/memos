@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/alkime/memos/internal/tui/components/phases"
+	"github.com/alkime/memos/internal/tui/components/waveform"
 	"github.com/alkime/memos/internal/tui/style"
 	"github.com/alkime/memos/pkg/uictl"
 	"github.com/charmbracelet/bubbles/key"
@@ -19,6 +20,7 @@ import (
 type RecordingControls struct {
 	FileSize       uictl.CappedDial[int64]
 	StartStopPause uictl.Knob
+	SampleLevels   uictl.Levels[int16] // Audio samples for waveform visualization
 	Finish         func()
 }
 
@@ -48,6 +50,7 @@ type recordingPhase struct {
 	spinner        spinner.Model
 	stopwatch      stopwatch.Model
 	progress       progress.Model
+	waveform       waveform.Model
 	maxBytes       int64
 	outputPath     string
 	existingOutput existingOutputState
@@ -64,12 +67,16 @@ func NewRecording(controls RecordingControls, maxBytes int64, outputPath string)
 		progress.WithoutPercentage(),
 	)
 
+	// Waveform: width matches progress bar, height of 3 rows for visibility
+	wf := waveform.New(controls.SampleLevels, 40, 3)
+
 	return &recordingPhase{
 		keys:           defaultRecordingKeyMap(),
 		controls:       controls,
 		spinner:        s,
 		stopwatch:      stopwatch.New(),
 		progress:       p,
+		waveform:       wf,
 		maxBytes:       maxBytes,
 		outputPath:     outputPath,
 		existingOutput: newExistingOutputState(outputPath),
@@ -78,7 +85,7 @@ func NewRecording(controls RecordingControls, maxBytes int64, outputPath string)
 
 // Init returns the initial command for the recording phase.
 func (r *recordingPhase) Init() tea.Cmd {
-	return r.spinner.Tick
+	return tea.Batch(r.spinner.Tick, r.waveform.Init())
 }
 
 // Update handles messages for the recording phase.
@@ -131,6 +138,11 @@ func (r *recordingPhase) Update(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 		progressModel, cmd := r.progress.Update(typedMsg)
 		r.progress = progressModel.(progress.Model) //nolint:forcetypeassert // bubbles library contract
 		cmds = append(cmds, cmd)
+
+	case waveform.TickMsg:
+		var cmd tea.Cmd
+		r.waveform, cmd = r.waveform.Update(typedMsg)
+		cmds = append(cmds, cmd)
 	}
 
 	// Always update stopwatch (but only if not showing existing output)
@@ -179,6 +191,10 @@ func (r *recordingPhase) View() string {
 	sb.WriteString(r.progress.ViewAs(percent))
 	sb.WriteString("\n")
 	sb.WriteString(style.Subtitle.Render(formatBytes(current, maxValue)))
+	sb.WriteString("\n\n")
+
+	// Audio waveform visualization
+	sb.WriteString(r.waveform.View())
 	sb.WriteString("\n\n")
 
 	// Help text
