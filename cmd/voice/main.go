@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/alkime/memos/internal/cli/ai"
 	"github.com/alkime/memos/internal/cli/audio/device"
 	"github.com/alkime/memos/internal/git"
+	"github.com/alkime/memos/internal/keyring"
 	"github.com/alkime/memos/internal/tui"
 	"github.com/alkime/memos/internal/tui/workflow"
 	"github.com/alkime/memos/internal/workdir"
@@ -26,6 +28,7 @@ type CLI struct {
 
 	// Subcommands
 	Devices DevicesCmd `cmd:"" help:"List available audio devices"`
+	Config  ConfigCmd  `cmd:"" help:"Manage configuration"`
 }
 
 // TUICmd is the default command that runs the TUI.
@@ -52,6 +55,23 @@ func (c *TUICmd) Run() error {
 	mode := ai.Mode(c.Mode)
 	if mode != ai.ModeMemos && mode != ai.ModeJournal {
 		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", c.Mode)
+	}
+
+	// Resolve API keys: environment variables take priority, fallback to keychain
+	if c.OpenAIAPIKey == "" {
+		if key, err := keyring.Get(keyring.OpenAIKey); err == nil {
+			c.OpenAIAPIKey = key
+		}
+	}
+
+	if c.AnthropicAPIKey == "" {
+		if key, err := keyring.Get(keyring.AnthropicKey); err == nil {
+			c.AnthropicAPIKey = key
+		}
+	}
+
+	if c.OpenAIAPIKey == "" || c.AnthropicAPIKey == "" {
+		return errors.New("missing API keys: set via environment variables or run 'voice config set-key'")
 	}
 
 	// Determine working paths
@@ -165,6 +185,63 @@ func (dcmd *DevicesCmd) Run() error {
 			"formatCount", dev.FormatCount,
 			"formats", dev.Formats,
 		)
+	}
+
+	return nil
+}
+
+// ConfigCmd groups configuration-related subcommands.
+type ConfigCmd struct {
+	SetKey   SetKeyCmd   `cmd:"" help:"Store an API key in system keychain"`
+	ListKeys ListKeysCmd `cmd:"" name:"list-keys" help:"Show which API keys are configured"`
+}
+
+// SetKeyCmd stores an API key in the system keychain.
+type SetKeyCmd struct {
+	Service string `arg:"" enum:"openai,anthropic" help:"Service name (openai or anthropic)"`
+	Key     string `arg:"" help:"API key value"`
+}
+
+// Run executes the set-key command.
+func (c *SetKeyCmd) Run() error {
+	key, err := keyring.KeyFromServiceName(c.Service)
+	if err != nil {
+		return fmt.Errorf("invalid service: %w", err)
+	}
+
+	if err := keyring.Set(key, c.Key); err != nil {
+		return fmt.Errorf("failed to store key: %w", err)
+	}
+
+	//nolint:forbidigo // CLI output
+	fmt.Printf("%s API key stored in keychain\n", c.Service)
+
+	return nil
+}
+
+// ListKeysCmd shows which API keys are configured.
+type ListKeysCmd struct{}
+
+// Run executes the list-keys command.
+//
+//nolint:unparam // error return required by Kong interface
+func (c *ListKeysCmd) Run() error {
+	allSet := true
+
+	for _, key := range keyring.AllKeys() {
+		if keyring.IsSet(key) {
+			//nolint:forbidigo // CLI output
+			fmt.Printf("%s: configured\n", key.DisplayName())
+		} else {
+			//nolint:forbidigo // CLI output
+			fmt.Printf("%s: not set\n", key.DisplayName())
+			allSet = false
+		}
+	}
+
+	if !allSet {
+		//nolint:forbidigo // CLI output
+		fmt.Println("\nRun 'voice config set-key <service> <key>' to configure.")
 	}
 
 	return nil
