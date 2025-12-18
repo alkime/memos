@@ -1,7 +1,6 @@
 package transcription //nolint:testpackage // Needs access to unexported fields
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -49,13 +48,3 @@ func TestClient_TranscribeFile_EmptyFile(t *testing.T) {
 	_ = err
 }
 
-func TestClient_TranscribeFile_ValidFile(t *testing.T) {
-	// Skip if no API key set
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		t.Skip("Skipping integration test: OPENAI_API_KEY not set")
-	}
-
-	// Skip - requires valid audio file for real test
-	t.Skip("Requires valid audio file - run manually with real audio")
-}
