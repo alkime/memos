@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/alkime/memos/internal/tui/style"
-	"github.com/alkime/memos/pkg/uictl"
+	"github.com/alkime/memos/internal/tui/remotectl"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -21,7 +21,7 @@ type TickMsg struct{}
 // It reads audio samples from a Levels control and renders them
 // as vertical bars showing amplitude over time (left=older, right=newer).
 type Model struct {
-	levels uictl.Levels[int16] // Data source for samples
+	levels remotectl.Levels[int16] // Data source for samples
 	width  int                 // Display width in characters
 	height int                 // Display height in rows
 }
@@ -30,7 +30,7 @@ type Model struct {
 // The width parameter determines how many columns to render.
 // The height parameter determines how many rows tall the waveform is.
 // Samples are aggregated to fit the display width.
-func New(levels uictl.Levels[int16], width, height int) Model {
+func New(levels remotectl.Levels[int16], width, height int) Model {
 	if height < 1 {
 		height = 1
 	}

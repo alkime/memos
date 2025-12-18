@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alkime/memos/internal/cli/ai"
+	"github.com/alkime/memos/internal/content"
 	"github.com/alkime/memos/internal/tui/components/labeledspinner"
 	"github.com/alkime/memos/internal/tui/style"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -18,8 +18,8 @@ import (
 type copyEditPhase struct {
 	spinner   labeledspinner.Model
 	inputPath string
-	mode      ai.Mode
-	client    *ai.Client
+	mode      content.Mode
+	client    *content.Writer
 
 	// Completion state
 	complete   bool
@@ -29,7 +29,7 @@ type copyEditPhase struct {
 }
 
 // NewCopyEditPhase creates a new copy edit phase.
-func NewCopyEditPhase(inputPath, apiKey string, mode ai.Mode) tea.Model {
+func NewCopyEditPhase(inputPath, apiKey string, mode content.Mode) tea.Model {
 	return &copyEditPhase{
 		spinner: labeledspinner.New(
 			spinner.Pulse,
@@ -39,7 +39,7 @@ func NewCopyEditPhase(inputPath, apiKey string, mode ai.Mode) tea.Model {
 		),
 		inputPath: inputPath,
 		mode:      mode,
-		client:    ai.NewClient(apiKey),
+		client:    content.NewWriter(apiKey),
 	}
 }
 
@@ -121,7 +121,7 @@ func (cp *copyEditPhase) completeView() string {
 func (cp *copyEditPhase) copyEditCmd() tea.Cmd {
 	return func() tea.Msg {
 		// Read user-edited first draft
-		content, err := os.ReadFile(cp.inputPath)
+		draftContent, err := os.ReadFile(cp.inputPath)
 		if err != nil {
 			slog.Error("Failed to read first draft file", "error", err)
 			return tea.Quit
@@ -129,14 +129,14 @@ func (cp *copyEditPhase) copyEditCmd() tea.Cmd {
 
 		// Generate copy edit via Claude API
 		currentDate := time.Now().Format("2006-01-02")
-		result, err := cp.client.GenerateCopyEdit(string(content), currentDate, cp.mode)
+		result, err := cp.client.GenerateCopyEdit(string(draftContent), currentDate, cp.mode)
 		if err != nil {
 			slog.Error("Copy edit generation failed", "error", err)
 			return tea.Quit
 		}
 
 		// Generate output path: content/posts/{YYYY-MM}-{slug}.md
-		slug := ai.GenerateSlug(result.Title)
+		slug := content.GenerateSlug(result.Title)
 		datePrefix := time.Now().Format("2006-01")
 		filename := fmt.Sprintf("%s-%s.md", datePrefix, slug)
 		outputPath := filepath.Join("content", "posts", filename)

@@ -1,9 +1,9 @@
-package ai_test
+package content_test
 
 import (
 	"testing"
 
-	"github.com/alkime/memos/internal/cli/ai"
+	"github.com/alkime/memos/internal/content"
 )
 
 func TestGenerateSlug(t *testing.T) {
@@ -41,7 +41,7 @@ func TestGenerateSlug(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ai.GenerateSlug(tt.title)
+			got := content.GenerateSlug(tt.title)
 			if got != tt.expected {
 				t.Errorf("GenerateSlug(%q) = %q, want %q", tt.title, got, tt.expected)
 			}

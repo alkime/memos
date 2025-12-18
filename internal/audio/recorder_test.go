@@ -1,4 +1,4 @@
-package audiofile_test
+package audio_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkime/memos/internal/audiofile"
+	"github.com/alkime/memos/internal/audio"
 )
 
 // TestRecorder_BytesWritten verifies that the recorder tracks bytes written to the PCM file.
@@ -20,13 +20,13 @@ func TestRecorder_BytesWritten(t *testing.T) {
 
 	// Create input channel and recorder
 	input := make(chan []byte)
-	config := audiofile.Config{
+	config := audio.Config{
 		SampleRate: 16000,
 		Channels:   1,
 		MP3Path:    mp3Path,
 	}
 
-	recorder, err := audiofile.NewRecorder(config, input)
+	recorder, err := audio.NewRecorder(config, input)
 	if err != nil {
 		t.Fatalf("failed to create recorder: %v", err)
 	}

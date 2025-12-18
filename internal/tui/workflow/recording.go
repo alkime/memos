@@ -8,7 +8,7 @@ import (
 	"github.com/alkime/memos/internal/tui/components/phases"
 	"github.com/alkime/memos/internal/tui/components/waveform"
 	"github.com/alkime/memos/internal/tui/style"
-	"github.com/alkime/memos/pkg/uictl"
+	"github.com/alkime/memos/internal/tui/remotectl"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -18,9 +18,9 @@ import (
 
 // RecordingControls provides read/write access to recording hardware.
 type RecordingControls struct {
-	FileSize       uictl.CappedDial[int64]
-	StartStopPause uictl.Knob
-	SampleLevels   uictl.Levels[int16] // Audio samples for waveform visualization
+	FileSize       remotectl.CappedDial[int64]
+	StartStopPause remotectl.Knob
+	SampleLevels   remotectl.Levels[int16] // Audio samples for waveform visualization
 	Finish         func()
 }
 

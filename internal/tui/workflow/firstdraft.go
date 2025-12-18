@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/alkime/memos/internal/cli/ai"
+	"github.com/alkime/memos/internal/content"
 	"github.com/alkime/memos/internal/tui/components/labeledspinner"
 	"github.com/alkime/memos/internal/tui/components/phases"
 	"github.com/charmbracelet/bubbles/key"
@@ -16,13 +16,13 @@ type firstDraftPhase struct {
 	spinner        labeledspinner.Model
 	transcriptPath string
 	outputPath     string
-	mode           ai.Mode
-	client         *ai.Client
+	mode           content.Mode
+	client         *content.Writer
 	existingOutput existingOutputState
 }
 
 // NewFirstDraftPhase creates a new first draft generation phase.
-func NewFirstDraftPhase(transcriptPath, outputPath, apiKey string, mode ai.Mode) tea.Model {
+func NewFirstDraftPhase(transcriptPath, outputPath, apiKey string, mode content.Mode) tea.Model {
 	return &firstDraftPhase{
 		spinner: labeledspinner.New(
 			spinner.Pulse,
@@ -33,7 +33,7 @@ func NewFirstDraftPhase(transcriptPath, outputPath, apiKey string, mode ai.Mode)
 		transcriptPath: transcriptPath,
 		outputPath:     outputPath,
 		mode:           mode,
-		client:         ai.NewClient(apiKey),
+		client:         content.NewWriter(apiKey),
 		existingOutput: newExistingOutputState(outputPath),
 	}
 }

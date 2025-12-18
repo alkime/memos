@@ -1,4 +1,4 @@
-package ai
+package content
 
 import (
 	"context"
@@ -10,15 +10,15 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
-// Client handles Anthropic API requests for content generation.
-type Client struct {
+// Writer handles Anthropic API requests for content generation.
+type Writer struct {
 	apiKey string
 	model  anthropic.Model
 }
 
-// NewClient creates a new AI client.
-func NewClient(apiKey string) *Client {
-	return &Client{
+// NewWriter creates a new AI client.
+func NewWriter(apiKey string) *Writer {
+	return &Writer{
 		apiKey: apiKey,
 		model:  anthropic.ModelClaudeSonnet4_5_20250929,
 	}
@@ -80,12 +80,12 @@ func getCopyEditTool() anthropic.ToolParam {
 }
 
 // GenerateFirstDraft creates a lightly edited first draft from raw transcript.
-func (c *Client) GenerateFirstDraft(transcript string, mode Mode) (string, error) {
-	if c.apiKey == "" {
+func (w *Writer) GenerateFirstDraft(transcript string, mode Mode) (string, error) {
+	if w.apiKey == "" {
 		return "", errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
 	}
 
-	client := anthropic.NewClient(option.WithAPIKey(c.apiKey))
+	client := anthropic.NewClient(option.WithAPIKey(w.apiKey))
 
 	// Select appropriate prompt based on mode
 	var systemPrompt string
@@ -96,7 +96,7 @@ func (c *Client) GenerateFirstDraft(transcript string, mode Mode) (string, error
 	}
 
 	params := anthropic.MessageNewParams{
-		Model:     c.model,
+		Model:     w.model,
 		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
 			{Text: systemPrompt},
@@ -146,16 +146,16 @@ func parseCopyEditToolUse(content []anthropic.ContentBlockUnion) (*CopyEditToolI
 }
 
 // GenerateCopyEdit performs final copy editing and returns the result.
-func (c *Client) GenerateCopyEdit(
+func (w *Writer) GenerateCopyEdit(
 	firstDraft string,
 	currentDate string,
 	mode Mode,
 ) (*CopyEditResult, error) {
-	if c.apiKey == "" {
+	if w.apiKey == "" {
 		return nil, errors.New("API key required: set ANTHROPIC_API_KEY or use --api-key")
 	}
 
-	client := anthropic.NewClient(option.WithAPIKey(c.apiKey))
+	client := anthropic.NewClient(option.WithAPIKey(w.apiKey))
 	toolDef := getCopyEditTool()
 
 	// Create tool union param using the SDK constructor
@@ -171,7 +171,7 @@ func (c *Client) GenerateCopyEdit(
 	}
 
 	params := anthropic.MessageNewParams{
-		Model:     c.model,
+		Model:     w.model,
 		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
 			{Text: systemPrompt},

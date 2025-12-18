@@ -25,6 +25,10 @@ Always use Context7 MCP tools when code generation, setup/configuration steps, o
 ├── themes/hugo-bearblog/    # Hugo theme (git submodule)
 ├── public/                  # Generated site (gitignored)
 └── internal/                # Go packages
+    ├── audio/               # Audio capture, encoding, recording
+    ├── content/             # Transcription, AI writing, prompts
+    ├── tui/                 # Terminal UI, workflow, components
+    └── platform/            # Infrastructure (config, logger, server, git)
 ```
 
 ## Development Commands

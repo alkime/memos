@@ -10,14 +10,13 @@ import (
 	"sync"
 
 	"github.com/alecthomas/kong"
-	"github.com/alkime/memos/internal/audiofile"
-	"github.com/alkime/memos/internal/cli/ai"
-	"github.com/alkime/memos/internal/cli/audio/device"
-	"github.com/alkime/memos/internal/git"
-	"github.com/alkime/memos/internal/keyring"
+	"github.com/alkime/memos/internal/audio"
+	"github.com/alkime/memos/internal/content"
+	"github.com/alkime/memos/internal/platform/git"
+	"github.com/alkime/memos/internal/platform/keyring"
+	"github.com/alkime/memos/internal/platform/workdir"
 	"github.com/alkime/memos/internal/tui"
 	"github.com/alkime/memos/internal/tui/workflow"
-	"github.com/alkime/memos/internal/workdir"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gen2brain/malgo"
 )
@@ -53,8 +52,8 @@ func (c *TUICmd) Run() error {
 	wg := sync.WaitGroup{}
 
 	// Parse and validate mode
-	mode := ai.Mode(c.Mode)
-	if mode != ai.ModeMemos && mode != ai.ModeJournal {
+	mode := content.Mode(c.Mode)
+	if mode != content.ModeMemos && mode != content.ModeJournal {
 		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", c.Mode)
 	}
 
@@ -106,7 +105,7 @@ func (c *TUICmd) Run() error {
 
 	dataC := make(chan []byte, 64)
 
-	dev := device.NewAudioDevice(&device.AudioDeviceConfig{
+	dev := audio.NewDevice(&audio.DeviceConfig{
 		Format:          malgo.FormatS16,
 		SampleRate:      defaultSampleRate,
 		CaptureChannels: defaultChannels,
@@ -131,7 +130,7 @@ func (c *TUICmd) Run() error {
 	}
 
 	// Create audio file recorder
-	recorder, err := audiofile.NewRecorder(audiofile.Config{
+	recorder, err := audio.NewRecorder(audio.Config{
 		SampleRate: defaultSampleRate,
 		Channels:   defaultChannels,
 		MP3Path:    outputPath,
@@ -186,7 +185,7 @@ type DevicesCmd struct{}
 func (dcmd *DevicesCmd) Run() error {
 	slog.Info("Enumerating audio devices...")
 
-	adev := device.NewAudioDevice(nil)
+	adev := audio.NewDevice(nil)
 	devices, err := adev.EnumerateDevices(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to enumerate audio devices: %w", err)
@@ -297,8 +296,8 @@ func getWorkingName(explicitName string) string {
 
 func makeRecordingControls(
 	ctx context.Context,
-	dev device.AudioDevice,
-	recorder *audiofile.Recorder,
+	dev audio.Device,
+	recorder *audio.Recorder,
 	dataC chan []byte,
 	maxBytes int64,
 ) workflow.RecordingControls {
@@ -326,7 +325,7 @@ func makeRecordingControls(
 
 type audioDevKnob struct {
 	ctx context.Context
-	dev device.AudioDevice
+	dev audio.Device
 }
 
 func (adk audioDevKnob) Read() bool {
@@ -356,7 +355,7 @@ func (adk audioDevKnob) Toggle() {
 
 type audioFileDial struct {
 	ctx      context.Context
-	recorder *audiofile.Recorder
+	recorder *audio.Recorder
 	maxBytes int64
 }
 
@@ -368,9 +367,9 @@ func (afd audioFileDial) Cap() (int64, int64) {
 	return afd.Read(), afd.maxBytes
 }
 
-// audioSampleLevels implements uictl.Levels[int16] for waveform visualization.
+// audioSampleLevels implements remotectl.Levels[int16] for waveform visualization.
 type audioSampleLevels struct {
-	recorder *audiofile.Recorder
+	recorder *audio.Recorder
 }
 
 // Read returns recent audio samples for visualization.

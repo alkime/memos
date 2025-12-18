@@ -15,7 +15,7 @@ func init() {
 	lipgloss.SetColorProfile(termenv.Ascii)
 }
 
-// mockLevels implements uictl.Levels[int16] for testing.
+// mockLevels implements remotectl.Levels[int16] for testing.
 type mockLevels struct {
 	samples []int16
 }

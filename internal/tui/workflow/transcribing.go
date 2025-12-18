@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/alkime/memos/internal/cli/transcription"
+	"github.com/alkime/memos/internal/content"
 	"github.com/alkime/memos/internal/tui/components/labeledspinner"
 	"github.com/alkime/memos/internal/tui/components/phases"
 	"github.com/charmbracelet/bubbles/key"
@@ -16,7 +16,7 @@ type transcribePhase struct {
 	spinner                 labeledspinner.Model
 	audioInputPath          string
 	transcriptionOutputPath string
-	client                  *transcription.Client
+	client                  *content.Transcriber
 	existingOutput          existingOutputState
 }
 
@@ -30,7 +30,7 @@ func NewTranscribePhase(audioInputPath, transcriptionOutputPath, apiKey string) 
 		),
 		audioInputPath:          audioInputPath,
 		transcriptionOutputPath: transcriptionOutputPath,
-		client:                  transcription.NewClient(apiKey),
+		client:                  content.NewTranscriber(apiKey),
 		existingOutput:          newExistingOutputState(transcriptionOutputPath),
 	}
 }
