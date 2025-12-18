@@ -10,19 +10,14 @@ linters:
     - forbidigo
     - funlen
     - gocheckcompilerdirectives
-    - gochecknoglobals
-    - gochecknoinits
     - gocognit
     - goconst
     - gocritic
     - gocyclo
     - godot
-    - godox
     - gomodguard
     - goprintffuncname
     - gosec
-    - gosmopolitan
-    - grouper
     - importas
     - interfacebloat
     - lll
@@ -31,15 +26,12 @@ linters:
     - misspell
     - musttag
     - nestif
-    - nlreturn
     - noctx
     - nolintlint
     - nosprintfhostport
-    - prealloc
     - predeclared
     - reassign
     - revive
-    - testpackage
     - unconvert
     - unparam
     - usestdlibvars
@@ -57,10 +49,6 @@ linters:
     gocritic:
       disabled-checks:
         - singleCaseSwitch
-    godox:
-      keywords:
-        - HACK
-        - FIXME
     gosec:
       excludes:
         - G115
@@ -71,8 +59,6 @@ linters:
       tab-width: 4
     nestif:
       min-complexity: 20
-    nlreturn:
-      block-size: 7
     revive:
       rules:
         - name: exported
@@ -89,6 +75,15 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      # Allow long test functions
+      - path: _test\.go
+        linters:
+          - funlen
+      # Allow fmt.Print in CLI tool
+      - path: cmd/voice/
+        linters:
+          - forbidigo
 formatters:
   exclusions:
     generated: lax

@@ -9,8 +9,6 @@ import "github.com/charmbracelet/lipgloss"
 //
 // Variable names intentionally omit "Style" suffix since they're accessed
 // via the style package (e.g., style.Title reads better than style.TitleStyle).
-//
-//nolint:gochecknoglobals // Lipgloss styles are idiomatic as package-level vars
 var (
 	// Title is used for phase titles and headers.
 	Title = lipgloss.NewStyle().

@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//nolint:gochecknoinits // recommended for CI by bubbletea folks
 func init() {
 	lipgloss.SetColorProfile(termenv.Ascii)
 }

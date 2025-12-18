@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//nolint:gochecknoinits // recommend for CI by bubbletea folks
 func init() {
 	lipgloss.SetColorProfile(termenv.Ascii)
 }

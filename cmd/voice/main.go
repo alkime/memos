@@ -174,7 +174,6 @@ func (c *TUICmd) Run() error {
 
 	wg.Wait()
 
-	//nolint:forbidigo // CLI output for completion notification
 	fmt.Println("\nfinished. bye!")
 
 	return nil
@@ -232,7 +231,6 @@ func (c *SetKeyCmd) Run() error {
 		return fmt.Errorf("failed to store API key: %w", err)
 	}
 
-	//nolint:forbidigo // CLI output
 	fmt.Printf("%s API key stored in keychain\n", c.Service)
 
 	return nil
@@ -249,17 +247,14 @@ func (c *ListKeysCmd) Run() error {
 
 	for _, apiKey := range keyring.AllAPIKeys() {
 		if keyring.IsSet(apiKey) {
-			//nolint:forbidigo // CLI output
 			fmt.Printf("%s: configured\n", apiKey.DisplayName())
 		} else {
-			//nolint:forbidigo // CLI output
 			fmt.Printf("%s: not set\n", apiKey.DisplayName())
 			allSet = false
 		}
 	}
 
 	if !allSet {
-		//nolint:forbidigo // CLI output
 		fmt.Println("\nRun 'voice config set-key <service> <key>' to configure.")
 	}
 

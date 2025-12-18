@@ -1,4 +1,4 @@
-package transcription //nolint:testpackage // Needs access to unexported fields
+package transcription
 
 import (
 	"strings"
