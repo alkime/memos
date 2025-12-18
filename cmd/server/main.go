@@ -4,9 +4,9 @@ package main
 import (
 	"log"
 
-	"github.com/alkime/memos/internal/config"
-	"github.com/alkime/memos/internal/logger"
-	"github.com/alkime/memos/internal/server"
+	"github.com/alkime/memos/internal/platform/config"
+	"github.com/alkime/memos/internal/platform/logger"
+	"github.com/alkime/memos/internal/platform/server"
 )
 
 func main() {

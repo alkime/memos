@@ -1,10 +1,10 @@
-package device
+package audio
 
 import (
 	"github.com/gen2brain/malgo"
 )
 
-type AudioDeviceConfig struct {
+type DeviceConfig struct {
 	Format           malgo.FormatType
 	CaptureChannels  int
 	PlaybackChannels int

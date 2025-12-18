@@ -51,11 +51,12 @@ The application serves as:
 **Package Structure**:
 - `cmd/server/` - Web server entry point
 - `cmd/voice/` - Voice CLI tool entry point
-- `internal/config/` - Configuration management
-- `internal/logger/` - Structured logging setup
-- `internal/server/` - HTTP server and security middleware
-- `internal/cli/` - CLI tool packages (audio, transcription, AI, editor)
-- `internal/workdir/` - Working directory management
+- `internal/platform/config/` - Configuration management
+- `internal/platform/logger/` - Structured logging setup
+- `internal/platform/server/` - HTTP server and security middleware
+- `internal/platform/workdir/` - Working directory management
+- `internal/platform/git/` - Git operations (branch detection)
+- `internal/platform/keyring/` - Secure credential storage
 
 ### Voice CLI (Go)
 
@@ -69,19 +70,22 @@ The application serves as:
 - **AI Generation**: Anthropic SDK Go v1.18.0 (Claude API integration)
 
 **Voice CLI Package Structure**:
-- `internal/tui/` - Bubbletea TUI application
+- `internal/audio/` - Audio domain (capture, encoding, recording)
+  - `device.go` - Low-level audio device operations
+  - `recorder.go` - Audio file recording (PCM buffering, MP3 conversion)
+  - `encoder.go` - MP3 encoder configuration
+- `internal/content/` - Content transformation domain
+  - `transcriber.go` - OpenAI Whisper integration
+  - `writer.go` - Anthropic Claude content generation
+  - `prompts.go` - AI prompt templates
+  - `slug.go` - URL slug generation
+- `internal/tui/` - Terminal UI domain
   - `internal/tui/workflow/` - Phase-based workflow states
   - `internal/tui/components/` - Reusable UI components (spinners, phase indicators)
   - `internal/tui/style/` - Lipgloss styling definitions
-- `internal/cli/audio/device/` - Low-level audio device operations
-- `internal/cli/transcription/` - OpenAI Whisper integration
-- `internal/cli/ai/` - Anthropic Claude content generation
-- `internal/audiofile/` - Audio file recording (PCM buffering, MP3 conversion)
-- `internal/mp3/` - MP3 encoder configuration
-- `internal/git/` - Git operations (branch detection)
+  - `internal/tui/remotectl/` - UI control interfaces
 - `pkg/channels/` - Broadcaster pattern for fan-out channel communication
 - `pkg/collections/` - Utility functions for data manipulation
-- `pkg/uictl/` - UI control utilities
 
 ### Frontend/Content Generation
 

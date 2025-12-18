@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/alkime/memos/internal/config"
+	"github.com/alkime/memos/internal/platform/config"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )

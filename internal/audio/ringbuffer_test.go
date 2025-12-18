@@ -1,18 +1,18 @@
-package audiofile_test
+package audio_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/alkime/memos/internal/audiofile"
+	"github.com/alkime/memos/internal/audio"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSampleRingBuffer_Write(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(10)
+	buf := audio.NewSampleRingBuffer(10)
 
 	// Write 5 samples
 	buf.Write([]int16{1, 2, 3, 4, 5})
@@ -25,7 +25,7 @@ func TestSampleRingBuffer_Write(t *testing.T) {
 func TestSampleRingBuffer_WriteEmpty(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(10)
+	buf := audio.NewSampleRingBuffer(10)
 	buf.Write([]int16{})
 
 	require.Equal(t, 0, buf.Count())
@@ -35,7 +35,7 @@ func TestSampleRingBuffer_WriteEmpty(t *testing.T) {
 func TestSampleRingBuffer_Wraparound(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(5)
+	buf := audio.NewSampleRingBuffer(5)
 
 	// Write 7 samples (wraps around, overwrites first 2)
 	buf.Write([]int16{1, 2, 3, 4, 5, 6, 7})
@@ -49,7 +49,7 @@ func TestSampleRingBuffer_Wraparound(t *testing.T) {
 func TestSampleRingBuffer_MultipleWrites(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(5)
+	buf := audio.NewSampleRingBuffer(5)
 
 	// Write in batches
 	buf.Write([]int16{1, 2})
@@ -64,7 +64,7 @@ func TestSampleRingBuffer_MultipleWrites(t *testing.T) {
 func TestSampleRingBuffer_ReadLessThanAvailable(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(10)
+	buf := audio.NewSampleRingBuffer(10)
 	buf.Write([]int16{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
 
 	// Read only last 3
@@ -75,7 +75,7 @@ func TestSampleRingBuffer_ReadLessThanAvailable(t *testing.T) {
 func TestSampleRingBuffer_ReadMoreThanAvailable(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(10)
+	buf := audio.NewSampleRingBuffer(10)
 	buf.Write([]int16{1, 2, 3})
 
 	// Request more than available
@@ -86,7 +86,7 @@ func TestSampleRingBuffer_ReadMoreThanAvailable(t *testing.T) {
 func TestSampleRingBuffer_ReadZero(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(10)
+	buf := audio.NewSampleRingBuffer(10)
 	buf.Write([]int16{1, 2, 3})
 
 	got := buf.ReadSamples(0)
@@ -96,7 +96,7 @@ func TestSampleRingBuffer_ReadZero(t *testing.T) {
 func TestSampleRingBuffer_ReadNegative(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(10)
+	buf := audio.NewSampleRingBuffer(10)
 	buf.Write([]int16{1, 2, 3})
 
 	got := buf.ReadSamples(-1)
@@ -106,7 +106,7 @@ func TestSampleRingBuffer_ReadNegative(t *testing.T) {
 func TestSampleRingBuffer_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	buf := audiofile.NewSampleRingBuffer(1000)
+	buf := audio.NewSampleRingBuffer(1000)
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
@@ -185,7 +185,7 @@ func TestBytesToInt16(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := audiofile.BytesToInt16(tt.input)
+			got := audio.BytesToInt16(tt.input)
 			require.Equal(t, tt.expected, got)
 		})
 	}

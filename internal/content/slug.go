@@ -1,4 +1,4 @@
-package ai
+package content
 
 import (
 	"regexp"

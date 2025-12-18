@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"github.com/alkime/memos/internal/cli/ai"
+	"github.com/alkime/memos/internal/content"
+	"github.com/alkime/memos/internal/platform/workdir"
 	"github.com/alkime/memos/internal/tui/components/phases"
 	"github.com/alkime/memos/internal/tui/style"
 	"github.com/alkime/memos/internal/tui/workflow"
-	"github.com/alkime/memos/internal/workdir"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -19,7 +19,7 @@ type Config struct {
 	WorkingName     string
 	OpenAIAPIKey    string
 	AnthropicAPIKey string
-	Mode            ai.Mode
+	Mode            content.Mode
 	MaxBytes        int64
 	EditorCmd       string
 }

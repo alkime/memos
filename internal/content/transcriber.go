@@ -1,4 +1,4 @@
-package transcription
+package content
 
 import (
 	"context"
@@ -10,27 +10,27 @@ import (
 	"github.com/openai/openai-go/option"
 )
 
-// Client handles Whisper API transcription requests.
-type Client struct {
+// Transcriber handles Whisper API transcription requests.
+type Transcriber struct {
 	apiKey string
 }
 
-// NewClient creates a new transcription client.
-func NewClient(apiKey string) *Client {
-	return &Client{
+// NewTranscriber creates a new transcription client.
+func NewTranscriber(apiKey string) *Transcriber {
+	return &Transcriber{
 		apiKey: apiKey,
 	}
 }
 
 // TranscribeFile transcribes an audio file using Whisper API.
-func (c *Client) TranscribeFile(audioFile io.Reader) (string, error) {
+func (t *Transcriber) TranscribeFile(audioFile io.Reader) (string, error) {
 	// Validate API key
-	if c.apiKey == "" {
+	if t.apiKey == "" {
 		return "", errors.New("API key required: set OPENAI_API_KEY or use --api-key")
 	}
 
 	// Create OpenAI client
-	client := openai.NewClient(option.WithAPIKey(c.apiKey))
+	client := openai.NewClient(option.WithAPIKey(t.apiKey))
 
 	// Create transcription request
 	params := openai.AudioTranscriptionNewParams{

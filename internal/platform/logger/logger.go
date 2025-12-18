@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/alkime/memos/internal/config"
+	"github.com/alkime/memos/internal/platform/config"
 )
 
 // SetupLogger configures structured logging based on environment.

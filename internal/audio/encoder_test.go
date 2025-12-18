@@ -1,4 +1,4 @@
-package mp3_test
+package audio_test
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkime/memos/internal/mp3"
+	"github.com/alkime/memos/internal/audio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,12 +17,12 @@ func TestEncoderConfig_Validate(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		config      mp3.EncoderConfig
+		config      audio.EncoderConfig
 		expectError string
 	}{
 		{
 			name: "valid config",
-			config: mp3.EncoderConfig{
+			config: audio.EncoderConfig{
 				SampleRate:      16000,
 				Channels:        1,
 				BufferThreshold: 4096,
@@ -31,7 +31,7 @@ func TestEncoderConfig_Validate(t *testing.T) {
 		},
 		{
 			name: "zero sample rate",
-			config: mp3.EncoderConfig{
+			config: audio.EncoderConfig{
 				SampleRate:      0,
 				Channels:        1,
 				BufferThreshold: 4096,
@@ -40,7 +40,7 @@ func TestEncoderConfig_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid channels",
-			config: mp3.EncoderConfig{
+			config: audio.EncoderConfig{
 				SampleRate:      16000,
 				Channels:        2,
 				BufferThreshold: 4096,
@@ -49,7 +49,7 @@ func TestEncoderConfig_Validate(t *testing.T) {
 		},
 		{
 			name: "zero buffer threshold",
-			config: mp3.EncoderConfig{
+			config: audio.EncoderConfig{
 				SampleRate:      16000,
 				Channels:        1,
 				BufferThreshold: 0,
@@ -79,37 +79,37 @@ func TestEncoderConfig_WithDefaults(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		input    mp3.EncoderConfig
-		expected mp3.EncoderConfig
+		input    audio.EncoderConfig
+		expected audio.EncoderConfig
 	}{
 		{
 			name:  "empty config gets all defaults",
-			input: mp3.EncoderConfig{},
-			expected: mp3.EncoderConfig{
-				SampleRate:      mp3.DefaultSampleRate,
-				Channels:        mp3.DefaultChannels,
-				BufferThreshold: mp3.DefaultBufferThreshold,
+			input: audio.EncoderConfig{},
+			expected: audio.EncoderConfig{
+				SampleRate:      audio.DefaultSampleRate,
+				Channels:        audio.DefaultChannels,
+				BufferThreshold: audio.DefaultBufferThreshold,
 			},
 		},
 		{
 			name: "partial config preserves custom values",
-			input: mp3.EncoderConfig{
+			input: audio.EncoderConfig{
 				SampleRate: 44100,
 			},
-			expected: mp3.EncoderConfig{
+			expected: audio.EncoderConfig{
 				SampleRate:      44100,
-				Channels:        mp3.DefaultChannels,
-				BufferThreshold: mp3.DefaultBufferThreshold,
+				Channels:        audio.DefaultChannels,
+				BufferThreshold: audio.DefaultBufferThreshold,
 			},
 		},
 		{
 			name: "complete config unchanged",
-			input: mp3.EncoderConfig{
+			input: audio.EncoderConfig{
 				SampleRate:      48000,
 				Channels:        1,
 				BufferThreshold: 8192,
 			},
-			expected: mp3.EncoderConfig{
+			expected: audio.EncoderConfig{
 				SampleRate:      48000,
 				Channels:        1,
 				BufferThreshold: 8192,
@@ -129,9 +129,9 @@ func TestEncoderConfig_WithDefaults(t *testing.T) {
 }
 
 func TestNewStreamingEncoder_ValidatesInputs(t *testing.T) {
-	t.Parallel()
+	// Note: t.Parallel() removed - shine-mp3 encoder is not thread-safe
 
-	validConfig := mp3.EncoderConfig{
+	validConfig := audio.EncoderConfig{
 		SampleRate:      16000,
 		Channels:        1,
 		BufferThreshold: 4096,
@@ -139,7 +139,7 @@ func TestNewStreamingEncoder_ValidatesInputs(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		config      mp3.EncoderConfig
+		config      audio.EncoderConfig
 		input       <-chan []byte
 		output      io.Writer
 		expectError string
@@ -153,7 +153,7 @@ func TestNewStreamingEncoder_ValidatesInputs(t *testing.T) {
 		},
 		{
 			name: "invalid config",
-			config: mp3.EncoderConfig{
+			config: audio.EncoderConfig{
 				SampleRate:      0,
 				Channels:        1,
 				BufferThreshold: 4096,
@@ -182,7 +182,7 @@ func TestNewStreamingEncoder_ValidatesInputs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			encoder, err := mp3.NewStreamingEncoder(tt.config, tt.input, tt.output)
+			encoder, err := audio.NewStreamingEncoder(tt.config, tt.input, tt.output)
 
 			if tt.expectError != "" {
 				require.Error(t, err)
@@ -197,19 +197,19 @@ func TestNewStreamingEncoder_ValidatesInputs(t *testing.T) {
 }
 
 func TestStreamingEncoder_EncodesData(t *testing.T) {
-	t.Parallel()
+	// Note: t.Parallel() removed - shine-mp3 encoder is not thread-safe
 
 	ctx := context.Background()
 	input := make(chan []byte, 10)
 	output := bytes.NewBuffer(nil)
 
-	config := mp3.EncoderConfig{
+	config := audio.EncoderConfig{
 		SampleRate:      16000,
 		Channels:        1,
 		BufferThreshold: 100, // Small threshold for testing
 	}.WithDefaults()
 
-	encoder, err := mp3.NewStreamingEncoder(config, input, output)
+	encoder, err := audio.NewStreamingEncoder(config, input, output)
 	require.NoError(t, err)
 
 	err = encoder.Start(ctx)
@@ -232,19 +232,19 @@ func TestStreamingEncoder_EncodesData(t *testing.T) {
 }
 
 func TestStreamingEncoder_HandlesContextCancellation(t *testing.T) {
-	t.Parallel()
+	// Note: t.Parallel() removed - shine-mp3 encoder is not thread-safe
 
 	ctx, cancel := context.WithCancel(context.Background())
 	input := make(chan []byte, 10)
 	output := bytes.NewBuffer(nil)
 
-	config := mp3.EncoderConfig{
+	config := audio.EncoderConfig{
 		SampleRate:      16000,
 		Channels:        1,
 		BufferThreshold: 4096,
 	}.WithDefaults()
 
-	encoder, err := mp3.NewStreamingEncoder(config, input, output)
+	encoder, err := audio.NewStreamingEncoder(config, input, output)
 	require.NoError(t, err)
 
 	err = encoder.Start(ctx)
@@ -259,19 +259,19 @@ func TestStreamingEncoder_HandlesContextCancellation(t *testing.T) {
 }
 
 func TestStreamingEncoder_HandlesChannelClose(t *testing.T) {
-	t.Parallel()
+	// Note: t.Parallel() removed - shine-mp3 encoder is not thread-safe
 
 	ctx := context.Background()
 	input := make(chan []byte, 10)
 	output := bytes.NewBuffer(nil)
 
-	config := mp3.EncoderConfig{
+	config := audio.EncoderConfig{
 		SampleRate:      16000,
 		Channels:        1,
 		BufferThreshold: 4096,
 	}.WithDefaults()
 
-	encoder, err := mp3.NewStreamingEncoder(config, input, output)
+	encoder, err := audio.NewStreamingEncoder(config, input, output)
 	require.NoError(t, err)
 
 	err = encoder.Start(ctx)
@@ -285,19 +285,19 @@ func TestStreamingEncoder_HandlesChannelClose(t *testing.T) {
 }
 
 func TestStreamingEncoder_CannotStartTwice(t *testing.T) {
-	t.Parallel()
+	// Note: t.Parallel() removed - shine-mp3 encoder is not thread-safe
 
 	ctx := context.Background()
 	input := make(chan []byte, 10)
 	output := bytes.NewBuffer(nil)
 
-	config := mp3.EncoderConfig{
+	config := audio.EncoderConfig{
 		SampleRate:      16000,
 		Channels:        1,
 		BufferThreshold: 4096,
 	}.WithDefaults()
 
-	encoder, err := mp3.NewStreamingEncoder(config, input, output)
+	encoder, err := audio.NewStreamingEncoder(config, input, output)
 	require.NoError(t, err)
 
 	// First start should succeed
@@ -315,19 +315,19 @@ func TestStreamingEncoder_CannotStartTwice(t *testing.T) {
 }
 
 func TestStreamingEncoder_MultipleDataChunks(t *testing.T) {
-	t.Parallel()
+	// Note: t.Parallel() removed - shine-mp3 encoder is not thread-safe
 
 	ctx := context.Background()
 	input := make(chan []byte, 100)
 	output := bytes.NewBuffer(nil)
 
-	config := mp3.EncoderConfig{
+	config := audio.EncoderConfig{
 		SampleRate:      16000,
 		Channels:        1,
 		BufferThreshold: 200, // Small threshold to trigger multiple encodes
 	}.WithDefaults()
 
-	encoder, err := mp3.NewStreamingEncoder(config, input, output)
+	encoder, err := audio.NewStreamingEncoder(config, input, output)
 	require.NoError(t, err)
 
 	err = encoder.Start(ctx)

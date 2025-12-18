@@ -1,4 +1,4 @@
-package audiofile
+package audio
 
 import (
 	"encoding/binary"

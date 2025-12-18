@@ -4,7 +4,7 @@ package server
 import (
 	"log/slog"
 
-	"github.com/alkime/memos/internal/config"
+	"github.com/alkime/memos/internal/platform/config"
 	"github.com/gin-contrib/secure"
 	"github.com/gin-gonic/gin"
 )

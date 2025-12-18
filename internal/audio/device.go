@@ -1,4 +1,4 @@
-package device
+package audio
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/gen2brain/malgo"
 )
 
-type AudioDevice interface {
+type Device interface {
 	// EnumerateDevices lists available audio devices.
 	// It ignores any device configuration passed in.
 	EnumerateDevices(ctx context.Context) ([]Info, error)
@@ -40,13 +40,13 @@ type AudioDevice interface {
 }
 
 type device struct {
-	conf *AudioDeviceConfig
+	conf *DeviceConfig
 
 	mgCtx    *malgo.AllocatedContext
 	mgDevice *malgo.Device
 }
 
-func NewAudioDevice(conf *AudioDeviceConfig) AudioDevice {
+func NewDevice(conf *DeviceConfig) Device {
 	return &device{conf: conf}
 }
 

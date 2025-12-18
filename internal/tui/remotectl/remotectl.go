@@ -1,4 +1,4 @@
-package uictl
+package remotectl
 
 import "golang.org/x/exp/constraints"
 

@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/alkime/memos/internal/config"
-	"github.com/alkime/memos/internal/server"
+	"github.com/alkime/memos/internal/platform/config"
+	"github.com/alkime/memos/internal/platform/server"
 	"github.com/stretchr/testify/assert"
 )
 
