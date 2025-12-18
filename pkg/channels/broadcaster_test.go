@@ -1,4 +1,3 @@
-//nolint:funlen
 package channels_test
 
 import (
