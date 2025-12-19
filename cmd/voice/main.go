@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/alkime/memos/internal/audio"
@@ -38,6 +39,7 @@ type TUICmd struct {
 	MaxDuration     string `flag:"" default:"1h" help:"Max recording duration"`
 	MaxBytes        int64  `flag:"" default:"268435456" help:"Max file size (256MB)"`
 	Mode            string `flag:"" default:"memos" help:"Content mode: memos (full) or journal (minimal)"`
+	OutputDir       string `flag:"" optional:"" help:"Output dir (default: content/posts for memos, . for journal)"`
 	OpenAIAPIKey    string `flag:"" env:"OPENAI_API_KEY" help:"OpenAI API key for transcription"`
 	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key for first draft"`
 }
@@ -55,6 +57,15 @@ func (c *TUICmd) Run() error {
 	mode := content.Mode(c.Mode)
 	if mode != content.ModeMemos && mode != content.ModeJournal {
 		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", c.Mode)
+	}
+
+	// Set mode-based default for OutputDir if not explicitly provided
+	if c.OutputDir == "" {
+		if mode == content.ModeMemos {
+			c.OutputDir = "content/posts"
+		} else {
+			c.OutputDir = "."
+		}
 	}
 
 	// Resolve API keys: environment variables take priority, fallback to keychain
@@ -148,6 +159,7 @@ func (c *TUICmd) Run() error {
 		Mode:            mode,
 		MaxBytes:        c.MaxBytes,
 		EditorCmd:       os.Getenv("MEMOS_EDITOR"),
+		OutputDir:       c.OutputDir,
 	}
 
 	ctrls := makeRecordingControls(ctx, dev, recorder, dataC, c.MaxBytes)
@@ -291,7 +303,7 @@ func getWorkingName(explicitName string) string {
 	}
 
 	// Fallback to timestamp if not in git repo
-	return "recording"
+	return time.Now().Format(time.DateOnly)
 }
 
 func makeRecordingControls(

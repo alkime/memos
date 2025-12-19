@@ -41,8 +41,10 @@ func newExistingOutputState(outputPath string) existingOutputState {
 		keys: defaultExistingOutputKeyMap(),
 	}
 
-	if _, err := os.Stat(outputPath); err == nil {
-		state.found = true
+	if st, err := os.Stat(outputPath); err == nil {
+		if st.Size() > 0 {
+			state.found = true
+		}
 	}
 
 	return state

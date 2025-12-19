@@ -22,6 +22,7 @@ type Config struct {
 	Mode            content.Mode
 	MaxBytes        int64
 	EditorCmd       string
+	OutputDir       string
 }
 
 // model is the TUI model using the phases component.
@@ -67,6 +68,7 @@ func New(config Config, recordingControls workflow.RecordingControls) tea.Model 
 		workdir.MustFilePath(config.WorkingName, workdir.FirstDraftFile),
 		config.AnthropicAPIKey,
 		config.Mode,
+		config.OutputDir,
 	)))
 
 	return &model{

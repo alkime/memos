@@ -20,6 +20,7 @@ type copyEditPhase struct {
 	inputPath string
 	mode      content.Mode
 	client    *content.Writer
+	outputDir string
 
 	// Completion state
 	complete   bool
@@ -29,7 +30,7 @@ type copyEditPhase struct {
 }
 
 // NewCopyEditPhase creates a new copy edit phase.
-func NewCopyEditPhase(inputPath, apiKey string, mode content.Mode) tea.Model {
+func NewCopyEditPhase(inputPath, apiKey string, mode content.Mode, outputDir string) tea.Model {
 	return &copyEditPhase{
 		spinner: labeledspinner.New(
 			spinner.Pulse,
@@ -40,6 +41,7 @@ func NewCopyEditPhase(inputPath, apiKey string, mode content.Mode) tea.Model {
 		inputPath: inputPath,
 		mode:      mode,
 		client:    content.NewWriter(apiKey),
+		outputDir: outputDir,
 	}
 }
 
@@ -135,11 +137,11 @@ func (cp *copyEditPhase) copyEditCmd() tea.Cmd {
 			return tea.Quit
 		}
 
-		// Generate output path: content/posts/{YYYY-MM}-{slug}.md
+		// Generate output path: {outputDir}/{YYYY-MM}-{slug}.md
 		slug := content.GenerateSlug(result.Title)
 		datePrefix := time.Now().Format("2006-01")
 		filename := fmt.Sprintf("%s-%s.md", datePrefix, slug)
-		outputPath := filepath.Join("content", "posts", filename)
+		outputPath := filepath.Join(cp.outputDir, filename)
 
 		// Write the final post
 		//nolint:gosec // Blog posts need to be readable
