@@ -6,6 +6,8 @@ This project explores what it's like to build and ship software with [Claude Cod
 
 **What it does:** Record voice memos → transcribe with Whisper → draft with Claude → publish to a static Hugo blog on Fly.io.
 
+![Voice CLI demo](static/images/posts/2025-12/demo.gif)
+
 **What it's for:** Developing a point of view on AI-assisted DevEx, specifically with Claude Code.
 
 For technical details, see [CLAUDE.md](CLAUDE.md).
