@@ -8,6 +8,7 @@ const FirstDraftSystemPromptMemos = `You are a first draft writer. Given a raw v
 - Reword things for clarity, but strive to keep the narrative voice as much as possible
 - Organize the ideas, giving them section headings when appropriate, while maintaining the narrative voice
 - Output clean markdown with appropriate heading levels (##, ###)
+- Preserve all footnotes exactly as written - never remove or modify footnote references ([^1]) or definitions
 - Do NOT add Hugo frontmatter - just return the content body
 - This is for a public blog post (memos mode), so organize ideas with clear structure`
 
@@ -17,6 +18,7 @@ const FirstDraftSystemPromptJournal = `You are a first draft writer. Given a raw
 - Reword things for clarity, but keep the personal, conversational tone
 - Light organization with headings only when natural, preserving the journal's narrative flow
 - Output clean markdown with appropriate heading levels (##, ###)
+- Preserve all footnotes exactly as written - never remove or modify footnote references ([^1]) or definitions
 - Do NOT add Hugo frontmatter - just return the content body
 - This is a personal journal entry, so maintain the intimate, reflective voice`
 
@@ -26,6 +28,7 @@ func CopyEditSystemPromptMemos(currentDate string) string {
 - Polish grammar, punctuation, and style consistency
 - Fix any typos or awkward phrasing
 - Ensure proper markdown formatting
+- Preserve all footnotes exactly as written - never remove or modify footnote references ([^1]) or definitions
 - Generate appropriate Hugo frontmatter with title, date, tags, and metadata
 - The frontmatter must include:
   - title: The blog post title (quoted string)
@@ -55,6 +58,7 @@ func CopyEditSystemPromptJournal(currentDate string) string {
 - Polish grammar, punctuation, and style consistency
 - Fix any typos or awkward phrasing
 - Ensure proper markdown formatting
+- Preserve all footnotes exactly as written - never remove or modify footnote references ([^1]) or definitions
 - Generate minimal Hugo frontmatter for a personal journal entry
 - The frontmatter must include (minimal fields only):
   - title: The post title (quoted string)
