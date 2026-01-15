@@ -28,8 +28,9 @@ type CLI struct {
 	TUI TUICmd `cmd:"" default:"withargs" help:"Launch terminal UI for recording workflow"`
 
 	// Subcommands
-	Devices DevicesCmd `cmd:"" help:"List available audio devices"`
-	Config  ConfigCmd  `cmd:"" help:"Manage configuration"`
+	CopyEdit CopyEditCmd `cmd:"" help:"Copy-edit a markdown file in place"`
+	Devices  DevicesCmd  `cmd:"" help:"List available audio devices"`
+	Config   ConfigCmd   `cmd:"" help:"Manage configuration"`
 }
 
 // TUICmd is the default command that runs the TUI.
@@ -186,6 +187,50 @@ func (c *TUICmd) Run() error {
 	wg.Wait()
 
 	fmt.Println("\nfinished. bye!")
+
+	return nil
+}
+
+// CopyEditCmd copy-edits a markdown file in place.
+type CopyEditCmd struct {
+	File            string `arg:"" required:"" help:"Path to markdown file"`
+	Mode            string `flag:"" default:"memos" help:"Content mode: memos (full) or journal (minimal)"`
+	AnthropicAPIKey string `flag:"" env:"ANTHROPIC_API_KEY" help:"Anthropic API key for copy edit"`
+}
+
+// Run executes the copy-edit command.
+func (c *CopyEditCmd) Run() error {
+	// Validate file exists
+	if _, err := os.Stat(c.File); err != nil {
+		return fmt.Errorf("file not found: %w", err)
+	}
+
+	// Parse and validate mode
+	mode := content.Mode(c.Mode)
+	if mode != content.ModeMemos && mode != content.ModeJournal {
+		return fmt.Errorf("invalid mode %q: must be 'memos' or 'journal'", c.Mode)
+	}
+
+	// Resolve API key: environment variable takes priority, fallback to keychain
+	if c.AnthropicAPIKey == "" {
+		if secret, err := keyring.Get(keyring.Anthropic); err == nil {
+			c.AnthropicAPIKey = secret
+		} else {
+			slog.Debug("keychain lookup failed", "key", "anthropic", "error", err)
+		}
+	}
+
+	if c.AnthropicAPIKey == "" {
+		return fmt.Errorf(
+			"missing Anthropic API key: set ANTHROPIC_API_KEY or run 'voice config set-key anthropic <key>'",
+		)
+	}
+
+	// Run TUI with copy-edit file phase
+	p := tea.NewProgram(workflow.NewCopyEditFilePhase(c.File, c.AnthropicAPIKey, mode))
+	if _, err := p.Run(); err != nil {
+		return fmt.Errorf("failed to run copy-edit TUI: %w", err)
+	}
 
 	return nil
 }
