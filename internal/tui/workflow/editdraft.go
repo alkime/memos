@@ -12,15 +12,37 @@ import (
 
 type editDraftPhase struct {
 	draftPath string
-	editorCmd string
+	launcher  EditorLauncher
 }
 
 // NewEditDraftPhase creates a new edit draft phase.
-func NewEditDraftPhase(draftPath, editorCmd string) tea.Model {
+func NewEditDraftPhase(launcher EditorLauncher, draftPath string) tea.Model {
 	return &editDraftPhase{
 		draftPath: draftPath,
-		editorCmd: editorCmd,
+		launcher:  launcher,
 	}
+}
+
+// DefaultEditorLauncher provides the default editor launching behavior.
+type DefaultEditorLauncher struct {
+	EditorCmd string
+}
+
+// Launch opens the file in the configured editor.
+//
+//nolint:gosec // subprocess launching
+func (d *DefaultEditorLauncher) Launch(filePath string) tea.Cmd {
+	var c *exec.Cmd
+	if d.EditorCmd == "" {
+		// macOS default: blocking open in new window
+		c = exec.CommandContext(context.Background(), "open", "-Wn", filePath)
+	} else {
+		c = exec.CommandContext(context.Background(), d.EditorCmd, filePath)
+	}
+
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		return editorCompleteMsg{err: err}
+	})
 }
 
 type startEditorMsg struct{}
@@ -58,17 +80,6 @@ type editorCompleteMsg struct {
 	err error
 }
 
-//nolint:gosec // subprocess launching
 func (ep *editDraftPhase) openEditorCmd() tea.Cmd {
-	var c *exec.Cmd
-	if ep.editorCmd == "" {
-		// macOS default: blocking open in new window
-		c = exec.CommandContext(context.Background(), "open", "-Wn", ep.draftPath)
-	} else {
-		c = exec.CommandContext(context.Background(), ep.editorCmd, ep.draftPath)
-	}
-
-	return tea.ExecProcess(c, func(err error) tea.Msg {
-		return editorCompleteMsg{err: err}
-	})
+	return ep.launcher.Launch(ep.draftPath)
 }
