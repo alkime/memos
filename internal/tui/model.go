@@ -36,6 +36,11 @@ type model struct {
 
 // New creates a new TUI model using the phases component.
 func New(config Config, recordingControls workflow.RecordingControls) tea.Model {
+	// Create service clients
+	transcriber := content.NewTranscriber(config.OpenAIAPIKey)
+	writer := content.NewWriter(config.AnthropicAPIKey)
+	editorLauncher := &workflow.DefaultEditorLauncher{EditorCmd: config.EditorCmd}
+
 	var phs []phases.Phase
 
 	phs = append(phs, phases.NewPhase("Recording", workflow.NewRecording(
@@ -44,29 +49,30 @@ func New(config Config, recordingControls workflow.RecordingControls) tea.Model 
 		workdir.MustFilePath(config.WorkingName, workdir.MP3File),
 	)))
 	phs = append(phs, phases.NewPhase("Transcribing", workflow.NewTranscribePhase(
+		transcriber,
 		workdir.MustFilePath(config.WorkingName, workdir.MP3File),
 		workdir.MustFilePath(config.WorkingName, workdir.TranscriptFile),
-		config.OpenAIAPIKey)))
+	)))
 
 	phs = append(phs, phases.NewPhase("View Transcript", workflow.NewViewTranscriptPhase(
 		workdir.MustFilePath(config.WorkingName, workdir.TranscriptFile),
 	)))
 
 	phs = append(phs, phases.NewPhase("First Draft", workflow.NewFirstDraftPhase(
+		writer,
 		workdir.MustFilePath(config.WorkingName, workdir.TranscriptFile),
 		workdir.MustFilePath(config.WorkingName, workdir.FirstDraftFile),
-		config.AnthropicAPIKey,
 		config.Mode,
 	)))
 
 	phs = append(phs, phases.NewPhase("Edit Draft", workflow.NewEditDraftPhase(
+		editorLauncher,
 		workdir.MustFilePath(config.WorkingName, workdir.FirstDraftFile),
-		config.EditorCmd,
 	)))
 
 	phs = append(phs, phases.NewPhase("Copy Edit", workflow.NewCopyEditPhase(
+		writer,
 		workdir.MustFilePath(config.WorkingName, workdir.FirstDraftFile),
-		config.AnthropicAPIKey,
 		config.Mode,
 		config.OutputDir,
 	)))

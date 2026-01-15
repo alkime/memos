@@ -19,7 +19,7 @@ type copyEditPhase struct {
 	spinner   labeledspinner.Model
 	inputPath string
 	mode      content.Mode
-	client    *content.Writer
+	client    Writer
 	outputDir string
 
 	// Completion state
@@ -30,7 +30,7 @@ type copyEditPhase struct {
 }
 
 // NewCopyEditPhase creates a new copy edit phase.
-func NewCopyEditPhase(inputPath, apiKey string, mode content.Mode, outputDir string) tea.Model {
+func NewCopyEditPhase(writer Writer, inputPath string, mode content.Mode, outputDir string) tea.Model {
 	return &copyEditPhase{
 		spinner: labeledspinner.New(
 			spinner.Pulse,
@@ -40,7 +40,7 @@ func NewCopyEditPhase(inputPath, apiKey string, mode content.Mode, outputDir str
 		),
 		inputPath: inputPath,
 		mode:      mode,
-		client:    content.NewWriter(apiKey),
+		client:    writer,
 		outputDir: outputDir,
 	}
 }

@@ -28,7 +28,7 @@ type copyEditFilePhase struct {
 	spinner  labeledspinner.Model
 	filePath string
 	mode     content.Mode
-	client   *content.Writer
+	client   Writer
 	state    copyEditFileState
 
 	// Result from Claude
@@ -39,7 +39,7 @@ type copyEditFilePhase struct {
 }
 
 // NewCopyEditFilePhase creates a new copy-edit file phase.
-func NewCopyEditFilePhase(filePath, apiKey string, mode content.Mode) tea.Model {
+func NewCopyEditFilePhase(writer Writer, filePath string, mode content.Mode) tea.Model {
 	filename := filepath.Base(filePath)
 	return &copyEditFilePhase{
 		spinner: labeledspinner.New(
@@ -50,7 +50,7 @@ func NewCopyEditFilePhase(filePath, apiKey string, mode content.Mode) tea.Model 
 		),
 		filePath: filePath,
 		mode:     mode,
-		client:   content.NewWriter(apiKey),
+		client:   writer,
 		state:    copyEditFileProcessing,
 	}
 }

@@ -227,7 +227,8 @@ func (c *CopyEditCmd) Run() error {
 	}
 
 	// Run TUI with copy-edit file phase
-	p := tea.NewProgram(workflow.NewCopyEditFilePhase(c.File, c.AnthropicAPIKey, mode))
+	writer := content.NewWriter(c.AnthropicAPIKey)
+	p := tea.NewProgram(workflow.NewCopyEditFilePhase(writer, c.File, mode))
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("failed to run copy-edit TUI: %w", err)
 	}

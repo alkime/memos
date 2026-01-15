@@ -17,12 +17,12 @@ type firstDraftPhase struct {
 	transcriptPath string
 	outputPath     string
 	mode           content.Mode
-	client         *content.Writer
+	client         Writer
 	existingOutput existingOutputState
 }
 
 // NewFirstDraftPhase creates a new first draft generation phase.
-func NewFirstDraftPhase(transcriptPath, outputPath, apiKey string, mode content.Mode) tea.Model {
+func NewFirstDraftPhase(writer Writer, transcriptPath, outputPath string, mode content.Mode) tea.Model {
 	return &firstDraftPhase{
 		spinner: labeledspinner.New(
 			spinner.Pulse,
@@ -33,7 +33,7 @@ func NewFirstDraftPhase(transcriptPath, outputPath, apiKey string, mode content.
 		transcriptPath: transcriptPath,
 		outputPath:     outputPath,
 		mode:           mode,
-		client:         content.NewWriter(apiKey),
+		client:         writer,
 		existingOutput: newExistingOutputState(outputPath),
 	}
 }
