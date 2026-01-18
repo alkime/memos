@@ -14,6 +14,12 @@ A static site generator platform for converting voice recordings into blog posts
 
 Always use Context7 MCP tools when code generation, setup/configuration steps, or library/API documentation is needed. Automatically resolve library IDs and fetch docs without explicit requests.
 
+## Communication Preferences
+
+When asking clarifying questions, use the **AskUserQuestion tool** rather than plain text questions. This provides a cleaner UI for the user to respond with discrete options.
+
+Structure questions with clear options when possible - even open-ended questions often have 2-4 reasonable discrete choices that can be offered.
+
 ## Quick Reference
 
 ```
