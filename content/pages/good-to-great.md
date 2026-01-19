@@ -10,13 +10,7 @@ draft: false
 
 # From Good To Great DevX
 
-Up until this [Memos project](https://memos.alki.me/pages/readme/), my experience with AI coding assistants was limited to fairly isolated work in Cursor, where I reached for Agent mode chat—not even fully background agents—only when needed to flex out into parts of the codebase that were not in my wheelhouse (*cough* React *cough*). I don't mean to disparage this mode of work—I found it pretty magical, like almost overnight I was able to cross a boundary that would normally slow or completely block me from delivering value.
-
-Yet it always felt like there was *more* to understand in a fully agentic AI DevX. Claude Code is *flexible*, and there are many subsystems that at times seem to solve the same problem. Did I need to master all of them, and if not, which are the most important? And how does one really optimize these pieces once you identify which to focus on?
-
-How could I go from good to great with my AI DevX?
-
-I don't have all the answers, and I can't say with a massive amount of certainty that these ideas are transferable to others' workflows. What I can say is that now I have developed strong-but-loosely-held opinions on what problems need to be solved to build atop agentic dev workflows.
+Up until this [Memos project](https://memos.alki.me/pages/readme/), my experience with AI coding assistants was what I'd call "AI pairing"—reaching for agent mode when I needed help exploring unfamiliar parts of a codebase. That was good, even magical at times. But I sensed there was *more* to fully agentic workflows, and I wanted to understand what separated good from great. Through building Memos, I've landed on some answers that work for me: great AI DevX comes from LLM *independence*, and independence requires high-quality Memory plus orchestration of planning context. Your mileage may vary—but this is the story of how I got there.
 
 ## Good Patterns Propagate
 
