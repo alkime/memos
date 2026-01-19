@@ -10,21 +10,7 @@ draft: false
 
 # From Good To Great DevX
 
-Up until this [Memos project](https://memos.alki.me/pages/readme/), my experience with AI coding assistants was what I'd call "AI pairing"—reaching for agent mode when I needed help exploring unfamiliar parts of a codebase. That was good, even magical at times. But I sensed there was *more* to fully agentic workflows, and I wanted to understand what separated good from great. Through building Memos, I've landed on some answers that work for me: great AI DevX comes from LLM *independence*, and independence requires high-quality Memory plus orchestration of planning context. Your mileage may vary—but this is a little bit about of how I got there.
-
-```
-From Good To Great DevX
-├── The Core Insight: Your LLM is Always Onboarding
-├── Learning Loops (PR comments, architecture updates, code reviews)
-├── Clean Codebases Help LLMs Plan
-├── Scaling With Parallelism
-│   ├── The Coordination Problem
-│   └── Planning as Context Management
-├── Advanced Planning Systems
-└── Final Thoughts
-```
-
-
+Up until this [Memos project](https://memos.alki.me/pages/readme/), my experience with AI coding assistants was what I'd call "AI pairing"—reaching for agent mode when I needed help exploring unfamiliar parts of a codebase. That was good, even magical at times. But I sensed there was *more* to fully agentic workflows, and I wanted to understand what separated good from great. Through building Memos, I've landed on some answers that work for me: great AI DevX comes from LLM *independence*, and independence requires high-quality Memory plus orchestration of planning context. Your mileage may vary—but this is a little bit about how I got there.
 
 ## Your LLM is Always Onboarding
 
@@ -76,7 +62,7 @@ Now take one more leap. For complex features, the plan itself can be decomposed�
 
 Sequencing may still matter—testing might need the other two to finish first—but the architecture allows for significant parallelism. One planning session fans out into many implementation sessions, each operating with focused context.
 
-**Parallelism Through Independence.** As the third diagram shows, agentic independence creates the foundation for parallelism. By decoupling planning from implementation—and having a system to hand off planning context cleanly—we can scale execution somewhat horizontally without losing context quality.
+**Parallelism Through Independence.** As the third diagram shows, agentic independence creates the foundation for parallelism. By decoupling planning from implementation—and having a system to hand off planning context cleanly—we can scale execution horizontally without losing context quality.
 
 ### Beyond Plan Files
 
@@ -88,7 +74,7 @@ I've started exploring this space but don't have strong opinions yet. What I can
 
 ## Final Thoughts
 
-Before this project, most of my AI workflow was what I'd call "AI pairing"—the LLM helping me explore ideas and move faster. That was good. But great AI DevX, I've found, comes from LLM independence: giving the LLM enough context to operate without constant hand-holding.
+Before this project, most of my AI workflow was what I'd call "AI pairing"—the LLM helping me explore ideas and move faster. That was good. But great AI DevX, I've found, comes from LLM *independence*.
 
 Independence requires two things: high-quality Memory (the ground truth that every session builds on), and planning context (the task-specific working memory that guides execution). Get these right, and you unlock not just better outputs, but the ability to scale—parallel sessions, each operating with focused context, each pushing toward the same goal.
 
