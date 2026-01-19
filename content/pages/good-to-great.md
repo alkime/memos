@@ -86,11 +86,13 @@ Tons of apps have existed for years now to address this need, and through MCP, C
 
 I've started exploring this space but don't have strong opinions yet. What I can say: the principle remains the same. These tools are just different ways to structure and deliver planning context to the LLM. It all comes back to context.
 
-# Final Thoughts
+## Final Thoughts
 
-Most of my AI workflow before this project was what I would call "AI pairing," where the LLM helped me explore ideas or even increased my capabilities. This was *good*, but I knew there was a *great* somewhere, and it turns out that *great* AI DevX comes from LLM *independence*. In order for the LLM to be independent, it needs high-quality *ground truth* Memory, and systems to empower parallelism through orchestration of planning *memory*.
+Before this project, most of my AI workflow was what I'd call "AI pairing"—the LLM helping me explore ideas and move faster. That was good. But great AI DevX, I've found, comes from LLM independence: giving the LLM enough context to operate without constant hand-holding.
 
-As I worked on Memos, I was able to dig deeper on the why and the how of powerful AI-based workflows, getting closer to a root conceptualization of AI DevX. Astonishing about covers it, and I feel energized for what's next.
+Independence requires two things: high-quality Memory (the ground truth that every session builds on), and planning context (the task-specific working memory that guides execution). Get these right, and you unlock not just better outputs, but the ability to scale—parallel sessions, each operating with focused context, each pushing toward the same goal.
+
+Building Memos taught me this. I'm still learning, but the foundation feels solid now. Onward.
 
 ---
 {{< byline >}}
