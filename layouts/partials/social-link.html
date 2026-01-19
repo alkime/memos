@@ -1,7 +1,12 @@
-{{- $platform := .platform -}}
-{{- $username := .username -}}
-{{- $baseURL := .baseURL -}}
+{{- $platform := .platform -}} {{- $username := .username -}} {{- $baseURL :=
+.baseURL -}}
 
-<a href="{{ $baseURL }}{{ $username }}" target="_blank" rel="noopener noreferrer" aria-label="{{ $platform | title }}" class="social-link social-link-{{ $platform }}">
+<a
+    href="{{ $baseURL }}{{ $username }}"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="{{ $platform | title }}"
+    class="social-link social-link-{{ $platform }}"
+>
     <span class="icon-base social-icon social-icon-{{ $platform }}"></span>
 </a>
