@@ -12,6 +12,20 @@ draft: false
 
 Up until this [Memos project](https://memos.alki.me/pages/readme/), my experience with AI coding assistants was what I'd call "AI pairing"—reaching for agent mode when I needed help exploring unfamiliar parts of a codebase. That was good, even magical at times. But I sensed there was *more* to fully agentic workflows, and I wanted to understand what separated good from great. Through building Memos, I've landed on some answers that work for me: great AI DevX comes from LLM *independence*, and independence requires high-quality Memory plus orchestration of planning context. Your mileage may vary—but this is a little bit about of how I got there.
 
+```
+From Good To Great DevX
+├── The Core Insight: Your LLM is Always Onboarding
+├── Learning Loops (PR comments, architecture updates, code reviews)
+├── Clean Codebases Help LLMs Plan
+├── Scaling With Parallelism
+│   ├── The Coordination Problem
+│   └── Planning as Context Management
+├── Advanced Planning Systems
+└── Final Thoughts
+```
+
+
+
 ## Your LLM is Always Onboarding
 
 Let's start with high-quality Memory. 
@@ -34,49 +48,35 @@ Most Memory file systems contain **architecture docs, which drift** from ground 
 
 These loops compound. The more corrections flow back into Memory, the fewer corrections you need to make.
 
-### Clean Codebases
+## Clean Codebases
 
-I've noticed that more or less every time I'm in planning mode with Claude Code, the first thing it does is grep around the codebase for patterns it sees (the latest incarnation deploys the built-in [Explore subagent](https://code.claude.com/docs/en/sub-agents#built-in-subagents)). It's expanding the context—layering on top of its Memory files so that it has a better understanding of how the problem it's been presented should be solved.
+Every time I'm in planning mode with Claude Code, the first thing it does is grep around the codebase for patterns (often via the built-in [Explore subagent](https://code.claude.com/docs/en/sub-agents#built-in-subagents)). It's expanding context—layering on top of Memory to understand how the problem should be solved.
 
-Complex and chaotically organized codebases will naturally confuse it. If packages are overwrought, or if there is more than one way to do the same thing, or a given interface has tons of methods—this all pollutes what the LLM knows and how it plans to solve the problem you've tasked it with. LLMs are also notoriously bad at knowing when to NOT do something when their context is confusing. This is where the analogy that this is an onboarding dev sort of falls down, because at least the dev will be like "WTF mate?"
+This means messy codebases directly degrade planning. Overwrought packages, multiple ways to do the same thing, bloated interfaces—all of this pollutes the LLM's understanding. Worse, LLMs are notoriously bad at knowing when to *not* do something when their context is confusing. A human onboarding into a messy codebase will at least ask clarifying questions; the LLM often just confidently picks a bad pattern.
 
-This really struck home for me when I was struggling to get the [voice CLI onto the Bubbletea TUI framework](https://memos.alki.me/posts/2025/12/bubbly-t/). The first pass at the TUI was, frankly, garbage and needed to be scrapped. It wasn't until I pulled back, [decided to do it myself](https://memos.alki.me/posts/2025/11/when-to-build-it-yourself/), and introduced some good patterns that things improved. I learned a lot about Bubbletea in the process, which enabled me to understand what was good and where corrections needed to be made, further feeding the learning loops. The final structure separates concerns and codes to a simple structure, while also separating out "widgets" from "containers" for a bit more clarity that allowed the LLM to more or less add phases without any handholding.
+This struck home when I was struggling to get the [voice CLI onto the Bubbletea TUI framework](https://memos.alki.me/posts/2025/12/bubbly-t/). The first pass was garbage and needed to be scrapped. It wasn't until I [pulled back and did it myself](https://memos.alki.me/posts/2025/11/when-to-build-it-yourself/)—learning Bubbletea properly, introducing clean separation between "widgets" and "containers"—that the LLM could add features without handholding. Good patterns in, good patterns out.
 
-## Continue Doing Code Reviews
+## Planning
 
-I'm still for code reviews. This is a primary mechanism I've deployed to really give the LLM batched feedback—there are many times when the LLM needs a lot of corrections. Code review systems are *already a core process* every dev team knows about, so why not continue to leverage this? Setting up the learning loop approach above created a positive feedback loop that pushed the system closer to agentic independence. With this learning setup, there may be a point where my Memory files have been cultivated in such a way that most of the reviews are rubber stamps. Wouldn't that be something!
+When we've built up high-quality Memory, we've created a foundation every LLM session can build on. But ground truth Memory alone isn't enough for independent operation—the LLM also needs task-specific context before it starts generating. It needs a plan.
 
-This isn't to say an AI pairing motion isn't warranted here. The LLMs can review code too, and I do think an interesting setup exists where you have *another* LLM provider do the review. For a bit I was paying for both GH Copilot and Claude Code, so I'd have Copilot tag in for reviews. I thought it was high quality, and it being GH, it did inline comments—wiring up into the core feedback loop.
+I find it useful to distinguish planning context from Memory proper: Memory is your static ground truth; planning context is ephemeral and scoped to a specific task. The most successful sessions have a planning phase where you and the LLM brainstorm the feature, then record the plan somewhere accessible. This plan becomes working memory that the current or future sessions execute against.
 
-## Scaling With Parallelism
+{{< image-caption src="/images/pages/good-to-great/single_session.png" alt="Single Sessions" caption="Simplest: planning and implementation in a single session" >}}
 
-The idea of parallelism feels like a slightly less spoken-about idea in AI DevX, so it's worth level-setting here, I think. What I'm talking about here is the most basic idea where your setup is doing more than one thing at the same time. There are many approaches and tools to build this kind of workflow, some native like Claude Code's Background Tasks and Cursor's Background Agents, to DIY setups with multiple checkouts of the same repo all tmux'd out.
+In the simplest case, planning and implementation happen in the same session. The plan gets written to disk as `plan.md`, and implementation follows.
 
-You pay a cost in coordination—isn't that always the case with parallelism??—but my sense is that agentic systems need some kind of independence built into them, which naturally empowers the system to scale up and really deliver on its promise. If AI pairing is getting to ***cruising altitude***, agentic dev is blasting into ***orbit***.
+But saving the plan to disk unlocks something: session independence. If you hit the context window limit before implementation starts, you can spin up a fresh session and just say "execute the plan." The plan file carries the context forward.
 
-The coordination I'm referring to exists in at least two levels. The lowest level has to do with making sure updates happen in isolation. Classic write contention problem. If you're not careful and several LLM instances or background tasks are operating on the same repo, the chances are high they will clobber one another ("clobber" being the technical term for data write contention).
+{{< image-caption src="/images/pages/good-to-great/multi_session_simple.png" alt="Simple Multi Session" caption="Planning in one session, implementation in another" >}}
 
-There are solutions to this, from the obvious (multi-repo checkouts) to some little-known (at least to me) git features (see `git-worktree`). This level is interesting, but I won't discuss it too much right now. I think what's more interesting is coordination of Memory, particularly in the form of memory related to planning.
+Now take one more leap. For complex features, the plan itself can be decomposed—a `frontend_plan.md`, a `backend_plan.md`, a `testing_plan.md`. Each becomes context for a separate implementation session, potentially running in parallel.
 
-### Planning
+{{< image-caption src="/images/pages/good-to-great/multi_session_complex.png" alt="Full Multi Session" caption="Parallel implementation sessions, each with its own plan" >}}
 
-The most successful sessions will have a planning phase—where you and the LLM brainstorm on what the feature or task it will be working on, and the plan is somehow recorded and added to accessible Memory. This Memory is then used to implement the plan.
+Sequencing may still matter—testing might need the other two to finish first—but the architecture allows for significant parallelism. One planning session fans out into many implementation sessions, each operating with focused context.
 
-The planning phase is when the LLM's Memory gets augmented with targeted exploration of the codebase, where good (or not so good) patterns are loaded up and used as kindling for a plan document. This document then becomes context, becomes Memory, that the current or future sessions can work off of.
-
-{{< image-caption src="/images/pages/good-to-great/single_session.png" alt="Single Sessions" caption="Simplest. Single session of planning and implementation" >}}
-
-This diagram shows how planning context—the `plan.md`—is passed from planning phase to implementation phase. In the simplest frame, it's all in the same session.
-
-Saving the plan to disk has a nice benefit. Let's imagine we get to the end of our context window and we haven't yet done any implementation (for the sake of argument, let's pretend compaction is not a thing). Because the plan is on disk, we can simply start a new session and instruct Claude to execute the plan doc, and off it goes.
-
-{{< image-caption src="/images/pages/good-to-great/multi_session_simple.png" alt="Simple Multi Session" caption="Simple but with more robust context management..." >}}
-
-So the final idea to express here requires one more leap of imagination. As the feature set gets more complicated, the plan can get larger and more complex. Let's say there is a frontend piece and a backend piece, and a complicated testing part of the plan. You can break these up into more than one planning file—a `frontend_plan.md`, a `backend_plan.md`, and a `testing_plan.md`.
-
-{{< image-caption src="/images/pages/good-to-great/multi_session_complex.png" alt="Full Multi Session" caption="Enable agentic parallelism with many implementation instances..." >}}
-
-Here, we have a planning session which generates a detailed and fairly complicated plan, then we spin up implementation sessions, each one executing a different plan. Sequencing may be necessary—the testing plan execution might need some or all of the other two to have completed before it can start executing—but the theory allows for some impressive parallelism.
+**Parallelism Through Independence.** As the third diagram shows, agentic independence creates the foundation for parallelism. By decoupling planning from implementation—and having a system to hand off planning context cleanly—we can scale execution somewhat horizontally without losing context quality.
 
 ### Advanced Planning Systems
 
