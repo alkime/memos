@@ -10,15 +10,21 @@ draft: false
 
 # From Good To Great DevX
 
-Up until this [Memos project](https://memos.alki.me/pages/readme/), my experience with AI coding assistants was what I'd call "AI pairing"—reaching for agent mode when I needed help exploring unfamiliar parts of a codebase. That was good, even magical at times. But I sensed there was *more* to fully agentic workflows, and I wanted to understand what separated good from great. Through building Memos, I've landed on some answers that work for me: great AI DevX comes from LLM *independence*, and independence requires high-quality Memory plus orchestration of planning context. Your mileage may vary—but this is the story of how I got there.
+Up until this [Memos project](https://memos.alki.me/pages/readme/), my experience with AI coding assistants was what I'd call "AI pairing"—reaching for agent mode when I needed help exploring unfamiliar parts of a codebase. That was good, even magical at times. But I sensed there was *more* to fully agentic workflows, and I wanted to understand what separated good from great. Through building Memos, I've landed on some answers that work for me: great AI DevX comes from LLM *independence*, and independence requires high-quality Memory plus orchestration of planning context. Your mileage may vary—but this is a little bit about of how I got there.
 
-## Good Patterns Propagate
+## Your LLM is Always Onboarding
 
-There are certain engineering practices I like to think of as *eat your veggies* sorts of things. Good docs. Small PRs. Good commit messages and PR descriptions. Tests. (!!!) You know, the kinds of practices that we all know we should be doing all the time, but that for any myriad of reasons don't always make it onto our roadmaps. The reason we do these things is not because we secretly yearn for a life as technical writers (no shade!). We implement good patterns because they make it easier for our teammates to better understand some part of the system we've built that, when they come to it fresh, is complex and opaque. (If you think about it, the list of people that can use this support is actually quite long—and future you is on it!)
+Let's start with high-quality Memory. 
 
-When [your LLM is always onboarding](https://memos.alki.me/posts/2026/01/your-llm-is-always-onboarding/), high-quality, high-fidelity docs are no longer something to backburner—they are table stakes for fully agentic DevX workflows. This idea led me to a few tactics which, when deployed, helped me and Claude get closer to great.
+There's a core insight that is best expressed as this analogy: [your LLM is always onboarding](https://memos.alki.me/posts/2026/01/your-llm-is-always-onboarding/). Every session, you're essentially handing context to a new team member who's smart but has no memory of yesterday's conversations.
 
-### Learning Loops
+This reframes a lot of what I like to call the "eat your veggies" engineering practices—good docs, clean architecture, clear commit messages, tests. We know we *should* do these things, but they often slip down the priority list. The reason they matter is that they help teammates understand complex, opaque systems when they come to them fresh.
+
+When your LLM is always onboarding, that list of "teammates who need support" gets a lot longer—it's every LLM session you spin up! High-quality, high-fidelity documentation is no longer something to backburner. It's table stakes for agentic workflows.
+
+This insight leads to two practical focus areas: **learning loops** that keep your Memory files accurate, and **clean codebases** that help the LLM plan effectively.
+
+## Learning Loops
 
 We've all been there. "Dude, I've told you this a thousand times! Please make sure you…" whatever it may be. Once I understood a bit more about Memory, I actually went looking for ways to hook in learning loops into my process, where the session isn't just about producing a solution, but it's a meta-level step of capturing gaps in the LLM's Memory files and updating those files to make them higher quality for future sessions.
 
