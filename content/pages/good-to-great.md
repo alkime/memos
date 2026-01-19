@@ -78,19 +78,13 @@ Sequencing may still matter—testing might need the other two to finish first�
 
 **Parallelism Through Independence.** As the third diagram shows, agentic independence creates the foundation for parallelism. By decoupling planning from implementation—and having a system to hand off planning context cleanly—we can scale execution somewhat horizontally without losing context quality.
 
-### Advanced Planning Systems
+### Beyond Plan Files
 
-Writing a plan file to disk as detailed above is the native, basic form of planning that happens in Claude Code. Project planning apps are plentiful though, and through mechanisms like MCP, the LLM can be given access to them. Linear has an [official MCP integration](https://linear.app/integrations/claude), as does [Atlassian](https://www.atlassian.com/blog/announcements/remote-mcp-server). My sense is that teams might have a bit of use-case creep here since the context generated for a useful LLM plan might be overly verbose for these tools.
+Writing plan files to disk is the native, lightweight approach—and for many workflows, it's enough. But as planning gets more complex, you may want more structure: dependencies between tasks, status tracking, the ability to query "what's ready to work on?"
 
-There is a tool named [`beads`](https://github.com/steveyegge/beads) by Steve Yegge that delivers a lot of the features you'd see in some of these systems but all locally synced with your repo through use of SQLite & JSONL data. The issues stored have more structure and are linked. The structure gives them bead titles, descriptions, types (bug, feature, task, epic, …), key-value labels, and importantly dependency linkages, as well as a simple set of commands to get ready work.
+Tons of apps have existed for years now to address this need, and through MCP, Claude Code and other systems can integrate with systems like [Linear](https://linear.app/integrations/claude) or [Atlassian](https://www.atlassian.com/blog/announcements/remote-mcp-server). There are also local-first tools like [`beads`](https://github.com/steveyegge/beads) that keep planning data in your repo via SQLite.
 
-I recently moved the Memos project onto beads. This included building out two subagent definitions: an `architect` which handles the requirements gathering and technical design pieces in the "planning" box above, and an `artificer` which is the generic "pick up this task and implement it" agent.
-
-I implemented this *using* beads. First step after initializing the beads db was to generate the architect, ensuring it was "beads aware," then I used the architect to flush out the new "Setup Beads Based Workflow" epic whose task was to plan out and generate the artificer definition. Quite meta, but also quite useful.
-
-{{< image-caption src="/images/pages/good-to-great/bees_question_mark.png" alt="beads" caption="Bees? ... BEADS!!" >}}
-
-This exercise was my first time exploring them, and I'm just reminded again that everything comes back to context. The agent definition is a way to steer the LLM to great by layering on specific, domain-specific context to what it's doing in that session, increasing the autonomy and chances of a good outcome. It all comes back to context.
+I've started exploring this space but don't have strong opinions yet. What I can say: the principle remains the same. These tools are just different ways to structure and deliver planning context to the LLM. It all comes back to context.
 
 # Final Thoughts
 
