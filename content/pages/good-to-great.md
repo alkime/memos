@@ -1,5 +1,5 @@
 ---
-title: "From Good To Great DevX"
+title: "From Good To Great AI DevX"
 date: 2026-01-18
 author: James
 tags: ["AI Assisted Dev", "Working In The Open", "DevX", "Claude Code", "LLM", "Workflows"]
@@ -8,7 +8,7 @@ pinned: false
 draft: false
 ---
 
-# From Good To Great DevX
+# From Good To Great AI DevX
 
 Up until this [Memos project](https://memos.alki.me/pages/readme/), my experience with AI coding assistants was what I'd call "AI pairing"—reaching for agent mode when I needed help exploring unfamiliar parts of a codebase. That was good, even magical at times. But I sensed there was *more* to fully agentic workflows, and I wanted to understand what separated good from great. Through building Memos, I've landed on some answers that work for me: great AI DevX comes from LLM *independence*, and independence requires high-quality Memory plus orchestration of planning context. Your mileage may vary—but this is a little bit about how I got there.
 

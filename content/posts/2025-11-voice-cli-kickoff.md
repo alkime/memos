@@ -4,7 +4,7 @@ date: "2025-11-10T10:00:00-08:00"
 author: James
 voiceBased: true
 draft: false
-pinned: true
+pinned: false
 
 tags: ["AI Assisted Dev", "Working In The Open"]
 ---

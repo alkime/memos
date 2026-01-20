@@ -96,6 +96,10 @@ menu:
       name: resume
       url: /pages/resume/
       weight: 30
+    - identifier: good-to-great
+      name: "From Good To Great AI DevX"
+      url: /pages/good-to-great/
+      weight: 40
 
 # Taxonomies
 taxonomies:

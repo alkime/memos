@@ -3,7 +3,7 @@ title: "Booting Up With Claude Part 2 - Getting to V0"
 date: "2025-10-30T12:15:54-08:00"
 author: James
 voiceBased: true
-pinned: true
+pinned: false
 draft: false
 
 tags: ["AI Assisted Dev", "Working In The Open"]
