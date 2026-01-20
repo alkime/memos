@@ -3,7 +3,7 @@ title: "From Good To Great AI DevX"
 date: 2026-01-18
 author: James
 tags: ["AI Assisted Dev", "Working In The Open", "DevX", "Claude Code", "LLM", "Workflows"]
-voiceBased: true
+voiceBased: false
 pinned: false
 draft: false
 ---

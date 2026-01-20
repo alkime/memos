@@ -1,0 +1,5 @@
+{{- $menu := .Site.Menus.main -}}
+{{- range $index, $item := $menu -}}
+{{- if $index }}<span class="nav-sep">·</span>{{ end -}}
+<a href="{{ $item.URL }}">{{ $item.Name }}</a>
+{{- end -}}
