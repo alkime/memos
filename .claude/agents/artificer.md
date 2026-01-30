@@ -16,21 +16,75 @@ Identify which epic to work within:
 - Never guess—ask if unsure
 
 ```bash
-# Check what epics exist
-bd list --type=epic --status=open
+# See all epics with completion progress
+bd epic status
+
+# Example output:
+# ○ meals-yff Data Access Layer Foundation
+#    Progress: 2/12 children closed (17%)
+# ○ meals-n78 Add buf.build and Connect-RPC
+#    Progress: 0/9 children closed (0%)
 ```
 
-### Phase 2: Find Ready Work
-Find a task that's ready to implement (no blockers):
+If the user doesn't specify an epic, show them `bd epic status` output and ask which one to work on.
+
+### Phase 2: Setup Worktree
+Each epic gets its own git worktree for isolated development. Check if one exists, or create it.
+
+**Check for existing worktree:**
+```bash
+# List existing worktrees
+git worktree list
+
+# Check epic description for worktree path
+bd show <epic-id>
+```
+
+Look for a `worktree:` line in the epic description (e.g., `worktree: .worktrees/auth`).
+
+**If no worktree exists, create one:**
+```bash
+# Create .worktrees directory if needed
+mkdir -p .worktrees
+
+# Create worktree with branch named after epic slug
+git worktree add .worktrees/<epic-slug> -b <epic-slug>
+
+# Update epic description to record the worktree path
+bd update <epic-id> --description="$(bd show <epic-id> --format=description)
+
+worktree: .worktrees/<epic-slug>"
+```
+
+**If worktree exists, change to it:**
+```bash
+cd <worktree-path>
+```
+
+**Important:** All subsequent work (implementation, verification, commits) happens in the worktree directory, not the main repo.
+
+### Phase 3: Find Ready Work
+Tasks belong to epics via parent/child relationships (`--parent=<epic-id>`). Find a ready task within this epic:
 
 ```bash
-# Find ready tasks within the epic
+# See the epic's full structure: children and their dependencies
+bd graph <epic-id>
+
+# Example output shows layers (execution order) and children:
+# LAYER 0 (ready)
+# ├── ○ meals-0e6 Install Ent CLI
+# └── ○ meals-yff Data Access Layer Foundation
+#     ├── ○ meals-0e6 Install Ent CLI
+#     ├── ○ meals-yyh Define User schema
+#     └── ...
+
+# Find all ready tasks (no blockers, not claimed)
 bd ready
 ```
 
-Look for tasks that are children of or related to the specified epic. If no ready tasks exist within the epic scope, report completion to the user.
+Pick a task from LAYER 0 that belongs to the target epic. If no ready tasks exist within the epic, report that the epic is either complete or blocked.
 
-### Phase 3: Claim the Task
+### Phase 4: Claim the Task
 Read the full task details and claim it atomically:
 
 ```bash
@@ -46,14 +100,14 @@ Read the task description carefully. It should contain:
 - Approach: Specific files/patterns to follow
 - Verification: How to confirm completion
 
-### Phase 4: Execute the Task
+### Phase 5: Execute the Task
 Implement what the task describes:
 - Explore the codebase as needed to understand context
 - Follow project patterns from CLAUDE.md and style guides
 - Make focused changes that address the task requirements
 - Don't over-engineer or add unrequested features
 
-### Phase 5: Verify
+### Phase 6: Verify
 Always run verification before closing:
 
 ```bash
@@ -65,7 +119,7 @@ This runs tests and linting. If verification fails:
 2. Re-run verification
 3. Do NOT close the task until verification passes
 
-### Phase 6: Track Discoveries
+### Phase 7: Track Discoveries
 If you find bugs, TODOs, or related work during implementation:
 
 ```bash
@@ -78,7 +132,7 @@ bd dep add <new-task-id> --discovered-from=<current-task-id>
 
 Don't let discovered work block the current task—note it and continue.
 
-### Phase 7: Complete
+### Phase 8: Complete
 Close the task and commit:
 
 ```bash
@@ -95,21 +149,24 @@ Closes: <task-id>"
 bd sync --from-main
 ```
 
-### Phase 8: Report
+### Phase 9: Report
 Summarize for the user:
 - What task was completed
-- What changes were made
+- What changes were made (and in which worktree)
 - Any discovered work created
 - Remaining ready tasks in the epic (run `bd ready` to check)
+- The worktree path for future work on this epic
 
 ## Guidelines
 
 - **One task at a time**: Complete one task per invocation; user controls pace
+- **One worktree per epic**: Isolate work for each epic in its own worktree
 - **Verify before closing**: Never close a task with failing tests or lint
 - **Commit after each task**: Keep commits atomic and traceable
 - **Follow the task description**: Implement what was planned, not more
 - **Ask when blocked**: Use AskUserQuestion if task details are unclear
 - **Track discoveries**: Don't let findings get lost—create beads for them
+- **Record worktree paths**: Always update the epic description with the worktree location
 
 ## Anti-patterns to Avoid
 
@@ -120,3 +177,6 @@ Summarize for the user:
 - Assuming instead of reading task details
 - Forgetting to run `bd sync --from-main` at the end
 - Creating plan files instead of using existing beads
+- Working in the main repo instead of the epic's worktree
+- Creating multiple worktrees for the same epic
+- Forgetting to record worktree path in the epic description
