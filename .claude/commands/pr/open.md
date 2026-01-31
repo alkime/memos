@@ -24,7 +24,22 @@ git log main..HEAD --oneline
 git diff main...HEAD --stat
 ```
 
-### 2. Check for Existing PR
+### 2. Check for Uncommitted Changes
+
+Before creating/updating a PR, ensure all changes are committed:
+
+```bash
+git status --short
+```
+
+**If there are uncommitted changes:**
+- Ask the user: "There are uncommitted changes. Would you like to commit them before creating the PR?"
+- If user confirms: stage the relevant files, create a commit with an appropriate message, and continue
+- If user declines: proceed without committing (changes won't be in the PR)
+
+**Important:** The PR will only include committed and pushed changes. Uncommitted work won't appear in the PR diff.
+
+### 3. Check for Existing PR
 
 Check if a PR already exists for this branch:
 
@@ -35,28 +50,28 @@ gh pr view --json number,title,body,state 2>/dev/null
 **If PR exists:**
 - Check if the body is empty or minimal
 - If body has content, ask user: "This PR already has a description. Would you like to overwrite it?"
-- If user confirms or body is empty, proceed to update flow (Step 5b)
+- If user confirms or body is empty, proceed to update flow (Step 6b)
 - If user declines, stop
 
 **If no PR exists:**
 - Check if branch has been pushed: `git rev-parse --abbrev-ref @{upstream} 2>/dev/null`
 - If not pushed, push first: `git push -u origin $(git branch --show-current)`
-- Proceed to create flow (Step 5a)
+- Proceed to create flow (Step 6a)
 
-**Important:** After creating a PR (Step 5a), verify tracking is set up:
+**Important:** After creating a PR (Step 6a), verify tracking is set up:
 ```bash
 # Verify tracking exists, set it if not
 git rev-parse --abbrev-ref @{upstream} 2>/dev/null || git branch --set-upstream-to=origin/$(git branch --show-current)
 ```
 
-### 3. Analyze Changes
+### 4. Analyze Changes
 
 Review the commits and changes to understand:
 - What was added, removed, or modified
 - The overall theme/purpose of the changes
 - Any notable statistics (files changed, lines added/removed)
 
-### 4. Generate Description
+### 5. Generate Description
 
 Write the PR description to a temp file (avoids sandbox/heredoc issues):
 
@@ -77,13 +92,13 @@ cat > /tmp/claude/pr-body.md << 'PREOF'
 PREOF
 ```
 
-### 5a. Create New PR
+### 6a. Create New PR
 
 ```bash
 gh pr create --title "your title here" --body-file /tmp/claude/pr-body.md
 ```
 
-### 5b. Update Existing PR
+### 6b. Update Existing PR
 
 ```bash
 gh pr edit --body-file /tmp/claude/pr-body.md
@@ -95,7 +110,7 @@ Optionally update the title too if it needs improvement:
 gh pr edit --title "improved title" --body-file /tmp/claude/pr-body.md
 ```
 
-### 6. Report Result
+### 7. Report Result
 
 Output the PR URL so the user can review it.
 
