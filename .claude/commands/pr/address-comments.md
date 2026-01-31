@@ -11,13 +11,11 @@ This command processes PR review comments through a structured workflow: fetch c
 
 ## Style Guides
 
-This project maintains multiple style guides based on the area of the codebase:
+This project maintains style guides based on the area of the codebase:
 
 | Guide | Path | Applies To |
 |-------|------|------------|
-| Go | `docs/guides/go-style-guide.md` | `api/**/*.go`, `*.go` |
-| React/TypeScript | `docs/guides/react-typescript-style-guide.md` | `clients/**/*.ts`, `clients/**/*.tsx`, `*.ts`, `*.tsx` |
-| Infrastructure | `docs/guides/infra-style-guide.md` | `Dockerfile*`, `Makefile`, `.github/**`, `fly.toml`, `*.sh` |
+| Go | `docs/guides/go-style-guide.md` | `**/*.go` |
 
 ## Workflow
 
@@ -83,10 +81,6 @@ After all fixes are complete:
 
    Based on the files touched by PR comments, identify which style guide(s) are relevant:
    - Go files (`*.go`) → `docs/guides/go-style-guide.md`
-   - TypeScript/React files (`*.ts`, `*.tsx`) → `docs/guides/react-typescript-style-guide.md`
-   - Infrastructure files (`Dockerfile`, `Makefile`, `.github/*`, etc.) → `docs/guides/infra-style-guide.md`
-
-   Multiple guides may be relevant for a single PR.
 
 2. **Read the relevant style guide(s):**
 
@@ -115,9 +109,6 @@ After all fixes are complete:
    ## go-style-guide.md
    - Gap 1: [Describe the pattern from PR feedback] -> Missing from guide
    - Gap 2: [Pattern from user response to AI reviewer] -> User explained why they rejected AI suggestion; rationale should be documented
-
-   ## react-typescript-style-guide.md
-   - Gap 1: [Pattern identified] -> Missing from guide
 
    Proposed additions:
    [Show the specific text to add and which guide it should go in]

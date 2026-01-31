@@ -68,12 +68,12 @@ bd create --title="Add logout button to nav" --type=task
 ```bash
 # Create epic first (container for related work)
 bd create --title="Implement user authentication" --type=epic --description="..."
-# Returns: meals-abc
+# Returns: memos-abc
 
 # Create child tasks with --parent pointing to epic
-bd create --title="Add user model and migrations" --type=task --parent=meals-abc
-bd create --title="Create login/signup endpoints" --type=task --parent=meals-abc
-bd create --title="Add session middleware" --type=task --parent=meals-abc
+bd create --title="Add user model and migrations" --type=task --parent=memos-abc
+bd create --title="Create login/signup endpoints" --type=task --parent=memos-abc
+bd create --title="Add session middleware" --type=task --parent=memos-abc
 
 # Set execution order dependencies between tasks (separate from parent hierarchy)
 bd dep add <login-endpoints-id> <user-model-id>  # login depends on user model

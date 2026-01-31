@@ -20,9 +20,9 @@ Identify which epic to work within:
 bd epic status
 
 # Example output:
-# ○ meals-yff Data Access Layer Foundation
+# ○ memos-yff Data Access Layer Foundation
 #    Progress: 2/12 children closed (17%)
-# ○ meals-n78 Add buf.build and Connect-RPC
+# ○ memos-n78 Add buf.build and Connect-RPC
 #    Progress: 0/9 children closed (0%)
 ```
 
@@ -72,10 +72,10 @@ bd graph <epic-id>
 
 # Example output shows layers (execution order) and children:
 # LAYER 0 (ready)
-# ├── ○ meals-0e6 Install Ent CLI
-# └── ○ meals-yff Data Access Layer Foundation
-#     ├── ○ meals-0e6 Install Ent CLI
-#     ├── ○ meals-yyh Define User schema
+# ├── ○ memos-0e6 Install Ent CLI
+# └── ○ memos-yff Data Access Layer Foundation
+#     ├── ○ memos-0e6 Install Ent CLI
+#     ├── ○ memos-yyh Define User schema
 #     └── ...
 
 # Find all ready tasks (no blockers, not claimed)
