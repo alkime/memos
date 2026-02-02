@@ -5,9 +5,17 @@ description: Process PR review comments - fetch, validate, fix issues, update st
 
 # Address PR Review Comments
 
-This command processes PR review comments through a structured workflow: fetch comments, validate against code, fix issues, and intelligently update the style guide.
+This command processes PR review comments through a structured workflow: fetch comments, validate against code, fix issues, and intelligently update the relevant style guide(s).
 
 **Note:** PR comments may come from human reviewers OR AI agents (GitHub Copilot, AI code reviewers, etc.). The user may resolve AI-generated comments they don't want to address, sometimes including responses explaining their decision. These responses are valuable context for style guide updates.
+
+## Style Guides
+
+This project maintains style guides based on the area of the codebase:
+
+| Guide | Path | Applies To |
+|-------|------|------------|
+| Go | `docs/guides/go-style-guide.md` | `**/*.go` |
 
 ## Workflow
 
@@ -69,12 +77,16 @@ Work through the TodoWrite list systematically, addressing each PR comment. Use 
 
 After all fixes are complete:
 
-1. **Read the current style guide:**
-   ```
-   docs/guides/go-style-guide.md
-   ```
+1. **Determine which guides to analyze:**
 
-2. **Analyze for gaps:**
+   Based on the files touched by PR comments, identify which style guide(s) are relevant:
+   - Go files (`*.go`) → `docs/guides/go-style-guide.md`
+
+2. **Read the relevant style guide(s):**
+
+   For each relevant guide, read its current contents.
+
+3. **Analyze for gaps:**
    - Review the PR comments that were addressed (Phase 2 fixes)
    - **IMPORTANT:** Also review resolved comments where the user provided responses
      - User responses to AI reviewers often explain WHY certain patterns were chosen/rejected
@@ -83,28 +95,30 @@ After all fixes are complete:
    - Compare against existing style guide content
    - Determine if the patterns are already documented
 
-3. **Report findings:**
+4. **Report findings:**
 
    **If guide already covers the patterns:**
    ```
-   Style guide analysis: All feedback patterns are already documented in the guide. No updates needed.
+   Style guide analysis: All feedback patterns are already documented in the guide(s). No updates needed.
    ```
 
    **If gaps are found:**
    ```
    Style guide gap analysis:
+
+   ## go-style-guide.md
    - Gap 1: [Describe the pattern from PR feedback] -> Missing from guide
    - Gap 2: [Pattern from user response to AI reviewer] -> User explained why they rejected AI suggestion; rationale should be documented
 
    Proposed additions:
-   [Show the specific text to add and where in the guide it should go]
+   [Show the specific text to add and which guide it should go in]
    [Include rationale extracted from user responses when applicable]
 
-   Should I update the style guide with these additions?
+   Should I update the style guide(s) with these additions?
    ```
 
-4. **Update if approved:**
-   - If user confirms: Use Edit tool to add the new guidelines
+5. **Update if approved:**
+   - If user confirms: Use Edit tool to add the new guidelines to the appropriate guide(s)
    - If user declines: End workflow
    - If user wants revisions: Adjust and ask again
 
@@ -112,7 +126,8 @@ After all fixes are complete:
 
 - **Validate before committing:** Always check if comments reflect actual code state
 - **User maintains control:** Get confirmation on questionable feedback
-- **Intelligent updates only:** Only update style guide when there are clear, valuable additions
+- **Intelligent updates only:** Only update style guides when there are clear, valuable additions
+- **Right guide for the job:** Match feedback to the appropriate style guide based on file type
 - **Leverage existing behavior:** Use standard Claude Code workflows for todo handling and file editing
 
 ## Notes
